@@ -67,6 +67,13 @@ void pthreadpool_parallelize_1d_tile_1d(pthreadpool_t threadpool,
   }
 }
 
+void pthreadpool_parallelize_1d_dynamic(pthreadpool_t threadpool,
+                                        pthreadpool_task_1d_dynamic_t function,
+                                        void* context, size_t range,
+                                        size_t tile, uint32_t flags) {
+  function(context, 0, range);
+}
+
 void pthreadpool_parallelize_2d(struct pthreadpool* threadpool,
                                 pthreadpool_task_2d_t function, void* context,
                                 size_t range_i, size_t range_j,
@@ -97,6 +104,15 @@ void pthreadpool_parallelize_2d_tile_1d(pthreadpool_t threadpool,
     for (size_t j = 0; j < range_j; j += tile_j) {
       function(context, i, j, min(range_j - j, tile_j));
     }
+  }
+}
+
+void pthreadpool_parallelize_2d_tile_1d_dynamic(
+    pthreadpool_t threadpool, pthreadpool_task_2d_tile_1d_dynamic_t function,
+    void* context, size_t range_i, size_t range_j, size_t tile_j,
+    uint32_t flags) {
+  for (size_t i = 0; i < range_i; i++) {
+    function(context, i, 0, range_j);
   }
 }
 
@@ -147,6 +163,13 @@ void pthreadpool_parallelize_2d_tile_2d_with_uarch(
                min(range_j - j, tile_j));
     }
   }
+}
+
+void pthreadpool_parallelize_2d_tile_2d_dynamic(
+    pthreadpool_t threadpool, pthreadpool_task_2d_dynamic_t function,
+    void* context, size_t range_i, size_t range_j, size_t tile_i, size_t tile_j,
+    uint32_t flags) {
+  function(context, 0, 0, range_i, range_j);
 }
 
 void pthreadpool_parallelize_3d(pthreadpool_t threadpool,
@@ -248,6 +271,15 @@ void pthreadpool_parallelize_3d_tile_2d_with_uarch(
                  min(range_j - j, tile_j), min(range_k - k, tile_k));
       }
     }
+  }
+}
+
+void pthreadpool_parallelize_3d_tile_2d_dynamic(
+    pthreadpool_t threadpool, pthreadpool_task_3d_tile_2d_dynamic_t function,
+    void* context, size_t range_i, size_t range_j, size_t range_k,
+    size_t tile_j, size_t tile_k, uint32_t flags) {
+  for (size_t i = 0; i < range_i; i++) {
+    function(context, i, 0, 0, range_j, range_k);
   }
 }
 
