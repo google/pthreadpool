@@ -1,5 +1,5 @@
-#ifndef PTHREADPOOL_H_
-#define PTHREADPOOL_H_
+#ifndef __PTHREADPOOL_INCLUDE_PTHREADPOOL_H_
+#define __PTHREADPOOL_INCLUDE_PTHREADPOOL_H_
 
 #include <stddef.h>
 #include <stdint.h>
@@ -117,11 +117,11 @@ size_t pthreadpool_get_threads_count(pthreadpool_t threadpool);
  *    (PTHREADPOOL_FLAG_DISABLE_DENORMALS or PTHREADPOOL_FLAG_YIELD_WORKERS)
  */
 void pthreadpool_parallelize_1d(
-	pthreadpool_t threadpool,
-	pthreadpool_task_1d_t function,
-	void* context,
-	size_t range,
-	uint32_t flags);
+  pthreadpool_t threadpool,
+  pthreadpool_task_1d_t function,
+  void* context,
+  size_t range,
+  uint32_t flags);
 
 /**
  * Process items on a 1D grid passing along the current thread id.
@@ -147,11 +147,11 @@ void pthreadpool_parallelize_1d(
  *    (PTHREADPOOL_FLAG_DISABLE_DENORMALS or PTHREADPOOL_FLAG_YIELD_WORKERS)
  */
 void pthreadpool_parallelize_1d_with_thread(
-	pthreadpool_t threadpool,
-	pthreadpool_task_1d_with_thread_t function,
-	void* context,
-	size_t range,
-	uint32_t flags);
+  pthreadpool_t threadpool,
+  pthreadpool_task_1d_with_thread_t function,
+  void* context,
+  size_t range,
+  uint32_t flags);
 
 /**
  * Process items on a 1D grid using a microarchitecture-aware task function.
@@ -191,13 +191,13 @@ void pthreadpool_parallelize_1d_with_thread(
  *    PTHREADPOOL_FLAG_YIELD_WORKERS)
  */
 void pthreadpool_parallelize_1d_with_uarch(
-	pthreadpool_t threadpool,
-	pthreadpool_task_1d_with_id_t function,
-	void* context,
-	uint32_t default_uarch_index,
-	uint32_t max_uarch_index,
-	size_t range,
-	uint32_t flags);
+  pthreadpool_t threadpool,
+  pthreadpool_task_1d_with_id_t function,
+  void* context,
+  uint32_t default_uarch_index,
+  uint32_t max_uarch_index,
+  size_t range,
+  uint32_t flags);
 
 /**
  * Process items on a 1D grid with specified maximum tile size.
@@ -224,12 +224,12 @@ void pthreadpool_parallelize_1d_with_uarch(
  *    (PTHREADPOOL_FLAG_DISABLE_DENORMALS or PTHREADPOOL_FLAG_YIELD_WORKERS)
  */
 void pthreadpool_parallelize_1d_tile_1d(
-	pthreadpool_t threadpool,
-	pthreadpool_task_1d_tile_1d_t function,
-	void* context,
-	size_t range,
-	size_t tile,
-	uint32_t flags);
+  pthreadpool_t threadpool,
+  pthreadpool_task_1d_tile_1d_t function,
+  void* context,
+  size_t range,
+  size_t tile,
+  uint32_t flags);
 
 /**
  * Process items on a 2D grid.
@@ -258,12 +258,12 @@ void pthreadpool_parallelize_1d_tile_1d(
  *    (PTHREADPOOL_FLAG_DISABLE_DENORMALS or PTHREADPOOL_FLAG_YIELD_WORKERS)
  */
 void pthreadpool_parallelize_2d(
-	pthreadpool_t threadpool,
-	pthreadpool_task_2d_t function,
-	void* context,
-	size_t range_i,
-	size_t range_j,
-	uint32_t flags);
+  pthreadpool_t threadpool,
+  pthreadpool_task_2d_t function,
+  void* context,
+  size_t range_i,
+  size_t range_j,
+  uint32_t flags);
 
 /**
  * Process items on a 2D grid passing along the current thread id.
@@ -292,12 +292,12 @@ void pthreadpool_parallelize_2d(
  *    (PTHREADPOOL_FLAG_DISABLE_DENORMALS or PTHREADPOOL_FLAG_YIELD_WORKERS)
  */
 void pthreadpool_parallelize_2d_with_thread(
-	pthreadpool_t threadpool,
-	pthreadpool_task_2d_with_thread_t function,
-	void* context,
-	size_t range_i,
-	size_t range_j,
-	uint32_t flags);
+  pthreadpool_t threadpool,
+  pthreadpool_task_2d_with_thread_t function,
+  void* context,
+  size_t range_i,
+  size_t range_j,
+  uint32_t flags);
 
 /**
  * Process items on a 2D grid with the specified maximum tile size along the
@@ -329,13 +329,13 @@ void pthreadpool_parallelize_2d_with_thread(
  *    (PTHREADPOOL_FLAG_DISABLE_DENORMALS or PTHREADPOOL_FLAG_YIELD_WORKERS)
  */
 void pthreadpool_parallelize_2d_tile_1d(
-	pthreadpool_t threadpool,
-	pthreadpool_task_2d_tile_1d_t function,
-	void* context,
-	size_t range_i,
-	size_t range_j,
-	size_t tile_j,
-	uint32_t flags);
+  pthreadpool_t threadpool,
+  pthreadpool_task_2d_tile_1d_t function,
+  void* context,
+  size_t range_i,
+  size_t range_j,
+  size_t tile_j,
+  uint32_t flags);
 
 /**
  * Process items on a 2D grid with the specified maximum tile size along the
@@ -378,15 +378,15 @@ void pthreadpool_parallelize_2d_tile_1d(
  *    (PTHREADPOOL_FLAG_DISABLE_DENORMALS or PTHREADPOOL_FLAG_YIELD_WORKERS)
  */
 void pthreadpool_parallelize_2d_tile_1d_with_uarch(
-	pthreadpool_t threadpool,
-	pthreadpool_task_2d_tile_1d_with_id_t function,
-	void* context,
-	uint32_t default_uarch_index,
-	uint32_t max_uarch_index,
-	size_t range_i,
-	size_t range_j,
-	size_t tile_j,
-	uint32_t flags);
+  pthreadpool_t threadpool,
+  pthreadpool_task_2d_tile_1d_with_id_t function,
+  void* context,
+  uint32_t default_uarch_index,
+  uint32_t max_uarch_index,
+  size_t range_i,
+  size_t range_j,
+  size_t tile_j,
+  uint32_t flags);
 
 /**
  * Process items on a 2D grid with the specified maximum tile size along the
@@ -430,15 +430,15 @@ void pthreadpool_parallelize_2d_tile_1d_with_uarch(
  *    (PTHREADPOOL_FLAG_DISABLE_DENORMALS or PTHREADPOOL_FLAG_YIELD_WORKERS)
  */
 void pthreadpool_parallelize_2d_tile_1d_with_uarch_with_thread(
-	pthreadpool_t threadpool,
-	pthreadpool_task_2d_tile_1d_with_id_with_thread_t function,
-	void* context,
-	uint32_t default_uarch_index,
-	uint32_t max_uarch_index,
-	size_t range_i,
-	size_t range_j,
-	size_t tile_j,
-	uint32_t flags);
+  pthreadpool_t threadpool,
+  pthreadpool_task_2d_tile_1d_with_id_with_thread_t function,
+  void* context,
+  uint32_t default_uarch_index,
+  uint32_t max_uarch_index,
+  size_t range_i,
+  size_t range_j,
+  size_t tile_j,
+  uint32_t flags);
 
 /**
  * Process items on a 2D grid with the specified maximum tile size along each
@@ -473,14 +473,14 @@ void pthreadpool_parallelize_2d_tile_1d_with_uarch_with_thread(
  *    (PTHREADPOOL_FLAG_DISABLE_DENORMALS or PTHREADPOOL_FLAG_YIELD_WORKERS)
  */
 void pthreadpool_parallelize_2d_tile_2d(
-	pthreadpool_t threadpool,
-	pthreadpool_task_2d_tile_2d_t function,
-	void* context,
-	size_t range_i,
-	size_t range_j,
-	size_t tile_i,
-	size_t tile_j,
-	uint32_t flags);
+  pthreadpool_t threadpool,
+  pthreadpool_task_2d_tile_2d_t function,
+  void* context,
+  size_t range_i,
+  size_t range_j,
+  size_t tile_i,
+  size_t tile_j,
+  uint32_t flags);
 
 /**
  * Process items on a 2D grid with the specified maximum tile size along each
@@ -531,16 +531,16 @@ void pthreadpool_parallelize_2d_tile_2d(
  *    PTHREADPOOL_FLAG_YIELD_WORKERS)
  */
 void pthreadpool_parallelize_2d_tile_2d_with_uarch(
-	pthreadpool_t threadpool,
-	pthreadpool_task_2d_tile_2d_with_id_t function,
-	void* context,
-	uint32_t default_uarch_index,
-	uint32_t max_uarch_index,
-	size_t range_i,
-	size_t range_j,
-	size_t tile_i,
-	size_t tile_j,
-	uint32_t flags);
+  pthreadpool_t threadpool,
+  pthreadpool_task_2d_tile_2d_with_id_t function,
+  void* context,
+  uint32_t default_uarch_index,
+  uint32_t max_uarch_index,
+  size_t range_i,
+  size_t range_j,
+  size_t tile_i,
+  size_t tile_j,
+  uint32_t flags);
 
 /**
  * Process items on a 3D grid.
@@ -572,13 +572,13 @@ void pthreadpool_parallelize_2d_tile_2d_with_uarch(
  *    (PTHREADPOOL_FLAG_DISABLE_DENORMALS or PTHREADPOOL_FLAG_YIELD_WORKERS)
  */
 void pthreadpool_parallelize_3d(
-	pthreadpool_t threadpool,
-	pthreadpool_task_3d_t function,
-	void* context,
-	size_t range_i,
-	size_t range_j,
-	size_t range_k,
-	uint32_t flags);
+  pthreadpool_t threadpool,
+  pthreadpool_task_3d_t function,
+  void* context,
+  size_t range_i,
+  size_t range_j,
+  size_t range_k,
+  uint32_t flags);
 
 /**
  * Process items on a 3D grid with the specified maximum tile size along the
@@ -613,14 +613,14 @@ void pthreadpool_parallelize_3d(
  *    (PTHREADPOOL_FLAG_DISABLE_DENORMALS or PTHREADPOOL_FLAG_YIELD_WORKERS)
  */
 void pthreadpool_parallelize_3d_tile_1d(
-	pthreadpool_t threadpool,
-	pthreadpool_task_3d_tile_1d_t function,
-	void* context,
-	size_t range_i,
-	size_t range_j,
-	size_t range_k,
-	size_t tile_k,
-	uint32_t flags);
+  pthreadpool_t threadpool,
+  pthreadpool_task_3d_tile_1d_t function,
+  void* context,
+  size_t range_i,
+  size_t range_j,
+  size_t range_k,
+  size_t tile_k,
+  uint32_t flags);
 
 /**
  * Process items on a 3D grid with the specified maximum tile size along the
@@ -711,16 +711,16 @@ void pthreadpool_parallelize_3d_tile_1d_with_thread(
  *    PTHREADPOOL_FLAG_YIELD_WORKERS)
  */
 void pthreadpool_parallelize_3d_tile_1d_with_uarch(
-	pthreadpool_t threadpool,
-	pthreadpool_task_3d_tile_1d_with_id_t function,
-	void* context,
-	uint32_t default_uarch_index,
-	uint32_t max_uarch_index,
-	size_t range_i,
-	size_t range_j,
-	size_t range_k,
-	size_t tile_k,
-	uint32_t flags);
+  pthreadpool_t threadpool,
+  pthreadpool_task_3d_tile_1d_with_id_t function,
+  void* context,
+  uint32_t default_uarch_index,
+  uint32_t max_uarch_index,
+  size_t range_i,
+  size_t range_j,
+  size_t range_k,
+  size_t tile_k,
+  uint32_t flags);
 
 /**
  * Process items on a 3D grid with the specified maximum tile size along the
@@ -770,16 +770,16 @@ void pthreadpool_parallelize_3d_tile_1d_with_uarch(
  *    PTHREADPOOL_FLAG_YIELD_WORKERS)
  */
 void pthreadpool_parallelize_3d_tile_1d_with_uarch_with_thread(
-	pthreadpool_t threadpool,
-	pthreadpool_task_3d_tile_1d_with_id_with_thread_t function,
-	void* context,
-	uint32_t default_uarch_index,
-	uint32_t max_uarch_index,
-	size_t range_i,
-	size_t range_j,
-	size_t range_k,
-	size_t tile_k,
-	uint32_t flags);
+  pthreadpool_t threadpool,
+  pthreadpool_task_3d_tile_1d_with_id_with_thread_t function,
+  void* context,
+  uint32_t default_uarch_index,
+  uint32_t max_uarch_index,
+  size_t range_i,
+  size_t range_j,
+  size_t range_k,
+  size_t tile_k,
+  uint32_t flags);
 
 /**
  * Process items on a 3D grid with the specified maximum tile size along the
@@ -817,15 +817,15 @@ void pthreadpool_parallelize_3d_tile_1d_with_uarch_with_thread(
  *    (PTHREADPOOL_FLAG_DISABLE_DENORMALS or PTHREADPOOL_FLAG_YIELD_WORKERS)
  */
 void pthreadpool_parallelize_3d_tile_2d(
-	pthreadpool_t threadpool,
-	pthreadpool_task_3d_tile_2d_t function,
-	void* context,
-	size_t range_i,
-	size_t range_j,
-	size_t range_k,
-	size_t tile_j,
-	size_t tile_k,
-	uint32_t flags);
+  pthreadpool_t threadpool,
+  pthreadpool_task_3d_tile_2d_t function,
+  void* context,
+  size_t range_i,
+  size_t range_j,
+  size_t range_k,
+  size_t tile_j,
+  size_t tile_k,
+  uint32_t flags);
 
 /**
  * Process items on a 3D grid with the specified maximum tile size along the
@@ -877,17 +877,17 @@ void pthreadpool_parallelize_3d_tile_2d(
  *    PTHREADPOOL_FLAG_YIELD_WORKERS)
  */
 void pthreadpool_parallelize_3d_tile_2d_with_uarch(
-	pthreadpool_t threadpool,
-	pthreadpool_task_3d_tile_2d_with_id_t function,
-	void* context,
-	uint32_t default_uarch_index,
-	uint32_t max_uarch_index,
-	size_t range_i,
-	size_t range_j,
-	size_t range_k,
-	size_t tile_j,
-	size_t tile_k,
-	uint32_t flags);
+  pthreadpool_t threadpool,
+  pthreadpool_task_3d_tile_2d_with_id_t function,
+  void* context,
+  uint32_t default_uarch_index,
+  uint32_t max_uarch_index,
+  size_t range_i,
+  size_t range_j,
+  size_t range_k,
+  size_t tile_j,
+  size_t tile_k,
+  uint32_t flags);
 
 /**
  * Process items on a 4D grid.
@@ -922,14 +922,14 @@ void pthreadpool_parallelize_3d_tile_2d_with_uarch(
  *    (PTHREADPOOL_FLAG_DISABLE_DENORMALS or PTHREADPOOL_FLAG_YIELD_WORKERS)
  */
 void pthreadpool_parallelize_4d(
-	pthreadpool_t threadpool,
-	pthreadpool_task_4d_t function,
-	void* context,
-	size_t range_i,
-	size_t range_j,
-	size_t range_k,
-	size_t range_l,
-	uint32_t flags);
+  pthreadpool_t threadpool,
+  pthreadpool_task_4d_t function,
+  void* context,
+  size_t range_i,
+  size_t range_j,
+  size_t range_k,
+  size_t range_l,
+  uint32_t flags);
 
 /**
  * Process items on a 4D grid with the specified maximum tile size along the
@@ -967,15 +967,15 @@ void pthreadpool_parallelize_4d(
  *    (PTHREADPOOL_FLAG_DISABLE_DENORMALS or PTHREADPOOL_FLAG_YIELD_WORKERS)
  */
 void pthreadpool_parallelize_4d_tile_1d(
-	pthreadpool_t threadpool,
-	pthreadpool_task_4d_tile_1d_t function,
-	void* context,
-	size_t range_i,
-	size_t range_j,
-	size_t range_k,
-	size_t range_l,
-	size_t tile_l,
-	uint32_t flags);
+  pthreadpool_t threadpool,
+  pthreadpool_task_4d_tile_1d_t function,
+  void* context,
+  size_t range_i,
+  size_t range_j,
+  size_t range_k,
+  size_t range_l,
+  size_t tile_l,
+  uint32_t flags);
 
 /**
  * Process items on a 4D grid with the specified maximum tile size along the
@@ -1016,16 +1016,16 @@ void pthreadpool_parallelize_4d_tile_1d(
  *    (PTHREADPOOL_FLAG_DISABLE_DENORMALS or PTHREADPOOL_FLAG_YIELD_WORKERS)
  */
 void pthreadpool_parallelize_4d_tile_2d(
-	pthreadpool_t threadpool,
-	pthreadpool_task_4d_tile_2d_t function,
-	void* context,
-	size_t range_i,
-	size_t range_j,
-	size_t range_k,
-	size_t range_l,
-	size_t tile_k,
-	size_t tile_l,
-	uint32_t flags);
+  pthreadpool_t threadpool,
+  pthreadpool_task_4d_tile_2d_t function,
+  void* context,
+  size_t range_i,
+  size_t range_j,
+  size_t range_k,
+  size_t range_l,
+  size_t tile_k,
+  size_t tile_l,
+  uint32_t flags);
 
 /**
  * Process items on a 4D grid with the specified maximum tile size along the
@@ -1080,18 +1080,18 @@ void pthreadpool_parallelize_4d_tile_2d(
  *    PTHREADPOOL_FLAG_YIELD_WORKERS)
  */
 void pthreadpool_parallelize_4d_tile_2d_with_uarch(
-	pthreadpool_t threadpool,
-	pthreadpool_task_4d_tile_2d_with_id_t function,
-	void* context,
-	uint32_t default_uarch_index,
-	uint32_t max_uarch_index,
-	size_t range_i,
-	size_t range_j,
-	size_t range_k,
-	size_t range_l,
-	size_t tile_k,
-	size_t tile_l,
-	uint32_t flags);
+  pthreadpool_t threadpool,
+  pthreadpool_task_4d_tile_2d_with_id_t function,
+  void* context,
+  uint32_t default_uarch_index,
+  uint32_t max_uarch_index,
+  size_t range_i,
+  size_t range_j,
+  size_t range_k,
+  size_t range_l,
+  size_t tile_k,
+  size_t tile_l,
+  uint32_t flags);
 
 /**
  * Process items on a 5D grid.
@@ -1129,15 +1129,15 @@ void pthreadpool_parallelize_4d_tile_2d_with_uarch(
  *    (PTHREADPOOL_FLAG_DISABLE_DENORMALS or PTHREADPOOL_FLAG_YIELD_WORKERS)
  */
 void pthreadpool_parallelize_5d(
-	pthreadpool_t threadpool,
-	pthreadpool_task_5d_t function,
-	void* context,
-	size_t range_i,
-	size_t range_j,
-	size_t range_k,
-	size_t range_l,
-	size_t range_m,
-	uint32_t flags);
+  pthreadpool_t threadpool,
+  pthreadpool_task_5d_t function,
+  void* context,
+  size_t range_i,
+  size_t range_j,
+  size_t range_k,
+  size_t range_l,
+  size_t range_m,
+  uint32_t flags);
 
 /**
  * Process items on a 5D grid with the specified maximum tile size along the
@@ -1178,16 +1178,16 @@ void pthreadpool_parallelize_5d(
  *    (PTHREADPOOL_FLAG_DISABLE_DENORMALS or PTHREADPOOL_FLAG_YIELD_WORKERS)
  */
 void pthreadpool_parallelize_5d_tile_1d(
-	pthreadpool_t threadpool,
-	pthreadpool_task_5d_tile_1d_t function,
-	void* context,
-	size_t range_i,
-	size_t range_j,
-	size_t range_k,
-	size_t range_l,
-	size_t range_m,
-	size_t tile_m,
-	uint32_t flags);
+  pthreadpool_t threadpool,
+  pthreadpool_task_5d_tile_1d_t function,
+  void* context,
+  size_t range_i,
+  size_t range_j,
+  size_t range_k,
+  size_t range_l,
+  size_t range_m,
+  size_t tile_m,
+  uint32_t flags);
 
 /**
  * Process items on a 5D grid with the specified maximum tile size along the
@@ -1231,17 +1231,17 @@ void pthreadpool_parallelize_5d_tile_1d(
  *    (PTHREADPOOL_FLAG_DISABLE_DENORMALS or PTHREADPOOL_FLAG_YIELD_WORKERS)
  */
 void pthreadpool_parallelize_5d_tile_2d(
-	pthreadpool_t threadpool,
-	pthreadpool_task_5d_tile_2d_t function,
-	void* context,
-	size_t range_i,
-	size_t range_j,
-	size_t range_k,
-	size_t range_l,
-	size_t range_m,
-	size_t tile_l,
-	size_t tile_m,
-	uint32_t flags);
+  pthreadpool_t threadpool,
+  pthreadpool_task_5d_tile_2d_t function,
+  void* context,
+  size_t range_i,
+  size_t range_j,
+  size_t range_k,
+  size_t range_l,
+  size_t range_m,
+  size_t tile_l,
+  size_t tile_m,
+  uint32_t flags);
 
 /**
  * Process items on a 6D grid.
@@ -1284,16 +1284,16 @@ void pthreadpool_parallelize_5d_tile_2d(
  *    (PTHREADPOOL_FLAG_DISABLE_DENORMALS or PTHREADPOOL_FLAG_YIELD_WORKERS)
  */
 void pthreadpool_parallelize_6d(
-	pthreadpool_t threadpool,
-	pthreadpool_task_6d_t function,
-	void* context,
-	size_t range_i,
-	size_t range_j,
-	size_t range_k,
-	size_t range_l,
-	size_t range_m,
-	size_t range_n,
-	uint32_t flags);
+  pthreadpool_t threadpool,
+  pthreadpool_task_6d_t function,
+  void* context,
+  size_t range_i,
+  size_t range_j,
+  size_t range_k,
+  size_t range_l,
+  size_t range_m,
+  size_t range_n,
+  uint32_t flags);
 
 /**
  * Process items on a 6D grid with the specified maximum tile size along the
@@ -1337,17 +1337,17 @@ void pthreadpool_parallelize_6d(
  *    (PTHREADPOOL_FLAG_DISABLE_DENORMALS or PTHREADPOOL_FLAG_YIELD_WORKERS)
  */
 void pthreadpool_parallelize_6d_tile_1d(
-	pthreadpool_t threadpool,
-	pthreadpool_task_6d_tile_1d_t function,
-	void* context,
-	size_t range_i,
-	size_t range_j,
-	size_t range_k,
-	size_t range_l,
-	size_t range_m,
-	size_t range_n,
-	size_t tile_n,
-	uint32_t flags);
+  pthreadpool_t threadpool,
+  pthreadpool_task_6d_tile_1d_t function,
+  void* context,
+  size_t range_i,
+  size_t range_j,
+  size_t range_k,
+  size_t range_l,
+  size_t range_m,
+  size_t range_n,
+  size_t tile_n,
+  uint32_t flags);
 
 /**
  * Process items on a 6D grid with the specified maximum tile size along the
@@ -1394,18 +1394,18 @@ void pthreadpool_parallelize_6d_tile_1d(
  *    (PTHREADPOOL_FLAG_DISABLE_DENORMALS or PTHREADPOOL_FLAG_YIELD_WORKERS)
  */
 void pthreadpool_parallelize_6d_tile_2d(
-	pthreadpool_t threadpool,
-	pthreadpool_task_6d_tile_2d_t function,
-	void* context,
-	size_t range_i,
-	size_t range_j,
-	size_t range_k,
-	size_t range_l,
-	size_t range_m,
-	size_t range_n,
-	size_t tile_m,
-	size_t tile_n,
-	uint32_t flags);
+  pthreadpool_t threadpool,
+  pthreadpool_task_6d_tile_2d_t function,
+  void* context,
+  size_t range_i,
+  size_t range_j,
+  size_t range_k,
+  size_t range_l,
+  size_t range_m,
+  size_t range_n,
+  size_t tile_m,
+  size_t tile_n,
+  uint32_t flags);
 
 /**
  * Terminates threads in the thread pool and releases associated resources.
@@ -1421,9 +1421,9 @@ void pthreadpool_destroy(pthreadpool_t threadpool);
 
 /* Legacy API for compatibility with pre-existing users (e.g. NNPACK) */
 #if defined(__GNUC__)
-	#define PTHREADPOOL_DEPRECATED __attribute__((__deprecated__))
+  #define PTHREADPOOL_DEPRECATED __attribute__((__deprecated__))
 #else
-	#define PTHREADPOOL_DEPRECATED
+  #define PTHREADPOOL_DEPRECATED
 #endif
 
 typedef void (*pthreadpool_function_1d_t)(void*, size_t);
@@ -1434,57 +1434,57 @@ typedef void (*pthreadpool_function_3d_tiled_t)(void*, size_t, size_t, size_t, s
 typedef void (*pthreadpool_function_4d_tiled_t)(void*, size_t, size_t, size_t, size_t, size_t, size_t, size_t, size_t);
 
 void pthreadpool_compute_1d(
-	pthreadpool_t threadpool,
-	pthreadpool_function_1d_t function,
-	void* argument,
-	size_t range) PTHREADPOOL_DEPRECATED;
+  pthreadpool_t threadpool,
+  pthreadpool_function_1d_t function,
+  void* argument,
+  size_t range) PTHREADPOOL_DEPRECATED;
 
 void pthreadpool_compute_1d_tiled(
-	pthreadpool_t threadpool,
-	pthreadpool_function_1d_tiled_t function,
-	void* argument,
-	size_t range,
-	size_t tile) PTHREADPOOL_DEPRECATED;
+  pthreadpool_t threadpool,
+  pthreadpool_function_1d_tiled_t function,
+  void* argument,
+  size_t range,
+  size_t tile) PTHREADPOOL_DEPRECATED;
 
 void pthreadpool_compute_2d(
-	pthreadpool_t threadpool,
-	pthreadpool_function_2d_t function,
-	void* argument,
-	size_t range_i,
-	size_t range_j) PTHREADPOOL_DEPRECATED;
+  pthreadpool_t threadpool,
+  pthreadpool_function_2d_t function,
+  void* argument,
+  size_t range_i,
+  size_t range_j) PTHREADPOOL_DEPRECATED;
 
 void pthreadpool_compute_2d_tiled(
-	pthreadpool_t threadpool,
-	pthreadpool_function_2d_tiled_t function,
-	void* argument,
-	size_t range_i,
-	size_t range_j,
-	size_t tile_i,
-	size_t tile_j) PTHREADPOOL_DEPRECATED;
+  pthreadpool_t threadpool,
+  pthreadpool_function_2d_tiled_t function,
+  void* argument,
+  size_t range_i,
+  size_t range_j,
+  size_t tile_i,
+  size_t tile_j) PTHREADPOOL_DEPRECATED;
 
 void pthreadpool_compute_3d_tiled(
-	pthreadpool_t threadpool,
-	pthreadpool_function_3d_tiled_t function,
-	void* argument,
-	size_t range_i,
-	size_t range_j,
-	size_t range_k,
-	size_t tile_i,
-	size_t tile_j,
-	size_t tile_k) PTHREADPOOL_DEPRECATED;
+  pthreadpool_t threadpool,
+  pthreadpool_function_3d_tiled_t function,
+  void* argument,
+  size_t range_i,
+  size_t range_j,
+  size_t range_k,
+  size_t tile_i,
+  size_t tile_j,
+  size_t tile_k) PTHREADPOOL_DEPRECATED;
 
 void pthreadpool_compute_4d_tiled(
-	pthreadpool_t threadpool,
-	pthreadpool_function_4d_tiled_t function,
-	void* argument,
-	size_t range_i,
-	size_t range_j,
-	size_t range_k,
-	size_t range_l,
-	size_t tile_i,
-	size_t tile_j,
-	size_t tile_k,
-	size_t tile_l) PTHREADPOOL_DEPRECATED;
+  pthreadpool_t threadpool,
+  pthreadpool_function_4d_tiled_t function,
+  void* argument,
+  size_t range_i,
+  size_t range_j,
+  size_t range_k,
+  size_t range_l,
+  size_t tile_i,
+  size_t tile_j,
+  size_t tile_k,
+  size_t tile_l) PTHREADPOOL_DEPRECATED;
 
 #endif /* PTHREADPOOL_NO_DEPRECATED_API */
 
@@ -1500,116 +1500,116 @@ namespace {
 
 template<class T>
 void call_wrapper_1d(void* arg, size_t i) {
-	(*static_cast<const T*>(arg))(i);
+  (*static_cast<const T*>(arg))(i);
 }
 
 template<class T>
 void call_wrapper_1d_tile_1d(void* arg, size_t range_i, size_t tile_i) {
-	(*static_cast<const T*>(arg))(range_i, tile_i);
+  (*static_cast<const T*>(arg))(range_i, tile_i);
 }
 
 template<class T>
 void call_wrapper_2d(void* functor, size_t i, size_t j) {
-	(*static_cast<const T*>(functor))(i, j);
+  (*static_cast<const T*>(functor))(i, j);
 }
 
 template<class T>
 void call_wrapper_2d_tile_1d(void* functor,
-		                         size_t i, size_t range_j, size_t tile_j)
+                             size_t i, size_t range_j, size_t tile_j)
 {
-	(*static_cast<const T*>(functor))(i, range_j, tile_j);
+  (*static_cast<const T*>(functor))(i, range_j, tile_j);
 }
 
 template<class T>
 void call_wrapper_2d_tile_2d(void* functor,
-		                         size_t range_i, size_t range_j,
-		                         size_t tile_i, size_t tile_j)
+                             size_t range_i, size_t range_j,
+                             size_t tile_i, size_t tile_j)
 {
-	(*static_cast<const T*>(functor))(range_i, range_j, tile_i, tile_j);
+  (*static_cast<const T*>(functor))(range_i, range_j, tile_i, tile_j);
 }
 
 template<class T>
 void call_wrapper_3d(void* functor, size_t i, size_t j, size_t k) {
-	(*static_cast<const T*>(functor))(i, j, k);
+  (*static_cast<const T*>(functor))(i, j, k);
 }
 
 template<class T>
 void call_wrapper_3d_tile_1d(void* functor,
-		                         size_t i, size_t j, size_t range_k,
-		                         size_t tile_k)
+                             size_t i, size_t j, size_t range_k,
+                             size_t tile_k)
 {
-	(*static_cast<const T*>(functor))(i, j, range_k, tile_k);
+  (*static_cast<const T*>(functor))(i, j, range_k, tile_k);
 }
 
 template<class T>
 void call_wrapper_3d_tile_2d(void* functor,
-		                         size_t i, size_t range_j, size_t range_k,
-		                         size_t tile_j, size_t tile_k)
+                             size_t i, size_t range_j, size_t range_k,
+                             size_t tile_j, size_t tile_k)
 {
-	(*static_cast<const T*>(functor))(i, range_j, range_k, tile_j, tile_k);
+  (*static_cast<const T*>(functor))(i, range_j, range_k, tile_j, tile_k);
 }
 
 template<class T>
 void call_wrapper_4d(void* functor, size_t i, size_t j, size_t k, size_t l) {
-	(*static_cast<const T*>(functor))(i, j, k, l);
+  (*static_cast<const T*>(functor))(i, j, k, l);
 }
 
 template<class T>
 void call_wrapper_4d_tile_1d(void* functor,
-		                         size_t i, size_t j, size_t k, size_t range_l,
-		                         size_t tile_l)
+                             size_t i, size_t j, size_t k, size_t range_l,
+                             size_t tile_l)
 {
-	(*static_cast<const T*>(functor))(i, j, k, range_l, tile_l);
+  (*static_cast<const T*>(functor))(i, j, k, range_l, tile_l);
 }
 
 template<class T>
 void call_wrapper_4d_tile_2d(void* functor,
-		                         size_t i, size_t j, size_t range_k, size_t range_l,
-		                         size_t tile_k, size_t tile_l)
+                             size_t i, size_t j, size_t range_k, size_t range_l,
+                             size_t tile_k, size_t tile_l)
 {
-	(*static_cast<const T*>(functor))(i, j, range_k, range_l, tile_k, tile_l);
+  (*static_cast<const T*>(functor))(i, j, range_k, range_l, tile_k, tile_l);
 }
 
 template<class T>
 void call_wrapper_5d(void* functor, size_t i, size_t j, size_t k, size_t l, size_t m) {
-	(*static_cast<const T*>(functor))(i, j, k, l, m);
+  (*static_cast<const T*>(functor))(i, j, k, l, m);
 }
 
 template<class T>
 void call_wrapper_5d_tile_1d(void* functor,
-		                         size_t i, size_t j, size_t k, size_t l, size_t range_m,
-		                         size_t tile_m)
+                             size_t i, size_t j, size_t k, size_t l, size_t range_m,
+                             size_t tile_m)
 {
-	(*static_cast<const T*>(functor))(i, j, k, l, range_m, tile_m);
+  (*static_cast<const T*>(functor))(i, j, k, l, range_m, tile_m);
 }
 
 template<class T>
 void call_wrapper_5d_tile_2d(void* functor,
-		                         size_t i, size_t j, size_t k, size_t range_l, size_t range_m,
-		                         size_t tile_l, size_t tile_m)
+                             size_t i, size_t j, size_t k, size_t range_l, size_t range_m,
+                             size_t tile_l, size_t tile_m)
 {
-	(*static_cast<const T*>(functor))(i, j, k, range_l, range_m, tile_l, tile_m);
+  (*static_cast<const T*>(functor))(i, j, k, range_l, range_m, tile_l, tile_m);
 }
 
 template<class T>
 void call_wrapper_6d(void* functor, size_t i, size_t j, size_t k, size_t l, size_t m, size_t n) {
-	(*static_cast<const T*>(functor))(i, j, k, l, m, n);
+  (*static_cast<const T*>(functor))(i, j, k, l, m, n);
 }
 
 template<class T>
 void call_wrapper_6d_tile_1d(void* functor,
-		                         size_t i, size_t j, size_t k, size_t l, size_t m, size_t range_n,
-		                         size_t tile_n)
+                             size_t i, size_t j, size_t k, size_t l, size_t m, size_t range_n,
+                             size_t tile_n)
 {
-	(*static_cast<const T*>(functor))(i, j, k, l, m, range_n, tile_n);
+  (*static_cast<const T*>(functor))(i, j, k, l, m, range_n, tile_n);
 }
 
 template<class T>
 void call_wrapper_6d_tile_2d(void* functor,
-		                         size_t i, size_t j, size_t k, size_t l, size_t range_m, size_t range_n,
-		                         size_t tile_m, size_t tile_n)
+                             size_t i, size_t j, size_t k, size_t l, size_t range_m, size_t range_n,
+                             size_t tile_m, size_t tile_n)
 {
-	(*static_cast<const T*>(functor))(i, j, k, l, range_m, range_n, tile_m, tile_n);
+  (*static_cast<const T*>(functor))(i, j, k, l, range_m, range_n, tile_m, tile_n);
 }
 
 }  /* namespace */
@@ -1640,17 +1640,17 @@ void call_wrapper_6d_tile_2d(void* functor,
  */
 template<class T>
 inline void pthreadpool_parallelize_1d(
-	pthreadpool_t threadpool,
-	const T& functor,
-	size_t range,
-	uint32_t flags = 0)
+  pthreadpool_t threadpool,
+  const T& functor,
+  size_t range,
+  uint32_t flags = 0)
 {
-	pthreadpool_parallelize_1d(
-		threadpool,
-		&libpthreadpool::detail::call_wrapper_1d<const T>,
-		const_cast<void*>(static_cast<const void*>(&functor)),
-		range,
-		flags);
+  pthreadpool_parallelize_1d(
+    threadpool,
+    &libpthreadpool::detail::call_wrapper_1d<const T>,
+    const_cast<void*>(static_cast<const void*>(&functor)),
+    range,
+    flags);
 }
 
 /**
@@ -1678,19 +1678,19 @@ inline void pthreadpool_parallelize_1d(
  */
 template<class T>
 inline void pthreadpool_parallelize_1d_tile_1d(
-	pthreadpool_t threadpool,
-	const T& functor,
-	size_t range,
-	size_t tile,
-	uint32_t flags = 0)
+  pthreadpool_t threadpool,
+  const T& functor,
+  size_t range,
+  size_t tile,
+  uint32_t flags = 0)
 {
-	pthreadpool_parallelize_1d_tile_1d(
-		threadpool,
-		&libpthreadpool::detail::call_wrapper_1d_tile_1d<const T>,
-		const_cast<void*>(static_cast<const void*>(&functor)),
-		range,
-		tile,
-		flags);
+  pthreadpool_parallelize_1d_tile_1d(
+    threadpool,
+    &libpthreadpool::detail::call_wrapper_1d_tile_1d<const T>,
+    const_cast<void*>(static_cast<const void*>(&functor)),
+    range,
+    tile,
+    flags);
 }
 
 /**
@@ -1720,19 +1720,19 @@ inline void pthreadpool_parallelize_1d_tile_1d(
  */
 template<class T>
 inline void pthreadpool_parallelize_2d(
-	pthreadpool_t threadpool,
-	const T& functor,
-	size_t range_i,
-	size_t range_j,
-	uint32_t flags = 0)
+  pthreadpool_t threadpool,
+  const T& functor,
+  size_t range_i,
+  size_t range_j,
+  uint32_t flags = 0)
 {
-	pthreadpool_parallelize_2d(
-		threadpool,
-		&libpthreadpool::detail::call_wrapper_2d<const T>,
-		const_cast<void*>(static_cast<const void*>(&functor)),
-		range_i,
-		range_j,
-		flags);
+  pthreadpool_parallelize_2d(
+    threadpool,
+    &libpthreadpool::detail::call_wrapper_2d<const T>,
+    const_cast<void*>(static_cast<const void*>(&functor)),
+    range_i,
+    range_j,
+    flags);
 }
 
 /**
@@ -1765,21 +1765,21 @@ inline void pthreadpool_parallelize_2d(
  */
 template<class T>
 inline void pthreadpool_parallelize_2d_tile_1d(
-	pthreadpool_t threadpool,
-	const T& functor,
-	size_t range_i,
-	size_t range_j,
-	size_t tile_j,
-	uint32_t flags = 0)
+  pthreadpool_t threadpool,
+  const T& functor,
+  size_t range_i,
+  size_t range_j,
+  size_t tile_j,
+  uint32_t flags = 0)
 {
-	pthreadpool_parallelize_2d_tile_1d(
-		threadpool,
-		&libpthreadpool::detail::call_wrapper_2d_tile_1d<const T>,
-		const_cast<void*>(static_cast<const void*>(&functor)),
-		range_i,
-		range_j,
-		tile_j,
-		flags);
+  pthreadpool_parallelize_2d_tile_1d(
+    threadpool,
+    &libpthreadpool::detail::call_wrapper_2d_tile_1d<const T>,
+    const_cast<void*>(static_cast<const void*>(&functor)),
+    range_i,
+    range_j,
+    tile_j,
+    flags);
 }
 
 /**
@@ -1815,23 +1815,23 @@ inline void pthreadpool_parallelize_2d_tile_1d(
  */
 template<class T>
 inline void pthreadpool_parallelize_2d_tile_2d(
-	pthreadpool_t threadpool,
-	const T& functor,
-	size_t range_i,
-	size_t range_j,
-	size_t tile_i,
-	size_t tile_j,
-	uint32_t flags = 0)
+  pthreadpool_t threadpool,
+  const T& functor,
+  size_t range_i,
+  size_t range_j,
+  size_t tile_i,
+  size_t tile_j,
+  uint32_t flags = 0)
 {
-	pthreadpool_parallelize_2d_tile_2d(
-		threadpool,
-		&libpthreadpool::detail::call_wrapper_2d_tile_2d<const T>,
-		const_cast<void*>(static_cast<const void*>(&functor)),
-		range_i,
-		range_j,
-		tile_i,
-		tile_j,
-		flags);
+  pthreadpool_parallelize_2d_tile_2d(
+    threadpool,
+    &libpthreadpool::detail::call_wrapper_2d_tile_2d<const T>,
+    const_cast<void*>(static_cast<const void*>(&functor)),
+    range_i,
+    range_j,
+    tile_i,
+    tile_j,
+    flags);
 }
 
 /**
@@ -1864,21 +1864,21 @@ inline void pthreadpool_parallelize_2d_tile_2d(
  */
 template<class T>
 inline void pthreadpool_parallelize_3d(
-	pthreadpool_t threadpool,
-	const T& functor,
-	size_t range_i,
-	size_t range_j,
-	size_t range_k,
-	uint32_t flags = 0)
+  pthreadpool_t threadpool,
+  const T& functor,
+  size_t range_i,
+  size_t range_j,
+  size_t range_k,
+  uint32_t flags = 0)
 {
-	pthreadpool_parallelize_3d(
-		threadpool,
-		&libpthreadpool::detail::call_wrapper_3d<const T>,
-		const_cast<void*>(static_cast<const void*>(&functor)),
-		range_i,
-		range_j,
-		range_k,
-		flags);
+  pthreadpool_parallelize_3d(
+    threadpool,
+    &libpthreadpool::detail::call_wrapper_3d<const T>,
+    const_cast<void*>(static_cast<const void*>(&functor)),
+    range_i,
+    range_j,
+    range_k,
+    flags);
 }
 
 /**
@@ -1914,23 +1914,23 @@ inline void pthreadpool_parallelize_3d(
  */
 template<class T>
 inline void pthreadpool_parallelize_3d_tile_1d(
-	pthreadpool_t threadpool,
-	const T& functor,
-	size_t range_i,
-	size_t range_j,
-	size_t range_k,
-	size_t tile_k,
-	uint32_t flags = 0)
+  pthreadpool_t threadpool,
+  const T& functor,
+  size_t range_i,
+  size_t range_j,
+  size_t range_k,
+  size_t tile_k,
+  uint32_t flags = 0)
 {
-	pthreadpool_parallelize_3d_tile_1d(
-		threadpool,
-		&libpthreadpool::detail::call_wrapper_3d_tile_1d<const T>,
-		const_cast<void*>(static_cast<const void*>(&functor)),
-		range_i,
-		range_j,
-		range_k,
-		tile_k,
-		flags);
+  pthreadpool_parallelize_3d_tile_1d(
+    threadpool,
+    &libpthreadpool::detail::call_wrapper_3d_tile_1d<const T>,
+    const_cast<void*>(static_cast<const void*>(&functor)),
+    range_i,
+    range_j,
+    range_k,
+    tile_k,
+    flags);
 }
 
 /**
@@ -1969,25 +1969,25 @@ inline void pthreadpool_parallelize_3d_tile_1d(
  */
 template<class T>
 inline void pthreadpool_parallelize_3d_tile_2d(
-	pthreadpool_t threadpool,
-	const T& functor,
-	size_t range_i,
-	size_t range_j,
-	size_t range_k,
-	size_t tile_j,
-	size_t tile_k,
-	uint32_t flags = 0)
+  pthreadpool_t threadpool,
+  const T& functor,
+  size_t range_i,
+  size_t range_j,
+  size_t range_k,
+  size_t tile_j,
+  size_t tile_k,
+  uint32_t flags = 0)
 {
-	pthreadpool_parallelize_3d_tile_2d(
-		threadpool,
-		&libpthreadpool::detail::call_wrapper_3d_tile_2d<const T>,
-		const_cast<void*>(static_cast<const void*>(&functor)),
-		range_i,
-		range_j,
-		range_k,
-		tile_j,
-		tile_k,
-		flags);
+  pthreadpool_parallelize_3d_tile_2d(
+    threadpool,
+    &libpthreadpool::detail::call_wrapper_3d_tile_2d<const T>,
+    const_cast<void*>(static_cast<const void*>(&functor)),
+    range_i,
+    range_j,
+    range_k,
+    tile_j,
+    tile_k,
+    flags);
 }
 
 /**
@@ -2023,23 +2023,23 @@ inline void pthreadpool_parallelize_3d_tile_2d(
  */
 template<class T>
 inline void pthreadpool_parallelize_4d(
-	pthreadpool_t threadpool,
-	const T& functor,
-	size_t range_i,
-	size_t range_j,
-	size_t range_k,
-	size_t range_l,
-	uint32_t flags = 0)
+  pthreadpool_t threadpool,
+  const T& functor,
+  size_t range_i,
+  size_t range_j,
+  size_t range_k,
+  size_t range_l,
+  uint32_t flags = 0)
 {
-	pthreadpool_parallelize_4d(
-		threadpool,
-		&libpthreadpool::detail::call_wrapper_4d<const T>,
-		const_cast<void*>(static_cast<const void*>(&functor)),
-		range_i,
-		range_j,
-		range_k,
-		range_l,
-		flags);
+  pthreadpool_parallelize_4d(
+    threadpool,
+    &libpthreadpool::detail::call_wrapper_4d<const T>,
+    const_cast<void*>(static_cast<const void*>(&functor)),
+    range_i,
+    range_j,
+    range_k,
+    range_l,
+    flags);
 }
 
 /**
@@ -2078,25 +2078,25 @@ inline void pthreadpool_parallelize_4d(
  */
 template<class T>
 inline void pthreadpool_parallelize_4d_tile_1d(
-	pthreadpool_t threadpool,
-	const T& functor,
-	size_t range_i,
-	size_t range_j,
-	size_t range_k,
-	size_t range_l,
-	size_t tile_l,
-	uint32_t flags = 0)
+  pthreadpool_t threadpool,
+  const T& functor,
+  size_t range_i,
+  size_t range_j,
+  size_t range_k,
+  size_t range_l,
+  size_t tile_l,
+  uint32_t flags = 0)
 {
-	pthreadpool_parallelize_4d_tile_1d(
-		threadpool,
-		&libpthreadpool::detail::call_wrapper_4d_tile_1d<const T>,
-		const_cast<void*>(static_cast<const void*>(&functor)),
-		range_i,
-		range_j,
-		range_k,
-		range_l,
-		tile_l,
-		flags);
+  pthreadpool_parallelize_4d_tile_1d(
+    threadpool,
+    &libpthreadpool::detail::call_wrapper_4d_tile_1d<const T>,
+    const_cast<void*>(static_cast<const void*>(&functor)),
+    range_i,
+    range_j,
+    range_k,
+    range_l,
+    tile_l,
+    flags);
 }
 
 /**
@@ -2138,27 +2138,27 @@ inline void pthreadpool_parallelize_4d_tile_1d(
  */
 template<class T>
 inline void pthreadpool_parallelize_4d_tile_2d(
-	pthreadpool_t threadpool,
-	const T& functor,
-	size_t range_i,
-	size_t range_j,
-	size_t range_k,
-	size_t range_l,
-	size_t tile_k,
-	size_t tile_l,
-	uint32_t flags = 0)
+  pthreadpool_t threadpool,
+  const T& functor,
+  size_t range_i,
+  size_t range_j,
+  size_t range_k,
+  size_t range_l,
+  size_t tile_k,
+  size_t tile_l,
+  uint32_t flags = 0)
 {
-	pthreadpool_parallelize_4d_tile_2d(
-		threadpool,
-		&libpthreadpool::detail::call_wrapper_4d_tile_2d<const T>,
-		const_cast<void*>(static_cast<const void*>(&functor)),
-		range_i,
-		range_j,
-		range_k,
-		range_l,
-		tile_k,
-		tile_l,
-		flags);
+  pthreadpool_parallelize_4d_tile_2d(
+    threadpool,
+    &libpthreadpool::detail::call_wrapper_4d_tile_2d<const T>,
+    const_cast<void*>(static_cast<const void*>(&functor)),
+    range_i,
+    range_j,
+    range_k,
+    range_l,
+    tile_k,
+    tile_l,
+    flags);
 }
 
 /**
@@ -2197,25 +2197,25 @@ inline void pthreadpool_parallelize_4d_tile_2d(
  */
 template<class T>
 inline void pthreadpool_parallelize_5d(
-	pthreadpool_t threadpool,
-	const T& functor,
-	size_t range_i,
-	size_t range_j,
-	size_t range_k,
-	size_t range_l,
-	size_t range_m,
-	uint32_t flags = 0)
+  pthreadpool_t threadpool,
+  const T& functor,
+  size_t range_i,
+  size_t range_j,
+  size_t range_k,
+  size_t range_l,
+  size_t range_m,
+  uint32_t flags = 0)
 {
-	pthreadpool_parallelize_5d(
-		threadpool,
-		&libpthreadpool::detail::call_wrapper_5d<const T>,
-		const_cast<void*>(static_cast<const void*>(&functor)),
-		range_i,
-		range_j,
-		range_k,
-		range_l,
-		range_m,
-		flags);
+  pthreadpool_parallelize_5d(
+    threadpool,
+    &libpthreadpool::detail::call_wrapper_5d<const T>,
+    const_cast<void*>(static_cast<const void*>(&functor)),
+    range_i,
+    range_j,
+    range_k,
+    range_l,
+    range_m,
+    flags);
 }
 
 /**
@@ -2257,27 +2257,27 @@ inline void pthreadpool_parallelize_5d(
  */
 template<class T>
 inline void pthreadpool_parallelize_5d_tile_1d(
-	pthreadpool_t threadpool,
-	const T& functor,
-	size_t range_i,
-	size_t range_j,
-	size_t range_k,
-	size_t range_l,
-	size_t range_m,
-	size_t tile_m,
-	uint32_t flags = 0)
+  pthreadpool_t threadpool,
+  const T& functor,
+  size_t range_i,
+  size_t range_j,
+  size_t range_k,
+  size_t range_l,
+  size_t range_m,
+  size_t tile_m,
+  uint32_t flags = 0)
 {
-	pthreadpool_parallelize_5d_tile_1d(
-		threadpool,
-		&libpthreadpool::detail::call_wrapper_5d_tile_1d<const T>,
-		const_cast<void*>(static_cast<const void*>(&functor)),
-		range_i,
-		range_j,
-		range_k,
-		range_l,
-		range_m,
-		tile_m,
-		flags);
+  pthreadpool_parallelize_5d_tile_1d(
+    threadpool,
+    &libpthreadpool::detail::call_wrapper_5d_tile_1d<const T>,
+    const_cast<void*>(static_cast<const void*>(&functor)),
+    range_i,
+    range_j,
+    range_k,
+    range_l,
+    range_m,
+    tile_m,
+    flags);
 }
 
 /**
@@ -2322,29 +2322,29 @@ inline void pthreadpool_parallelize_5d_tile_1d(
  */
 template<class T>
 inline void pthreadpool_parallelize_5d_tile_2d(
-	pthreadpool_t threadpool,
-	const T& functor,
-	size_t range_i,
-	size_t range_j,
-	size_t range_k,
-	size_t range_l,
-	size_t range_m,
-	size_t tile_l,
-	size_t tile_m,
-	uint32_t flags = 0)
+  pthreadpool_t threadpool,
+  const T& functor,
+  size_t range_i,
+  size_t range_j,
+  size_t range_k,
+  size_t range_l,
+  size_t range_m,
+  size_t tile_l,
+  size_t tile_m,
+  uint32_t flags = 0)
 {
-	pthreadpool_parallelize_5d_tile_2d(
-		threadpool,
-		&libpthreadpool::detail::call_wrapper_5d_tile_2d<const T>,
-		const_cast<void*>(static_cast<const void*>(&functor)),
-		range_i,
-		range_j,
-		range_k,
-		range_l,
-		range_m,
-		tile_l,
-		tile_m,
-		flags);
+  pthreadpool_parallelize_5d_tile_2d(
+    threadpool,
+    &libpthreadpool::detail::call_wrapper_5d_tile_2d<const T>,
+    const_cast<void*>(static_cast<const void*>(&functor)),
+    range_i,
+    range_j,
+    range_k,
+    range_l,
+    range_m,
+    tile_l,
+    tile_m,
+    flags);
 }
 
 /**
@@ -2388,27 +2388,27 @@ inline void pthreadpool_parallelize_5d_tile_2d(
  */
 template<class T>
 inline void pthreadpool_parallelize_6d(
-	pthreadpool_t threadpool,
-	const T& functor,
-	size_t range_i,
-	size_t range_j,
-	size_t range_k,
-	size_t range_l,
-	size_t range_m,
-	size_t range_n,
-	uint32_t flags = 0)
+  pthreadpool_t threadpool,
+  const T& functor,
+  size_t range_i,
+  size_t range_j,
+  size_t range_k,
+  size_t range_l,
+  size_t range_m,
+  size_t range_n,
+  uint32_t flags = 0)
 {
-	pthreadpool_parallelize_6d(
-		threadpool,
-		&libpthreadpool::detail::call_wrapper_6d<const T>,
-		const_cast<void*>(static_cast<const void*>(&functor)),
-		range_i,
-		range_j,
-		range_k,
-		range_l,
-		range_m,
-		range_n,
-		flags);
+  pthreadpool_parallelize_6d(
+    threadpool,
+    &libpthreadpool::detail::call_wrapper_6d<const T>,
+    const_cast<void*>(static_cast<const void*>(&functor)),
+    range_i,
+    range_j,
+    range_k,
+    range_l,
+    range_m,
+    range_n,
+    flags);
 }
 
 /**
@@ -2453,29 +2453,29 @@ inline void pthreadpool_parallelize_6d(
  */
 template<class T>
 inline void pthreadpool_parallelize_6d_tile_1d(
-	pthreadpool_t threadpool,
-	const T& functor,
-	size_t range_i,
-	size_t range_j,
-	size_t range_k,
-	size_t range_l,
-	size_t range_m,
-	size_t range_n,
-	size_t tile_n,
-	uint32_t flags = 0)
+  pthreadpool_t threadpool,
+  const T& functor,
+  size_t range_i,
+  size_t range_j,
+  size_t range_k,
+  size_t range_l,
+  size_t range_m,
+  size_t range_n,
+  size_t tile_n,
+  uint32_t flags = 0)
 {
-	pthreadpool_parallelize_6d_tile_1d(
-		threadpool,
-		&libpthreadpool::detail::call_wrapper_6d_tile_1d<const T>,
-		const_cast<void*>(static_cast<const void*>(&functor)),
-		range_i,
-		range_j,
-		range_k,
-		range_l,
-		range_m,
-		range_n,
-		tile_n,
-		flags);
+  pthreadpool_parallelize_6d_tile_1d(
+    threadpool,
+    &libpthreadpool::detail::call_wrapper_6d_tile_1d<const T>,
+    const_cast<void*>(static_cast<const void*>(&functor)),
+    range_i,
+    range_j,
+    range_k,
+    range_l,
+    range_m,
+    range_n,
+    tile_n,
+    flags);
 }
 
 /**
@@ -2523,33 +2523,33 @@ inline void pthreadpool_parallelize_6d_tile_1d(
  */
 template<class T>
 inline void pthreadpool_parallelize_6d_tile_2d(
-	pthreadpool_t threadpool,
-	const T& functor,
-	size_t range_i,
-	size_t range_j,
-	size_t range_k,
-	size_t range_l,
-	size_t range_m,
-	size_t range_n,
-	size_t tile_m,
-	size_t tile_n,
-	uint32_t flags = 0)
+  pthreadpool_t threadpool,
+  const T& functor,
+  size_t range_i,
+  size_t range_j,
+  size_t range_k,
+  size_t range_l,
+  size_t range_m,
+  size_t range_n,
+  size_t tile_m,
+  size_t tile_n,
+  uint32_t flags = 0)
 {
-	pthreadpool_parallelize_6d_tile_2d(
-		threadpool,
-		&libpthreadpool::detail::call_wrapper_6d_tile_2d<const T>,
-		const_cast<void*>(static_cast<const void*>(&functor)),
-		range_i,
-		range_j,
-		range_k,
-		range_l,
-		range_m,
-		range_n,
-		tile_m,
-		tile_n,
-		flags);
+  pthreadpool_parallelize_6d_tile_2d(
+    threadpool,
+    &libpthreadpool::detail::call_wrapper_6d_tile_2d<const T>,
+    const_cast<void*>(static_cast<const void*>(&functor)),
+    range_i,
+    range_j,
+    range_k,
+    range_l,
+    range_m,
+    range_n,
+    tile_m,
+    tile_n,
+    flags);
 }
 
 #endif  /* __cplusplus */
 
-#endif /* PTHREADPOOL_H_ */
+#endif /* __PTHREADPOOL_INCLUDE_PTHREADPOOL_H_ */
