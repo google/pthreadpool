@@ -53,7 +53,7 @@
 
 /* Dependencies */
 #if PTHREADPOOL_USE_CPUINFO
-#include "third_party/cpuinfo/include/cpuinfo.h"
+#include <cpuinfo.h>
 #endif
 
 /* Public library header */

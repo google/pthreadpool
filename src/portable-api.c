@@ -15,7 +15,7 @@
 #include <string.h>
 
 #if PTHREADPOOL_USE_CPUINFO
-#include "third_party/cpuinfo/include/cpuinfo.h"
+#include <cpuinfo.h>
 #endif
 
 /* Dependencies */
