@@ -1,7 +1,6 @@
 # pthreadpool
 
-[![BSD (2 clause) License](https://img.shields.io/badge/License-BSD%202--Clause%20%22Simplified%22%20License-blue.svg)](https://github.com/Maratyszcza/pthreadpool/blob/master/LICENSE)
-[![Build Status](https://img.shields.io/travis/Maratyszcza/pthreadpool.svg)](https://travis-ci.org/Maratyszcza/pthreadpool)
+[![BSD (2 clause) License](https://img.shields.io/badge/License-BSD%202--Clause%20%22Simplified%22%20License-blue.svg)](https://github.com/google/pthreadpool/blob/main/LICENSE)
 
 **pthreadpool** is a portable and efficient thread pool implementation.
 It provides similar functionality to `#pragma omp parallel for`, but with additional features.
