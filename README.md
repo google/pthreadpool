@@ -6,6 +6,8 @@
 **pthreadpool** is a portable and efficient thread pool implementation.
 It provides similar functionality to `#pragma omp parallel for`, but with additional features.
 
+This is a Google-maintained fork of the original http://github.com/Maratyszcza/pthreadpool repository.
+
 ## Features:
 
 * C interface (C++-compatible).
@@ -19,7 +21,7 @@ It provides similar functionality to `#pragma omp parallel for`, but with additi
 
 ## Example
 
-  The following example demonstates using the thread pool for parallel addition of two arrays:
+  The following example demonstrates using the thread pool for parallel addition of two arrays:
 
 ```c
 static void add_arrays(struct array_addition_context* context, size_t i) {
