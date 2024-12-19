@@ -30,6 +30,16 @@ IF(CCACHE_BINARY)
   ENDIF()
 ENDIF()
 
+# ---[ Language options.
+SET(CMAKE_C_STANDARD 11)
+SET(CMAKE_C_EXTENSIONS NO)
+SET(CMAKE_CXX_STANDARD 11)
+SET(CMAKE_CXX_EXTENSIONS NO)
+IF(CMAKE_C_COMPILER_ID STREQUAL "MSVC")
+  STRING(APPEND CMAKE_C_FLAGS " /experimental:c11atomics")
+  STRING(APPEND CMAKE_CXX_FLAGS " /experimental:c11atomics")
+ENDIF()
+
 # ---[ Options.
 SET(PTHREADPOOL_LIBRARY_TYPE "default" CACHE STRING "Type of library (shared, static, or default) to build")
 SET_PROPERTY(CACHE PTHREADPOOL_LIBRARY_TYPE PROPERTY STRINGS default static shared)
@@ -59,12 +69,6 @@ ENDIF()
 IF(PTHREADPOOL_BUILD_TESTS)
   ENABLE_TESTING()
 ENDIF()
-
-MACRO(PTHREADPOOL_TARGET_ENABLE_CXX11 target)
-  SET_TARGET_PROPERTIES(${target} PROPERTIES
-    CXX_STANDARD 11
-    CXX_EXTENSIONS NO)
-ENDMACRO()
 
 # ---[ Download deps
 IF(NOT DEFINED FXDIV_SOURCE_DIR)
@@ -159,9 +163,6 @@ ELSE()
   TARGET_COMPILE_DEFINITIONS(pthreadpool PRIVATE PTHREADPOOL_USE_FASTPATH=0)
 ENDIF()
 
-SET_TARGET_PROPERTIES(pthreadpool PROPERTIES
-  C_STANDARD 11
-  C_EXTENSIONS NO)
 TARGET_LINK_LIBRARIES(pthreadpool PUBLIC pthreadpool_interface)
 TARGET_INCLUDE_DIRECTORIES(pthreadpool PRIVATE src)
 IF(NOT CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
@@ -204,16 +205,10 @@ IF(PTHREADPOOL_BUILD_TESTS)
   ENDIF()
 
   ADD_EXECUTABLE(pthreadpool-test test/pthreadpool.cc)
-  SET_TARGET_PROPERTIES(pthreadpool-test PROPERTIES
-    CXX_STANDARD 11
-    CXX_EXTENSIONS NO)
   TARGET_LINK_LIBRARIES(pthreadpool-test pthreadpool gtest gtest_main)
   ADD_TEST(pthreadpool pthreadpool-test)
 
   ADD_EXECUTABLE(pthreadpool-cxx-test test/pthreadpool-cxx.cc)
-  SET_TARGET_PROPERTIES(pthreadpool-cxx-test PROPERTIES
-    CXX_STANDARD 11
-    CXX_EXTENSIONS NO)
   TARGET_LINK_LIBRARIES(pthreadpool-cxx-test pthreadpool gtest gtest_main)
   ADD_TEST(pthreadpool-cxx pthreadpool-cxx-test)
 ENDIF()
@@ -228,14 +223,8 @@ IF(PTHREADPOOL_BUILD_BENCHMARKS)
   ENDIF()
 
   ADD_EXECUTABLE(latency-bench bench/latency.cc)
-  SET_TARGET_PROPERTIES(latency-bench PROPERTIES
-    CXX_STANDARD 11
-    CXX_EXTENSIONS NO)
   TARGET_LINK_LIBRARIES(latency-bench pthreadpool benchmark)
 
   ADD_EXECUTABLE(throughput-bench bench/throughput.cc)
-  SET_TARGET_PROPERTIES(throughput-bench PROPERTIES
-    CXX_STANDARD 11
-    CXX_EXTENSIONS NO)
   TARGET_LINK_LIBRARIES(throughput-bench pthreadpool benchmark)
 ENDIF()
