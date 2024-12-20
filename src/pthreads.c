@@ -7,6 +7,9 @@
 // This source code is licensed under the BSD-style license found in the
 // LICENSE file in the root directory of this source tree.
 
+// Needed for syscall.
+#define _GNU_SOURCE
+
 /* Standard C headers */
 #include <assert.h>
 #include <limits.h>
@@ -32,19 +35,22 @@
 /* Old Android NDKs do not define SYS_futex and FUTEX_PRIVATE_FLAG */
 #ifndef SYS_futex
 #define SYS_futex __NR_futex
-#endif
+#endif  // SYS_futex
+
 #ifndef FUTEX_PRIVATE_FLAG
 #define FUTEX_PRIVATE_FLAG 128
-#endif
+#endif  // FUTEX_PRIVATE_FLAG
+
 #elif defined(__EMSCRIPTEN__)
 /* math.h for INFINITY constant */
 #include <emscripten/threading.h>
 #include <math.h>
+
 #else
 #error \
     "Platform-specific implementation of futex_wait and futex_wake_all required"
-#endif
-#endif
+#endif  // defined(__linux__)
+#endif  // PTHREADPOOL_USE_FUTEX
 
 /* Windows-specific headers */
 #ifdef _WIN32
