@@ -127,6 +127,11 @@ static inline bool pthreadpool_try_decrement_relaxed_size_t(
   return false;
 }
 
+static inline size_t pthreadpool_fetch_add_relaxed_size_t(
+    pthreadpool_atomic_size_t* address, size_t value) {
+  return atomic_fetch_add_explicit(address, value, memory_order_relaxed);
+}
+
 static inline void pthreadpool_fence_acquire() {
   atomic_thread_fence(memory_order_acquire);
 }
