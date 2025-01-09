@@ -8,7 +8,9 @@
 // LICENSE file in the root directory of this source tree.
 
 // Needed for syscall.
-#define _GNU_SOURCE
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE 1
+#endif  // _GNU_SOURCE
 
 /* Standard C headers */
 #include <assert.h>
