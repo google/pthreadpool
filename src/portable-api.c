@@ -191,6 +191,58 @@ static void thread_parallelize_1d_tile_1d(struct pthreadpool* threadpool,
   pthreadpool_fence_release();
 }
 
+static void thread_parallelize_1d_tile_1d_dynamic(
+    struct pthreadpool* threadpool, struct thread_info* thread) {
+  assert(threadpool != NULL);
+  assert(thread != NULL);
+
+  // Get a handle on the params.
+  struct pthreadpool_1d_tile_1d_dynamic_params* params =
+      &threadpool->params.parallelize_1d_tile_1d_dynamic;
+  const size_t threads_count = threadpool->threads_count.value;
+  const size_t count = params->range;
+  const size_t tile = params->tile;
+  const pthreadpool_task_1d_tile_1d_dynamic_t task =
+      (pthreadpool_task_1d_tile_1d_dynamic_t)pthreadpool_load_relaxed_void_p(
+          &threadpool->task);
+  void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
+
+  // Do tiles in our own range first, then the other ranges when we're done.
+  const size_t thread_number = thread->thread_number;
+  for (size_t tid = 0; tid < threads_count; tid++) {
+    struct thread_info* thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
+    const size_t range_end =
+        pthreadpool_load_relaxed_size_t(&thread->range_end);
+
+    /* Get the current offset. */
+    size_t offset = pthreadpool_load_relaxed_size_t(&thread->range_start);
+
+    /* Loop as long as there is work to be done. */
+    while (offset < range_end) {
+      /* Choose a chunk size based on the remaining amount of work and the
+       * current number of threads. */
+      size_t chunk_size = max((range_end - offset) / 2, 1);
+
+      /* Grab a chunk of work, maybe adjust the size if there is not enough work
+       * left. */
+      offset = pthreadpool_fetch_add_relaxed_size_t(&thread->range_start,
+                                                    chunk_size);
+      if (offset >= range_end) {
+        break;
+      }
+      chunk_size = min(chunk_size, range_end - offset);
+
+      /* Call the task function. */
+      task(argument, tile * offset,
+           min(tile * chunk_size, count - tile * offset));
+    }
+  }
+
+  /* Make changes by this thread visible to other threads. */
+  pthreadpool_fence_release();
+}
+
 static void thread_parallelize_2d(struct pthreadpool* threadpool,
                                   struct thread_info* thread) {
   assert(threadpool != NULL);
@@ -474,6 +526,69 @@ static void thread_parallelize_2d_tile_1d_with_uarch_with_thread(
   pthreadpool_fence_release();
 }
 
+static void thread_parallelize_2d_tile_1d_dynamic(
+    struct pthreadpool* threadpool, struct thread_info* thread) {
+  assert(threadpool != NULL);
+  assert(thread != NULL);
+
+  // Get a handle on the params.
+  struct pthreadpool_2d_tile_1d_dynamic_params* params =
+      &threadpool->params.parallelize_2d_tile_1d_dynamic;
+  const size_t threads_count = threadpool->threads_count.value;
+  const size_t range_i = params->range_i;
+  const size_t range_j = params->range_j;
+  const size_t tile_j = params->tile_j;
+  const size_t tile_range_j = divide_round_up(range_j, tile_j);
+  const pthreadpool_task_2d_tile_1d_dynamic_t task =
+      (pthreadpool_task_2d_tile_1d_dynamic_t)pthreadpool_load_relaxed_void_p(
+          &threadpool->task);
+  void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
+
+  // Do tiles in our own range first, then the other ranges when we're done.
+  const size_t thread_number = thread->thread_number;
+  for (size_t tid = 0; tid < threads_count; tid++) {
+    struct thread_info* thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
+    const size_t range_end =
+        pthreadpool_load_relaxed_size_t(&thread->range_end);
+
+    /* Get the current offset. */
+    size_t offset = pthreadpool_load_relaxed_size_t(&thread->range_start);
+
+    /* Loop as long as there is work to be done. */
+    while (offset < range_end) {
+      /* Choose a chunk size based on the remaining amount of work and the
+       * current number of threads. */
+      size_t chunk_size = max((range_end - offset) / 2, 1);
+
+      /* Grab a chunk of work, maybe adjust the size if there is not enough work
+       * left. */
+      offset = pthreadpool_fetch_add_relaxed_size_t(&thread->range_start,
+                                                    chunk_size);
+      if (offset >= range_end) {
+        break;
+      }
+      chunk_size = min(chunk_size, range_end - offset);
+
+      // Call the task function.
+      while (chunk_size > 0) {
+        // Extract the i and j indices from the offset.
+        const size_t index_i = offset / tile_range_j;
+        const size_t tile_index_j = offset % tile_range_j;
+        const size_t index_j = tile_index_j * tile_j;
+        const size_t tile_step_j = min(chunk_size, tile_range_j - tile_index_j);
+        chunk_size -= tile_step_j;
+        offset += tile_step_j;
+        const size_t step_j = min(tile_step_j * tile_j, range_j - index_j);
+        task(argument, index_i, index_j, step_j);
+      }
+    }
+  }
+
+  /* Make changes by this thread visible to other threads */
+  pthreadpool_fence_release();
+}
+
 static void thread_parallelize_2d_tile_2d(struct pthreadpool* threadpool,
                                           struct thread_info* thread) {
   assert(threadpool != NULL);
@@ -597,6 +712,178 @@ static void thread_parallelize_2d_tile_2d_with_uarch(
       const size_t start_j = tile_index_i_j.remainder * tile_j;
       task(argument, uarch_index, start_i, start_j,
            min(range_i - start_i, tile_i), min(range_j - start_j, tile_j));
+    }
+  }
+
+  /* Make changes by this thread visible to other threads */
+  pthreadpool_fence_release();
+}
+
+static void thread_parallelize_2d_tile_2d_dynamic(
+    struct pthreadpool* threadpool, struct thread_info* thread) {
+  assert(threadpool != NULL);
+  assert(thread != NULL);
+
+  // Get a handle on the params.
+  struct pthreadpool_2d_tile_2d_dynamic_params* params =
+      &threadpool->params.parallelize_2d_tile_2d_dynamic;
+  const size_t threads_count = threadpool->threads_count.value;
+  const size_t range_i = params->range_i;
+  const size_t range_j = params->range_j;
+  const size_t tile_i = params->tile_i;
+  const size_t tile_j = params->tile_j;
+  const size_t tile_range_i = divide_round_up(range_i, tile_i);
+  const size_t tile_range_j = divide_round_up(range_j, tile_j);
+  const pthreadpool_task_2d_tile_2d_dynamic_t task =
+      (pthreadpool_task_2d_tile_2d_dynamic_t)pthreadpool_load_relaxed_void_p(
+          &threadpool->task);
+  void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
+
+  // Do tiles in our own range first, then the other ranges when we're done.
+  const size_t thread_number = thread->thread_number;
+  for (size_t tid = 0; tid < threads_count; tid++) {
+    struct thread_info* thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
+    const size_t range_end =
+        pthreadpool_load_relaxed_size_t(&thread->range_end);
+
+    /* Get the current offset. */
+    size_t offset = pthreadpool_load_relaxed_size_t(&thread->range_start);
+
+    /* Loop as long as there is work to be done. */
+    while (offset < range_end) {
+      /* Choose a chunk size based on the remaining amount of work and the
+       * current number of threads. */
+      size_t chunk_size = max((range_end - offset) / 2, 1);
+
+      /* Grab a chunk of work, maybe adjust the size if there is not enough work
+       * left. */
+      offset = pthreadpool_fetch_add_relaxed_size_t(&thread->range_start,
+                                                    chunk_size);
+      if (offset >= range_end) {
+        break;
+      }
+      chunk_size = min(chunk_size, range_end - offset);
+
+      // Call the task function.
+      while (chunk_size > 0) {
+        // Extract the i and j indices from the offset.
+        if (tile_range_j == 1) {
+          const size_t tile_index_i = offset;
+          const size_t index_i = tile_index_i * tile_i;
+          const size_t tile_step_i =
+              min(chunk_size, tile_range_i - tile_index_i);
+          chunk_size -= tile_step_i;
+          offset += tile_step_i;
+          const size_t step_i = min(tile_step_i * tile_i, range_i - index_i);
+          task(argument, index_i, /*index_j=*/0, step_i, range_j);
+        } else {
+          const size_t tile_index_i = offset / tile_range_j;
+          const size_t tile_index_j = offset % tile_range_j;
+          const size_t index_i = tile_index_i * tile_i;
+          const size_t index_j = tile_index_j * tile_j;
+          const size_t step_i = min(tile_i, range_i - index_i);
+          const size_t tile_step_j =
+              min(chunk_size, tile_range_j - tile_index_j);
+          chunk_size -= tile_step_j;
+          offset += tile_step_j;
+          const size_t step_j = min(tile_step_j * tile_j, range_j - index_j);
+          task(argument, index_i, index_j, step_i, step_j);
+        }
+      }
+    }
+  }
+
+  /* Make changes by this thread visible to other threads */
+  pthreadpool_fence_release();
+}
+
+static void thread_parallelize_2d_tile_2d_dynamic_with_uarch(
+    struct pthreadpool* threadpool, struct thread_info* thread) {
+  assert(threadpool != NULL);
+  assert(thread != NULL);
+
+  // Identify the uarch for the current core.
+  const uint32_t default_uarch_index =
+      threadpool->params.parallelize_2d_tile_2d_dynamic_with_uarch
+          .default_uarch_index;
+  uint32_t uarch_index = default_uarch_index;
+#if PTHREADPOOL_USE_CPUINFO
+  uarch_index =
+      cpuinfo_get_current_uarch_index_with_default(default_uarch_index);
+  if (uarch_index > threadpool->params.parallelize_2d_tile_2d_dynamic_with_uarch
+                        .max_uarch_index) {
+    uarch_index = default_uarch_index;
+  }
+#endif
+
+  // Get a handle on the params.
+  struct pthreadpool_2d_tile_2d_dynamic_with_uarch_params* params =
+      &threadpool->params.parallelize_2d_tile_2d_dynamic_with_uarch;
+  const size_t threads_count = threadpool->threads_count.value;
+  const size_t range_i = params->range_i;
+  const size_t range_j = params->range_j;
+  const size_t tile_i = params->tile_i;
+  const size_t tile_j = params->tile_j;
+  const size_t tile_range_i = divide_round_up(range_i, tile_i);
+  const size_t tile_range_j = divide_round_up(range_j, tile_j);
+  const pthreadpool_task_2d_tile_2d_dynamic_with_id_t task =
+      (pthreadpool_task_2d_tile_2d_dynamic_with_id_t)
+          pthreadpool_load_relaxed_void_p(&threadpool->task);
+  void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
+
+  // Do tiles in our own range first, then the other ranges when we're done.
+  const size_t thread_number = thread->thread_number;
+  for (size_t tid = 0; tid < threads_count; tid++) {
+    struct thread_info* thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
+    const size_t range_end =
+        pthreadpool_load_relaxed_size_t(&thread->range_end);
+
+    /* Get the current offset. */
+    size_t offset = pthreadpool_load_relaxed_size_t(&thread->range_start);
+
+    /* Loop as long as there is work to be done. */
+    while (offset < range_end) {
+      /* Choose a chunk size based on the remaining amount of work and the
+       * current number of threads. */
+      size_t chunk_size = max((range_end - offset) / 2, 1);
+
+      /* Grab a chunk of work, maybe adjust the size if there is not enough work
+       * left. */
+      offset = pthreadpool_fetch_add_relaxed_size_t(&thread->range_start,
+                                                    chunk_size);
+      if (offset >= range_end) {
+        break;
+      }
+      chunk_size = min(chunk_size, range_end - offset);
+
+      // Call the task function.
+      while (chunk_size > 0) {
+        // Extract the i and j indices from the offset.
+        if (tile_range_j == 1) {
+          const size_t tile_index_i = offset;
+          const size_t index_i = tile_index_i * tile_i;
+          const size_t tile_step_i =
+              min(chunk_size, tile_range_i - tile_index_i);
+          chunk_size -= tile_step_i;
+          offset += tile_step_i;
+          const size_t step_i = min(tile_step_i * tile_i, range_i - index_i);
+          task(argument, uarch_index, index_i, /*index_j=*/0, step_i, range_j);
+        } else {
+          const size_t tile_index_i = offset / tile_range_j;
+          const size_t tile_index_j = offset % tile_range_j;
+          const size_t index_i = tile_index_i * tile_i;
+          const size_t index_j = tile_index_j * tile_j;
+          const size_t step_i = min(tile_i, range_i - index_i);
+          const size_t tile_step_j =
+              min(chunk_size, tile_range_j - tile_index_j);
+          chunk_size -= tile_step_j;
+          offset += tile_step_j;
+          const size_t step_j = min(tile_step_j * tile_j, range_j - index_j);
+          task(argument, uarch_index, index_i, index_j, step_i, step_j);
+        }
+      }
     }
   }
 
@@ -1089,6 +1376,186 @@ static void thread_parallelize_3d_tile_2d_with_uarch(
       const size_t start_k = tile_index_ij_k.remainder * tile_k;
       task(argument, uarch_index, tile_index_i_j.quotient, start_j, start_k,
            min(range_j - start_j, tile_j), min(range_k - start_k, tile_k));
+    }
+  }
+
+  /* Make changes by this thread visible to other threads */
+  pthreadpool_fence_release();
+}
+
+static void thread_parallelize_3d_tile_2d_dynamic(
+    struct pthreadpool* threadpool, struct thread_info* thread) {
+  assert(threadpool != NULL);
+  assert(thread != NULL);
+
+  // Get a handle on the params.
+  struct pthreadpool_3d_tile_2d_dynamic_params* params =
+      &threadpool->params.parallelize_3d_tile_2d_dynamic;
+  const size_t threads_count = threadpool->threads_count.value;
+  const size_t range_i = params->range_i;
+  const size_t range_j = params->range_j;
+  const size_t range_k = params->range_k;
+  const size_t tile_j = params->tile_j;
+  const size_t tile_k = params->tile_k;
+  const size_t tile_range_j = divide_round_up(range_j, tile_j);
+  const size_t tile_range_k = divide_round_up(range_k, tile_k);
+  const pthreadpool_task_3d_tile_2d_dynamic_t task =
+      (pthreadpool_task_3d_tile_2d_dynamic_t)pthreadpool_load_relaxed_void_p(
+          &threadpool->task);
+  void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
+
+  // Do tiles in our own range first, then the other ranges when we're done.
+  const size_t thread_number = thread->thread_number;
+  for (size_t tid = 0; tid < threads_count; tid++) {
+    struct thread_info* thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
+    const size_t range_end =
+        pthreadpool_load_relaxed_size_t(&thread->range_end);
+
+    /* Get the current offset. */
+    size_t offset = pthreadpool_load_relaxed_size_t(&thread->range_start);
+
+    /* Loop as long as there is work to be done. */
+    while (offset < range_end) {
+      /* Choose a chunk size based on the remaining amount of work and the
+       * current number of threads. */
+      size_t chunk_size = max((range_end - offset) / 2, 1);
+
+      /* Grab a chunk of work, maybe adjust the size if there is not enough work
+       * left. */
+      offset = pthreadpool_fetch_add_relaxed_size_t(&thread->range_start,
+                                                    chunk_size);
+      if (offset >= range_end) {
+        break;
+      }
+      chunk_size = min(chunk_size, range_end - offset);
+
+      // Call the task function.
+      while (chunk_size > 0) {
+        // Extract the i and j indices from the offset.
+        if (tile_range_k == 1) {
+          const size_t index_i = offset / tile_range_j;
+          const size_t tile_index_j = offset % tile_range_j;
+          const size_t index_j = tile_index_j * tile_j;
+          const size_t tile_step_j =
+              min(chunk_size, tile_range_j - tile_index_j);
+          chunk_size -= tile_step_j;
+          offset += tile_step_j;
+          const size_t step_j = min(tile_step_j * tile_j, range_j - index_j);
+          task(argument, index_i, index_j, /*index_k=*/0, step_j, range_k);
+        } else {
+          const size_t index_i = offset / (tile_range_j * tile_range_k);
+          const size_t tile_index_j = (offset / tile_range_k) % tile_range_j;
+          const size_t tile_index_k = offset % tile_range_k;
+          const size_t index_j = tile_index_j * tile_j;
+          const size_t step_j = min(tile_j, range_j - index_j);
+          const size_t index_k = tile_index_k * tile_k;
+          const size_t tile_step_k =
+              min(chunk_size, tile_range_k - tile_index_k);
+          chunk_size -= tile_step_k;
+          offset += tile_step_k;
+          const size_t step_k = min(tile_step_k * tile_k, range_k - index_k);
+          task(argument, index_i, index_j, index_k, step_j, step_k);
+        }
+      }
+    }
+  }
+
+  /* Make changes by this thread visible to other threads */
+  pthreadpool_fence_release();
+}
+
+static void thread_parallelize_3d_tile_2d_dynamic_with_uarch(
+    struct pthreadpool* threadpool, struct thread_info* thread) {
+  assert(threadpool != NULL);
+  assert(thread != NULL);
+
+  // Get a handle on the params.
+  struct pthreadpool_3d_tile_2d_dynamic_with_uarch_params* params =
+      &threadpool->params.parallelize_3d_tile_2d_dynamic_with_uarch;
+  const size_t threads_count = threadpool->threads_count.value;
+  const size_t range_i = params->range_i;
+  const size_t range_j = params->range_j;
+  const size_t range_k = params->range_k;
+  const size_t tile_j = params->tile_j;
+  const size_t tile_k = params->tile_k;
+  const size_t tile_range_j = divide_round_up(range_j, tile_j);
+  const size_t tile_range_k = divide_round_up(range_k, tile_k);
+  const pthreadpool_task_3d_tile_2d_dynamic_with_id_t task =
+      (pthreadpool_task_3d_tile_2d_dynamic_with_id_t)
+          pthreadpool_load_relaxed_void_p(&threadpool->task);
+  void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
+
+  // Get the uarch.
+  const uint32_t default_uarch_index =
+      threadpool->params.parallelize_3d_tile_2d_dynamic_with_uarch
+          .default_uarch_index;
+  uint32_t uarch_index = default_uarch_index;
+#if PTHREADPOOL_USE_CPUINFO
+  uarch_index =
+      cpuinfo_get_current_uarch_index_with_default(default_uarch_index);
+  if (uarch_index > threadpool->params.parallelize_3d_tile_2d_dynamic_with_uarch
+                        .max_uarch_index) {
+    uarch_index = default_uarch_index;
+  }
+#endif
+
+  // Do tiles in our own range first, then the other ranges when we're done.
+  const size_t thread_number = thread->thread_number;
+  for (size_t tid = 0; tid < threads_count; tid++) {
+    struct thread_info* thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
+    const size_t range_end =
+        pthreadpool_load_relaxed_size_t(&thread->range_end);
+
+    /* Get the current offset. */
+    size_t offset = pthreadpool_load_relaxed_size_t(&thread->range_start);
+
+    /* Loop as long as there is work to be done. */
+    while (offset < range_end) {
+      /* Choose a chunk size based on the remaining amount of work and the
+       * current number of threads. */
+      size_t chunk_size = max((range_end - offset) / 2, 1);
+
+      /* Grab a chunk of work, maybe adjust the size if there is not enough work
+       * left. */
+      offset = pthreadpool_fetch_add_relaxed_size_t(&thread->range_start,
+                                                    chunk_size);
+      if (offset >= range_end) {
+        break;
+      }
+      chunk_size = min(chunk_size, range_end - offset);
+
+      // Call the task function.
+      while (chunk_size > 0) {
+        // Extract the i and j indices from the offset.
+        if (tile_range_k == 1) {
+          const size_t index_i = offset / tile_range_j;
+          const size_t tile_index_j = offset % tile_range_j;
+          const size_t index_j = tile_index_j * tile_j;
+          const size_t tile_step_j =
+              min(chunk_size, tile_range_j - tile_index_j);
+          chunk_size -= tile_step_j;
+          offset += tile_step_j;
+          const size_t step_j = min(tile_step_j * tile_j, range_j - index_j);
+          task(argument, uarch_index, index_i, index_j, /*index_k=*/0, step_j,
+               range_k);
+        } else {
+          const size_t index_i = offset / (tile_range_j * tile_range_k);
+          const size_t tile_index_j = (offset / tile_range_k) % tile_range_j;
+          const size_t tile_index_k = offset % tile_range_k;
+          const size_t index_j = tile_index_j * tile_j;
+          const size_t step_j = min(tile_j, range_j - index_j);
+          const size_t index_k = tile_index_k * tile_k;
+          const size_t tile_step_k =
+              min(chunk_size, tile_range_k - tile_index_k);
+          chunk_size -= tile_step_k;
+          offset += tile_step_k;
+          const size_t step_k = min(tile_step_k * tile_k, range_k - index_k);
+          task(argument, uarch_index, index_i, index_j, index_k, step_j,
+               step_k);
+        }
+      }
     }
   }
 
@@ -2101,6 +2568,34 @@ void pthreadpool_parallelize_1d_tile_1d(pthreadpool_t threadpool,
   }
 }
 
+void pthreadpool_parallelize_1d_tile_1d_dynamic(
+    pthreadpool_t threadpool, pthreadpool_task_1d_tile_1d_dynamic_t function,
+    void* context, size_t range, size_t tile, uint32_t flags) {
+  size_t threads_count;
+  if (threadpool == NULL ||
+      (threads_count = threadpool->threads_count.value) <= 1 || range <= tile) {
+    /* No thread pool used: execute task sequentially on the calling thread */
+    struct fpu_state saved_fpu_state = {0};
+    if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
+      saved_fpu_state = get_fpu_state();
+      disable_fpu_denormals();
+    }
+    function(context, 0, range);
+    if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
+      set_fpu_state(saved_fpu_state);
+    }
+  } else {
+    const size_t tile_range = divide_round_up(range, tile);
+    const struct pthreadpool_1d_tile_1d_dynamic_params params = {
+        .range = range,
+        .tile = tile,
+    };
+    pthreadpool_parallelize(threadpool, thread_parallelize_1d_tile_1d_dynamic,
+                            &params, sizeof(params), function, context,
+                            tile_range, flags);
+  }
+}
+
 void pthreadpool_parallelize_2d(pthreadpool_t threadpool,
                                 pthreadpool_task_2d_t function, void* context,
                                 size_t range_i, size_t range_j,
@@ -2282,6 +2777,38 @@ void pthreadpool_parallelize_2d_tile_1d_with_uarch(
   }
 }
 
+void pthreadpool_parallelize_2d_tile_1d_dynamic(
+    pthreadpool_t threadpool, pthreadpool_task_2d_tile_1d_dynamic_t function,
+    void* context, size_t range_i, size_t range_j, size_t tile_j,
+    uint32_t flags) {
+  if (threadpool == NULL || threadpool->threads_count.value <= 1 ||
+      (range_i <= 1 && range_j <= tile_j)) {
+    /* No thread pool used: execute task sequentially on the calling thread */
+    struct fpu_state saved_fpu_state = {0};
+    if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
+      saved_fpu_state = get_fpu_state();
+      disable_fpu_denormals();
+    }
+    for (size_t index_i = 0; index_i < range_i; index_i++) {
+      function(context, index_i, /*index_j=*/0, range_j);
+    }
+    if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
+      set_fpu_state(saved_fpu_state);
+    }
+  } else {
+    const size_t tile_range_j = divide_round_up(range_j, tile_j);
+    const size_t tile_range = range_i * tile_range_j;
+    const struct pthreadpool_2d_tile_1d_dynamic_params params = {
+        .range_i = range_i,
+        .range_j = range_j,
+        .tile_j = tile_j,
+    };
+    pthreadpool_parallelize(threadpool, thread_parallelize_2d_tile_1d_dynamic,
+                            &params, sizeof(params), function, context,
+                            tile_range, flags);
+  }
+}
+
 void pthreadpool_parallelize_2d_tile_1d_with_uarch_with_thread(
     pthreadpool_t threadpool,
     pthreadpool_task_2d_tile_1d_with_id_with_thread_t function, void* context,
@@ -2386,6 +2913,97 @@ void pthreadpool_parallelize_2d_tile_2d(pthreadpool_t threadpool,
     pthreadpool_parallelize(threadpool, parallelize_2d_tile_2d, &params,
                             sizeof(params), function, context, tile_range,
                             flags);
+  }
+}
+
+void pthreadpool_parallelize_2d_tile_2d_dynamic(
+    pthreadpool_t threadpool, pthreadpool_task_2d_tile_2d_dynamic_t function,
+    void* context, size_t range_i, size_t range_j, size_t tile_i, size_t tile_j,
+    uint32_t flags) {
+  if (threadpool == NULL || threadpool->threads_count.value <= 1 ||
+      (range_i <= tile_i && range_j <= tile_j)) {
+    /* No thread pool used: execute task sequentially on the calling thread */
+    struct fpu_state saved_fpu_state = {0};
+    if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
+      saved_fpu_state = get_fpu_state();
+      disable_fpu_denormals();
+    }
+    if (range_j <= tile_j) {
+      function(context, /*index_i=*/0, /*index_j=*/0, range_i, range_j);
+    } else {
+      for (size_t index_i = 0; index_i < range_i; index_i += tile_i) {
+        function(context, index_i, /*index_j=*/0,
+                 min(tile_i, range_i - index_i), range_j);
+      }
+    }
+    if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
+      set_fpu_state(saved_fpu_state);
+    }
+  } else {
+    const size_t tile_range_i = divide_round_up(range_i, tile_i);
+    const size_t tile_range_j = divide_round_up(range_j, tile_j);
+    const size_t tile_range = tile_range_i * tile_range_j;
+    const struct pthreadpool_2d_tile_2d_dynamic_params params = {
+        .range_i = range_i,
+        .range_j = range_j,
+        .tile_i = tile_i,
+        .tile_j = tile_j,
+    };
+    pthreadpool_parallelize(threadpool, thread_parallelize_2d_tile_2d_dynamic,
+                            &params, sizeof(params), function, context,
+                            tile_range, flags);
+  }
+}
+
+void pthreadpool_parallelize_2d_tile_2d_dynamic_with_uarch(
+    pthreadpool_t threadpool,
+    pthreadpool_task_2d_tile_2d_dynamic_with_id_t function, void* context,
+    uint32_t default_uarch_index, uint32_t max_uarch_index, size_t range_i,
+    size_t range_j, size_t tile_i, size_t tile_j, uint32_t flags) {
+  if (threadpool == NULL || threadpool->threads_count.value <= 1 ||
+      (range_i <= tile_i && range_j <= tile_j)) {
+    /* No thread pool used: execute task sequentially on the calling thread */
+    uint32_t uarch_index = default_uarch_index;
+#if PTHREADPOOL_USE_CPUINFO
+    uarch_index =
+        cpuinfo_get_current_uarch_index_with_default(default_uarch_index);
+    if (uarch_index > max_uarch_index) {
+      uarch_index = default_uarch_index;
+    }
+#endif
+
+    struct fpu_state saved_fpu_state = {0};
+    if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
+      saved_fpu_state = get_fpu_state();
+      disable_fpu_denormals();
+    }
+    if (range_j <= tile_j) {
+      function(context, uarch_index, /*index_i=*/0, /*index_j=*/0, range_i,
+               range_j);
+    } else {
+      for (size_t index_i = 0; index_i < range_i; index_i += tile_i) {
+        function(context, uarch_index, index_i, /*index_j=*/0,
+                 min(tile_i, range_i - index_i), range_j);
+      }
+    }
+    if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
+      set_fpu_state(saved_fpu_state);
+    }
+  } else {
+    const size_t tile_range_i = divide_round_up(range_i, tile_i);
+    const size_t tile_range_j = divide_round_up(range_j, tile_j);
+    const size_t tile_range = tile_range_i * tile_range_j;
+    const struct pthreadpool_2d_tile_2d_dynamic_with_uarch_params params = {
+        .range_i = range_i,
+        .range_j = range_j,
+        .tile_i = tile_i,
+        .tile_j = tile_j,
+        .default_uarch_index = default_uarch_index,
+        .max_uarch_index = max_uarch_index,
+    };
+    pthreadpool_parallelize(
+        threadpool, thread_parallelize_2d_tile_2d_dynamic_with_uarch, &params,
+        sizeof(params), function, context, tile_range, flags);
   }
 }
 
@@ -2762,6 +3380,109 @@ void pthreadpool_parallelize_3d_tile_2d(pthreadpool_t threadpool,
     pthreadpool_parallelize(threadpool, parallelize_3d_tile_2d, &params,
                             sizeof(params), function, context, tile_range,
                             flags);
+  }
+}
+
+void pthreadpool_parallelize_3d_tile_2d_dynamic(
+    pthreadpool_t threadpool, pthreadpool_task_3d_tile_2d_dynamic_t function,
+    void* context, size_t range_i, size_t range_j, size_t range_k,
+    size_t tile_j, size_t tile_k, uint32_t flags) {
+  if (threadpool == NULL || threadpool->threads_count.value <= 1 ||
+      (range_i <= 1 && range_j <= tile_j && range_k <= tile_k)) {
+    /* No thread pool used: execute task sequentially on the calling thread */
+    struct fpu_state saved_fpu_state = {0};
+    if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
+      saved_fpu_state = get_fpu_state();
+      disable_fpu_denormals();
+    }
+    if (range_k <= tile_k) {
+      for (size_t index_i = 0; index_i < range_i; index_i++) {
+        function(context, index_i, /*index_j=*/0, /*index_k=*/0, range_j,
+                 range_k);
+      }
+    } else {
+      for (size_t index_i = 0; index_i < range_i; index_i++) {
+        for (size_t index_j = 0; index_j < range_j; index_j += tile_j) {
+          function(context, index_i, index_j, /*index_k=*/0,
+                   min(tile_j, range_j - index_j), range_k);
+        }
+      }
+    }
+    if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
+      set_fpu_state(saved_fpu_state);
+    }
+  } else {
+    const size_t tile_range_j = divide_round_up(range_j, tile_j);
+    const size_t tile_range_k = divide_round_up(range_k, tile_k);
+    const size_t tile_range = range_i * tile_range_j * tile_range_k;
+    const struct pthreadpool_3d_tile_2d_dynamic_params params = {
+        .range_i = range_i,
+        .range_j = range_j,
+        .range_k = range_k,
+        .tile_j = tile_j,
+        .tile_k = tile_k,
+    };
+    pthreadpool_parallelize(threadpool, thread_parallelize_3d_tile_2d_dynamic,
+                            &params, sizeof(params), function, context,
+                            tile_range, flags);
+  }
+}
+
+void pthreadpool_parallelize_3d_tile_2d_dynamic_with_uarch(
+    pthreadpool_t threadpool,
+    pthreadpool_task_3d_tile_2d_dynamic_with_id_t function, void* context,
+    uint32_t default_uarch_index, uint32_t max_uarch_index, size_t range_i,
+    size_t range_j, size_t range_k, size_t tile_j, size_t tile_k,
+    uint32_t flags) {
+  if (threadpool == NULL || threadpool->threads_count.value <= 1 ||
+      (range_i <= 1 && range_j <= tile_j && range_k <= tile_k)) {
+    /* No thread pool used: execute task sequentially on the calling thread */
+    uint32_t uarch_index = default_uarch_index;
+#if PTHREADPOOL_USE_CPUINFO
+    uarch_index =
+        cpuinfo_get_current_uarch_index_with_default(default_uarch_index);
+    if (uarch_index > max_uarch_index) {
+      uarch_index = default_uarch_index;
+    }
+#endif
+
+    struct fpu_state saved_fpu_state = {0};
+    if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
+      saved_fpu_state = get_fpu_state();
+      disable_fpu_denormals();
+    }
+    if (range_k <= tile_k) {
+      for (size_t index_i = 0; index_i < range_i; index_i++) {
+        function(context, uarch_index, index_i, /*index_j=*/0, /*index_k=*/0,
+                 range_j, range_k);
+      }
+    } else {
+      for (size_t index_i = 0; index_i < range_i; index_i++) {
+        for (size_t index_j = 0; index_j < range_j; index_j += tile_j) {
+          function(context, uarch_index, index_i, index_j, /*index_k=*/0,
+                   min(tile_j, range_j - index_j), range_k);
+        }
+      }
+    }
+    if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
+      set_fpu_state(saved_fpu_state);
+    }
+  } else {
+    const size_t tile_range_j = divide_round_up(range_j, tile_j);
+    const size_t tile_range_k = divide_round_up(range_k, tile_k);
+    const size_t tile_range = range_i * tile_range_j * tile_range_k;
+    const struct pthreadpool_3d_tile_2d_dynamic_with_uarch_params params = {
+        .range_i = range_i,
+        .range_j = range_j,
+        .range_k = range_k,
+        .tile_j = tile_j,
+        .tile_k = tile_k,
+        .default_uarch_index = default_uarch_index,
+        .max_uarch_index = max_uarch_index,
+    };
+    pthreadpool_parallelize(
+        threadpool, thread_parallelize_3d_tile_2d_dynamic_with_uarch, &params,
+        sizeof(params), function, context, tile_range, flags);
   }
 }
 
