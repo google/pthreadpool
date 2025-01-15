@@ -104,6 +104,11 @@ static inline size_t pthreadpool_decrement_fetch_relaxed_size_t(
   return atomic_fetch_sub_explicit(address, 1, memory_order_relaxed) - 1;
 }
 
+static inline size_t pthreadpool_decrement_n_fetch_relaxed_size_t(
+    pthreadpool_atomic_size_t* address, size_t n) {
+  return atomic_fetch_sub_explicit(address, n, memory_order_relaxed) - n;
+}
+
 static inline size_t pthreadpool_decrement_fetch_release_size_t(
     pthreadpool_atomic_size_t* address) {
   return atomic_fetch_sub_explicit(address, 1, memory_order_release) - 1;
@@ -125,6 +130,11 @@ static inline bool pthreadpool_try_decrement_relaxed_size_t(
     }
   }
   return false;
+}
+
+static inline size_t pthreadpool_fetch_add_relaxed_size_t(
+    pthreadpool_atomic_size_t* address, size_t value) {
+  return atomic_fetch_add_explicit(address, value, memory_order_relaxed);
 }
 
 static inline void pthreadpool_fence_acquire() {

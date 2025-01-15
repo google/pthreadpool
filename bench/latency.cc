@@ -28,7 +28,7 @@ static void pthreadpool_parallelize_1d(benchmark::State& state) {
   pthreadpool_t threadpool = pthreadpool_create(threads);
   while (state.KeepRunning()) {
     pthreadpool_parallelize_1d(threadpool, compute_1d, nullptr /* context */,
-                               threads, 0 /* flags */);
+                               threads, /*flags=*/0);
   }
   pthreadpool_destroy(threadpool);
 }
@@ -43,12 +43,30 @@ static void pthreadpool_parallelize_1d_tile_1d(benchmark::State& state) {
   while (state.KeepRunning()) {
     pthreadpool_parallelize_1d_tile_1d(threadpool, compute_1d_tile_1d,
                                        nullptr /* context */, threads, 1,
-                                       0 /* flags */);
+                                       /*flags=*/0);
   }
   pthreadpool_destroy(threadpool);
 }
 
 BENCHMARK(pthreadpool_parallelize_1d_tile_1d)
+    ->UseRealTime()
+    ->Apply(SetNumberOfThreads);
+
+static void compute_1d_tile_1d_dynamic(void*, size_t, size_t) {}
+
+static void pthreadpool_parallelize_1d_tile_1d_dynamic(
+    benchmark::State& state) {
+  const uint32_t threads = static_cast<uint32_t>(state.range(0));
+  pthreadpool_t threadpool = pthreadpool_create(threads);
+  while (state.KeepRunning()) {
+    pthreadpool_parallelize_1d_tile_1d_dynamic(
+        threadpool, compute_1d_tile_1d_dynamic, nullptr /* context */, threads,
+        1, /*flags=*/0);
+  }
+  pthreadpool_destroy(threadpool);
+}
+
+BENCHMARK(pthreadpool_parallelize_1d_tile_1d_dynamic)
     ->UseRealTime()
     ->Apply(SetNumberOfThreads);
 
@@ -59,7 +77,7 @@ static void pthreadpool_parallelize_2d(benchmark::State& state) {
   pthreadpool_t threadpool = pthreadpool_create(threads);
   while (state.KeepRunning()) {
     pthreadpool_parallelize_2d(threadpool, compute_2d, nullptr /* context */, 1,
-                               threads, 0 /* flags */);
+                               threads, /*flags=*/0);
   }
   pthreadpool_destroy(threadpool);
 }
@@ -74,12 +92,49 @@ static void pthreadpool_parallelize_2d_tile_2d(benchmark::State& state) {
   while (state.KeepRunning()) {
     pthreadpool_parallelize_2d_tile_2d(threadpool, compute_2d_tile_2d,
                                        nullptr /* context */, 1, threads, 1, 1,
-                                       0 /* flags */);
+                                       /*flags=*/0);
   }
   pthreadpool_destroy(threadpool);
 }
 
 BENCHMARK(pthreadpool_parallelize_2d_tile_2d)
+    ->UseRealTime()
+    ->Apply(SetNumberOfThreads);
+
+static void compute_2d_tile_2d_dynamic(void*, size_t, size_t, size_t, size_t) {}
+
+static void pthreadpool_parallelize_2d_tile_2d_dynamic(
+    benchmark::State& state) {
+  const uint32_t threads = static_cast<uint32_t>(state.range(0));
+  pthreadpool_t threadpool = pthreadpool_create(threads);
+  while (state.KeepRunning()) {
+    pthreadpool_parallelize_2d_tile_2d_dynamic(
+        threadpool, compute_2d_tile_2d_dynamic, nullptr /* context */, 1,
+        threads, 1, 1, /*flags=*/0);
+  }
+  pthreadpool_destroy(threadpool);
+}
+
+BENCHMARK(pthreadpool_parallelize_2d_tile_2d_dynamic)
+    ->UseRealTime()
+    ->Apply(SetNumberOfThreads);
+
+static void compute_3d_tile_2d_dynamic(void*, size_t, size_t, size_t, size_t,
+                                       size_t) {}
+
+static void pthreadpool_parallelize_3d_tile_2d_dynamic(
+    benchmark::State& state) {
+  const uint32_t threads = static_cast<uint32_t>(state.range(0));
+  pthreadpool_t threadpool = pthreadpool_create(threads);
+  while (state.KeepRunning()) {
+    pthreadpool_parallelize_3d_tile_2d_dynamic(
+        threadpool, compute_3d_tile_2d_dynamic, nullptr /* context */, 1, 1,
+        threads, 1, 1, /*flags=*/0);
+  }
+  pthreadpool_destroy(threadpool);
+}
+
+BENCHMARK(pthreadpool_parallelize_3d_tile_2d_dynamic)
     ->UseRealTime()
     ->Apply(SetNumberOfThreads);
 

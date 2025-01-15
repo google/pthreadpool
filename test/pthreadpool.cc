@@ -11,9 +11,11 @@
 
 #include <algorithm>
 #include <atomic>
+#include <chrono>  // NOLINT
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <thread>  // NOLINT
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -131,7 +133,7 @@ TEST(Parallelize1D, SingleThreadPoolCompletes) {
   ASSERT_TRUE(threadpool.get());
 
   pthreadpool_parallelize_1d(threadpool.get(), ComputeNothing1D, nullptr,
-                             kParallelize1DRange, 0 /* flags */);
+                             kParallelize1DRange, /*flags=*/0);
 }
 
 TEST(Parallelize1D, MultiThreadPoolCompletes) {
@@ -143,7 +145,7 @@ TEST(Parallelize1D, MultiThreadPoolCompletes) {
   }
 
   pthreadpool_parallelize_1d(threadpool.get(), ComputeNothing1D, nullptr,
-                             kParallelize1DRange, 0 /* flags */);
+                             kParallelize1DRange, /*flags=*/0);
 }
 
 static void CheckBounds1D(void*, size_t i) {
@@ -155,7 +157,7 @@ TEST(Parallelize1D, SingleThreadPoolAllItemsInBounds) {
   ASSERT_TRUE(threadpool.get());
 
   pthreadpool_parallelize_1d(threadpool.get(), CheckBounds1D, nullptr,
-                             kParallelize1DRange, 0 /* flags */);
+                             kParallelize1DRange, /*flags=*/0);
 }
 
 TEST(Parallelize1D, MultiThreadPoolAllItemsInBounds) {
@@ -167,7 +169,7 @@ TEST(Parallelize1D, MultiThreadPoolAllItemsInBounds) {
   }
 
   pthreadpool_parallelize_1d(threadpool.get(), CheckBounds1D, nullptr,
-                             kParallelize1DRange, 0 /* flags */);
+                             kParallelize1DRange, /*flags=*/0);
 }
 
 static void SetTrue1D(std::atomic_bool* processed_indicators, size_t i) {
@@ -180,10 +182,9 @@ TEST(Parallelize1D, SingleThreadPoolAllItemsProcessed) {
   auto_pthreadpool_t threadpool(pthreadpool_create(1), pthreadpool_destroy);
   ASSERT_TRUE(threadpool.get());
 
-  pthreadpool_parallelize_1d(threadpool.get(),
-                             reinterpret_cast<pthreadpool_task_1d_t>(SetTrue1D),
-                             static_cast<void*>(indicators.data()),
-                             kParallelize1DRange, 0 /* flags */);
+  pthreadpool_parallelize_1d(
+      threadpool.get(), reinterpret_cast<pthreadpool_task_1d_t>(SetTrue1D),
+      static_cast<void*>(indicators.data()), kParallelize1DRange, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize1DRange; i++) {
     EXPECT_TRUE(indicators[i].load(std::memory_order_relaxed))
@@ -201,10 +202,9 @@ TEST(Parallelize1D, MultiThreadPoolAllItemsProcessed) {
     GTEST_SKIP();
   }
 
-  pthreadpool_parallelize_1d(threadpool.get(),
-                             reinterpret_cast<pthreadpool_task_1d_t>(SetTrue1D),
-                             static_cast<void*>(indicators.data()),
-                             kParallelize1DRange, 0 /* flags */);
+  pthreadpool_parallelize_1d(
+      threadpool.get(), reinterpret_cast<pthreadpool_task_1d_t>(SetTrue1D),
+      static_cast<void*>(indicators.data()), kParallelize1DRange, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize1DRange; i++) {
     EXPECT_TRUE(indicators[i].load(std::memory_order_relaxed))
@@ -224,7 +224,7 @@ TEST(Parallelize1D, SingleThreadPoolEachItemProcessedOnce) {
 
   pthreadpool_parallelize_1d(
       threadpool.get(), reinterpret_cast<pthreadpool_task_1d_t>(Increment1D),
-      static_cast<void*>(counters.data()), kParallelize1DRange, 0 /* flags */);
+      static_cast<void*>(counters.data()), kParallelize1DRange, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize1DRange; i++) {
     EXPECT_EQ(counters[i].load(std::memory_order_relaxed), 1)
@@ -246,7 +246,7 @@ TEST(Parallelize1D, MultiThreadPoolEachItemProcessedOnce) {
 
   pthreadpool_parallelize_1d(
       threadpool.get(), reinterpret_cast<pthreadpool_task_1d_t>(Increment1D),
-      static_cast<void*>(counters.data()), kParallelize1DRange, 0 /* flags */);
+      static_cast<void*>(counters.data()), kParallelize1DRange, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize1DRange; i++) {
     EXPECT_EQ(counters[i].load(std::memory_order_relaxed), 1)
@@ -266,7 +266,7 @@ TEST(Parallelize1D, SingleThreadPoolEachItemProcessedMultipleTimes) {
     pthreadpool_parallelize_1d(
         threadpool.get(), reinterpret_cast<pthreadpool_task_1d_t>(Increment1D),
         static_cast<void*>(counters.data()), kParallelize1DRange,
-        0 /* flags */);
+        /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize1DRange; i++) {
@@ -291,7 +291,7 @@ TEST(Parallelize1D, MultiThreadPoolEachItemProcessedMultipleTimes) {
     pthreadpool_parallelize_1d(
         threadpool.get(), reinterpret_cast<pthreadpool_task_1d_t>(Increment1D),
         static_cast<void*>(counters.data()), kParallelize1DRange,
-        0 /* flags */);
+        /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize1DRange; i++) {
@@ -320,7 +320,7 @@ TEST(Parallelize1D, MultiThreadPoolHighContention) {
       threadpool.get(),
       reinterpret_cast<pthreadpool_task_1d_t>(IncrementSame1D),
       static_cast<void*>(&num_processed_items), kParallelize1DRange,
-      0 /* flags */);
+      /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize1DRange);
 }
@@ -350,7 +350,7 @@ TEST(Parallelize1D, MultiThreadPoolWorkStealing) {
       threadpool.get(),
       reinterpret_cast<pthreadpool_task_1d_t>(WorkImbalance1D),
       static_cast<void*>(&num_processed_items), kParallelize1DRange,
-      0 /* flags */);
+      /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize1DRange);
 }
@@ -363,7 +363,7 @@ TEST(Parallelize1DWithThread, SingleThreadPoolCompletes) {
 
   pthreadpool_parallelize_1d_with_thread(threadpool.get(),
                                          ComputeNothing1DWithThread, nullptr,
-                                         kParallelize1DRange, 0 /* flags */);
+                                         kParallelize1DRange, /*flags=*/0);
 }
 
 TEST(Parallelize1DWithThread, MultiThreadPoolCompletes) {
@@ -376,7 +376,7 @@ TEST(Parallelize1DWithThread, MultiThreadPoolCompletes) {
 
   pthreadpool_parallelize_1d_with_thread(threadpool.get(),
                                          ComputeNothing1DWithThread, nullptr,
-                                         kParallelize1DRange, 0 /* flags */);
+                                         kParallelize1DRange, /*flags=*/0);
 }
 
 static void CheckBounds1DWithThread(void*, size_t, size_t i) {
@@ -389,7 +389,7 @@ TEST(Parallelize1DWithThread, SingleThreadPoolAllItemsInBounds) {
 
   pthreadpool_parallelize_1d_with_thread(threadpool.get(),
                                          CheckBounds1DWithThread, nullptr,
-                                         kParallelize1DRange, 0 /* flags */);
+                                         kParallelize1DRange, /*flags=*/0);
 }
 
 TEST(Parallelize1DWithThread, MultiThreadPoolAllItemsInBounds) {
@@ -402,7 +402,7 @@ TEST(Parallelize1DWithThread, MultiThreadPoolAllItemsInBounds) {
 
   pthreadpool_parallelize_1d_with_thread(threadpool.get(),
                                          CheckBounds1DWithThread, nullptr,
-                                         kParallelize1DRange, 0 /* flags */);
+                                         kParallelize1DRange, /*flags=*/0);
 }
 
 static void SetTrue1DWithThread(std::atomic_bool* processed_indicators, size_t,
@@ -419,8 +419,7 @@ TEST(Parallelize1DWithThread, SingleThreadPoolAllItemsProcessed) {
   pthreadpool_parallelize_1d_with_thread(
       threadpool.get(),
       reinterpret_cast<pthreadpool_task_1d_with_thread_t>(SetTrue1DWithThread),
-      static_cast<void*>(indicators.data()), kParallelize1DRange,
-      0 /* flags */);
+      static_cast<void*>(indicators.data()), kParallelize1DRange, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize1DRange; i++) {
     EXPECT_TRUE(indicators[i].load(std::memory_order_relaxed))
@@ -441,8 +440,7 @@ TEST(Parallelize1DWithThread, MultiThreadPoolAllItemsProcessed) {
   pthreadpool_parallelize_1d_with_thread(
       threadpool.get(),
       reinterpret_cast<pthreadpool_task_1d_with_thread_t>(SetTrue1DWithThread),
-      static_cast<void*>(indicators.data()), kParallelize1DRange,
-      0 /* flags */);
+      static_cast<void*>(indicators.data()), kParallelize1DRange, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize1DRange; i++) {
     EXPECT_TRUE(indicators[i].load(std::memory_order_relaxed))
@@ -465,7 +463,7 @@ TEST(Parallelize1DWithThread, SingleThreadPoolEachItemProcessedOnce) {
       threadpool.get(),
       reinterpret_cast<pthreadpool_task_1d_with_thread_t>(
           Increment1DWithThread),
-      static_cast<void*>(counters.data()), kParallelize1DRange, 0 /* flags */);
+      static_cast<void*>(counters.data()), kParallelize1DRange, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize1DRange; i++) {
     EXPECT_EQ(counters[i].load(std::memory_order_relaxed), 1)
@@ -489,7 +487,7 @@ TEST(Parallelize1DWithThread, MultiThreadPoolEachItemProcessedOnce) {
       threadpool.get(),
       reinterpret_cast<pthreadpool_task_1d_with_thread_t>(
           Increment1DWithThread),
-      static_cast<void*>(counters.data()), kParallelize1DRange, 0 /* flags */);
+      static_cast<void*>(counters.data()), kParallelize1DRange, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize1DRange; i++) {
     EXPECT_EQ(counters[i].load(std::memory_order_relaxed), 1)
@@ -511,7 +509,7 @@ TEST(Parallelize1DWithThread, SingleThreadPoolEachItemProcessedMultipleTimes) {
         reinterpret_cast<pthreadpool_task_1d_with_thread_t>(
             Increment1DWithThread),
         static_cast<void*>(counters.data()), kParallelize1DRange,
-        0 /* flags */);
+        /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize1DRange; i++) {
@@ -538,7 +536,7 @@ TEST(Parallelize1DWithThread, MultiThreadPoolEachItemProcessedMultipleTimes) {
         reinterpret_cast<pthreadpool_task_1d_with_thread_t>(
             Increment1DWithThread),
         static_cast<void*>(counters.data()), kParallelize1DRange,
-        0 /* flags */);
+        /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize1DRange; i++) {
@@ -569,7 +567,7 @@ TEST(Parallelize1DWithThread, MultiThreadPoolHighContention) {
       reinterpret_cast<pthreadpool_task_1d_with_thread_t>(
           IncrementSame1DWithThread),
       static_cast<void*>(&num_processed_items), kParallelize1DRange,
-      0 /* flags */);
+      /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize1DRange);
 }
@@ -601,7 +599,7 @@ TEST(Parallelize1DWithThread, MultiThreadPoolWorkStealing) {
       reinterpret_cast<pthreadpool_task_1d_with_thread_t>(
           WorkImbalance1DWithThread),
       static_cast<void*>(&num_processed_items), kParallelize1DRange,
-      0 /* flags */);
+      /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize1DRange);
 }
@@ -624,7 +622,7 @@ TEST(Parallelize1DWithThread, MultiThreadPoolThreadIndexValid) {
       threadpool.get(),
       reinterpret_cast<pthreadpool_task_1d_with_thread_t>(
           CheckThreadIndexValid1DWithThread),
-      static_cast<void*>(&num_threads), kParallelize1DRange, 0 /* flags */);
+      static_cast<void*>(&num_threads), kParallelize1DRange, /*flags=*/0);
 }
 
 static void ComputeNothing1DWithUArch(void*, uint32_t, size_t) {}
@@ -635,7 +633,7 @@ TEST(Parallelize1DWithUArch, SingleThreadPoolCompletes) {
 
   pthreadpool_parallelize_1d_with_uarch(
       threadpool.get(), ComputeNothing1DWithUArch, nullptr, kDefaultUArchIndex,
-      kMaxUArchIndex, kParallelize1DRange, 0 /* flags */);
+      kMaxUArchIndex, kParallelize1DRange, /*flags=*/0);
 }
 
 TEST(Parallelize1DWithUArch, MultiThreadPoolCompletes) {
@@ -648,7 +646,7 @@ TEST(Parallelize1DWithUArch, MultiThreadPoolCompletes) {
 
   pthreadpool_parallelize_1d_with_uarch(
       threadpool.get(), ComputeNothing1DWithUArch, nullptr, kDefaultUArchIndex,
-      kMaxUArchIndex, kParallelize1DRange, 0 /* flags */);
+      kMaxUArchIndex, kParallelize1DRange, /*flags=*/0);
 }
 
 static void CheckUArch1DWithUArch(void*, uint32_t uarch_index, size_t) {
@@ -663,7 +661,7 @@ TEST(Parallelize1DWithUArch, SingleThreadPoolUArchInBounds) {
 
   pthreadpool_parallelize_1d_with_uarch(
       threadpool.get(), CheckUArch1DWithUArch, nullptr, kDefaultUArchIndex,
-      kMaxUArchIndex, kParallelize1DRange, 0 /* flags */);
+      kMaxUArchIndex, kParallelize1DRange, /*flags=*/0);
 }
 
 TEST(Parallelize1DWithUArch, MultiThreadPoolUArchInBounds) {
@@ -676,7 +674,7 @@ TEST(Parallelize1DWithUArch, MultiThreadPoolUArchInBounds) {
 
   pthreadpool_parallelize_1d_with_uarch(
       threadpool.get(), CheckUArch1DWithUArch, nullptr, kDefaultUArchIndex,
-      kMaxUArchIndex, kParallelize1DRange, 0 /* flags */);
+      kMaxUArchIndex, kParallelize1DRange, /*flags=*/0);
 }
 
 static void CheckBounds1DWithUArch(void*, uint32_t, size_t i) {
@@ -689,7 +687,7 @@ TEST(Parallelize1DWithUArch, SingleThreadPoolAllItemsInBounds) {
 
   pthreadpool_parallelize_1d_with_uarch(
       threadpool.get(), CheckBounds1DWithUArch, nullptr, kDefaultUArchIndex,
-      kMaxUArchIndex, kParallelize1DRange, 0 /* flags */);
+      kMaxUArchIndex, kParallelize1DRange, /*flags=*/0);
 }
 
 TEST(Parallelize1DWithUArch, MultiThreadPoolAllItemsInBounds) {
@@ -702,7 +700,7 @@ TEST(Parallelize1DWithUArch, MultiThreadPoolAllItemsInBounds) {
 
   pthreadpool_parallelize_1d_with_uarch(
       threadpool.get(), CheckBounds1DWithUArch, nullptr, kDefaultUArchIndex,
-      kMaxUArchIndex, kParallelize1DRange, 0 /* flags */);
+      kMaxUArchIndex, kParallelize1DRange, /*flags=*/0);
 }
 
 static void SetTrue1DWithUArch(std::atomic_bool* processed_indicators, uint32_t,
@@ -720,7 +718,7 @@ TEST(Parallelize1DWithUArch, SingleThreadPoolAllItemsProcessed) {
       threadpool.get(),
       reinterpret_cast<pthreadpool_task_1d_with_id_t>(SetTrue1DWithUArch),
       static_cast<void*>(indicators.data()), kDefaultUArchIndex, kMaxUArchIndex,
-      kParallelize1DRange, 0 /* flags */);
+      kParallelize1DRange, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize1DRange; i++) {
     EXPECT_TRUE(indicators[i].load(std::memory_order_relaxed))
@@ -742,7 +740,7 @@ TEST(Parallelize1DWithUArch, MultiThreadPoolAllItemsProcessed) {
       threadpool.get(),
       reinterpret_cast<pthreadpool_task_1d_with_id_t>(SetTrue1DWithUArch),
       static_cast<void*>(indicators.data()), kDefaultUArchIndex, kMaxUArchIndex,
-      kParallelize1DRange, 0 /* flags */);
+      kParallelize1DRange, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize1DRange; i++) {
     EXPECT_TRUE(indicators[i].load(std::memory_order_relaxed))
@@ -765,7 +763,7 @@ TEST(Parallelize1DWithUArch, SingleThreadPoolEachItemProcessedOnce) {
       threadpool.get(),
       reinterpret_cast<pthreadpool_task_1d_with_id_t>(Increment1DWithUArch),
       static_cast<void*>(counters.data()), kDefaultUArchIndex, kMaxUArchIndex,
-      kParallelize1DRange, 0 /* flags */);
+      kParallelize1DRange, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize1DRange; i++) {
     EXPECT_EQ(counters[i].load(std::memory_order_relaxed), 1)
@@ -789,7 +787,7 @@ TEST(Parallelize1DWithUArch, MultiThreadPoolEachItemProcessedOnce) {
       threadpool.get(),
       reinterpret_cast<pthreadpool_task_1d_with_id_t>(Increment1DWithUArch),
       static_cast<void*>(counters.data()), kDefaultUArchIndex, kMaxUArchIndex,
-      kParallelize1DRange, 0 /* flags */);
+      kParallelize1DRange, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize1DRange; i++) {
     EXPECT_EQ(counters[i].load(std::memory_order_relaxed), 1)
@@ -810,7 +808,7 @@ TEST(Parallelize1DWithUArch, SingleThreadPoolEachItemProcessedMultipleTimes) {
         threadpool.get(),
         reinterpret_cast<pthreadpool_task_1d_with_id_t>(Increment1DWithUArch),
         static_cast<void*>(counters.data()), kDefaultUArchIndex, kMaxUArchIndex,
-        kParallelize1DRange, 0 /* flags */);
+        kParallelize1DRange, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize1DRange; i++) {
@@ -836,7 +834,7 @@ TEST(Parallelize1DWithUArch, MultiThreadPoolEachItemProcessedMultipleTimes) {
         threadpool.get(),
         reinterpret_cast<pthreadpool_task_1d_with_id_t>(Increment1DWithUArch),
         static_cast<void*>(counters.data()), kDefaultUArchIndex, kMaxUArchIndex,
-        kParallelize1DRange, 0 /* flags */);
+        kParallelize1DRange, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize1DRange; i++) {
@@ -866,7 +864,7 @@ TEST(Parallelize1DWithUArch, MultiThreadPoolHighContention) {
       threadpool.get(),
       reinterpret_cast<pthreadpool_task_1d_with_id_t>(IncrementSame1DWithUArch),
       static_cast<void*>(&num_processed_items), kDefaultUArchIndex,
-      kMaxUArchIndex, kParallelize1DRange, 0 /* flags */);
+      kMaxUArchIndex, kParallelize1DRange, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize1DRange);
 }
@@ -897,7 +895,7 @@ TEST(Parallelize1DWithUArch, MultiThreadPoolWorkStealing) {
       threadpool.get(),
       reinterpret_cast<pthreadpool_task_1d_with_id_t>(WorkImbalance1DWithUArch),
       static_cast<void*>(&num_processed_items), kDefaultUArchIndex,
-      kMaxUArchIndex, kParallelize1DRange, 0 /* flags */);
+      kMaxUArchIndex, kParallelize1DRange, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize1DRange);
 }
@@ -910,7 +908,7 @@ TEST(Parallelize1DTile1D, SingleThreadPoolCompletes) {
 
   pthreadpool_parallelize_1d_tile_1d(threadpool.get(), ComputeNothing1DTile1D,
                                      nullptr, kParallelize1DTile1DRange,
-                                     kParallelize1DTile1DTile, 0 /* flags */);
+                                     kParallelize1DTile1DTile, /*flags=*/0);
 }
 
 TEST(Parallelize1DTile1D, MultiThreadPoolCompletes) {
@@ -923,7 +921,7 @@ TEST(Parallelize1DTile1D, MultiThreadPoolCompletes) {
 
   pthreadpool_parallelize_1d_tile_1d(threadpool.get(), ComputeNothing1DTile1D,
                                      nullptr, kParallelize1DTile1DRange,
-                                     kParallelize1DTile1DTile, 0 /* flags */);
+                                     kParallelize1DTile1DTile, /*flags=*/0);
 }
 
 static void CheckBounds1DTile1D(void*, size_t start_i, size_t tile_i) {
@@ -937,7 +935,7 @@ TEST(Parallelize1DTile1D, SingleThreadPoolAllItemsInBounds) {
 
   pthreadpool_parallelize_1d_tile_1d(threadpool.get(), CheckBounds1DTile1D,
                                      nullptr, kParallelize1DTile1DRange,
-                                     kParallelize1DTile1DTile, 0 /* flags */);
+                                     kParallelize1DTile1DTile, /*flags=*/0);
 }
 
 TEST(Parallelize1DTile1D, MultiThreadPoolAllItemsInBounds) {
@@ -950,7 +948,7 @@ TEST(Parallelize1DTile1D, MultiThreadPoolAllItemsInBounds) {
 
   pthreadpool_parallelize_1d_tile_1d(threadpool.get(), CheckBounds1DTile1D,
                                      nullptr, kParallelize1DTile1DRange,
-                                     kParallelize1DTile1DTile, 0 /* flags */);
+                                     kParallelize1DTile1DTile, /*flags=*/0);
 }
 
 static void CheckTiling1DTile1D(void*, size_t start_i, size_t tile_i) {
@@ -967,7 +965,7 @@ TEST(Parallelize1DTile1D, SingleThreadPoolUniformTiling) {
 
   pthreadpool_parallelize_1d_tile_1d(threadpool.get(), CheckTiling1DTile1D,
                                      nullptr, kParallelize1DTile1DRange,
-                                     kParallelize1DTile1DTile, 0 /* flags */);
+                                     kParallelize1DTile1DTile, /*flags=*/0);
 }
 
 TEST(Parallelize1DTile1D, MultiThreadPoolUniformTiling) {
@@ -980,7 +978,7 @@ TEST(Parallelize1DTile1D, MultiThreadPoolUniformTiling) {
 
   pthreadpool_parallelize_1d_tile_1d(threadpool.get(), CheckTiling1DTile1D,
                                      nullptr, kParallelize1DTile1DRange,
-                                     kParallelize1DTile1DTile, 0 /* flags */);
+                                     kParallelize1DTile1DTile, /*flags=*/0);
 }
 
 static void SetTrue1DTile1D(std::atomic_bool* processed_indicators,
@@ -1000,7 +998,7 @@ TEST(Parallelize1DTile1D, SingleThreadPoolAllItemsProcessed) {
       threadpool.get(),
       reinterpret_cast<pthreadpool_task_1d_tile_1d_t>(SetTrue1DTile1D),
       static_cast<void*>(indicators.data()), kParallelize1DTile1DRange,
-      kParallelize1DTile1DTile, 0 /* flags */);
+      kParallelize1DTile1DTile, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize1DTile1DRange; i++) {
     EXPECT_TRUE(indicators[i].load(std::memory_order_relaxed))
@@ -1022,7 +1020,7 @@ TEST(Parallelize1DTile1D, MultiThreadPoolAllItemsProcessed) {
       threadpool.get(),
       reinterpret_cast<pthreadpool_task_1d_tile_1d_t>(SetTrue1DTile1D),
       static_cast<void*>(indicators.data()), kParallelize1DTile1DRange,
-      kParallelize1DTile1DTile, 0 /* flags */);
+      kParallelize1DTile1DTile, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize1DTile1DRange; i++) {
     EXPECT_TRUE(indicators[i].load(std::memory_order_relaxed))
@@ -1047,7 +1045,7 @@ TEST(Parallelize1DTile1D, SingleThreadPoolEachItemProcessedOnce) {
       threadpool.get(),
       reinterpret_cast<pthreadpool_task_1d_tile_1d_t>(Increment1DTile1D),
       static_cast<void*>(counters.data()), kParallelize1DTile1DRange,
-      kParallelize1DTile1DTile, 0 /* flags */);
+      kParallelize1DTile1DTile, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize1DTile1DRange; i++) {
     EXPECT_EQ(counters[i].load(std::memory_order_relaxed), 1)
@@ -1071,7 +1069,7 @@ TEST(Parallelize1DTile1D, MultiThreadPoolEachItemProcessedOnce) {
       threadpool.get(),
       reinterpret_cast<pthreadpool_task_1d_tile_1d_t>(Increment1DTile1D),
       static_cast<void*>(counters.data()), kParallelize1DTile1DRange,
-      kParallelize1DTile1DTile, 0 /* flags */);
+      kParallelize1DTile1DTile, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize1DTile1DRange; i++) {
     EXPECT_EQ(counters[i].load(std::memory_order_relaxed), 1)
@@ -1092,7 +1090,7 @@ TEST(Parallelize1DTile1D, SingleThreadPoolEachItemProcessedMultipleTimes) {
         threadpool.get(),
         reinterpret_cast<pthreadpool_task_1d_tile_1d_t>(Increment1DTile1D),
         static_cast<void*>(counters.data()), kParallelize1DTile1DRange,
-        kParallelize1DTile1DTile, 0 /* flags */);
+        kParallelize1DTile1DTile, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize1DTile1DRange; i++) {
@@ -1118,7 +1116,7 @@ TEST(Parallelize1DTile1D, MultiThreadPoolEachItemProcessedMultipleTimes) {
         threadpool.get(),
         reinterpret_cast<pthreadpool_task_1d_tile_1d_t>(Increment1DTile1D),
         static_cast<void*>(counters.data()), kParallelize1DTile1DRange,
-        kParallelize1DTile1DTile, 0 /* flags */);
+        kParallelize1DTile1DTile, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize1DTile1DRange; i++) {
@@ -1150,7 +1148,7 @@ TEST(Parallelize1DTile1D, MultiThreadPoolHighContention) {
       threadpool.get(),
       reinterpret_cast<pthreadpool_task_1d_tile_1d_t>(IncrementSame1DTile1D),
       static_cast<void*>(&num_processed_items), kParallelize1DTile1DRange,
-      kParallelize1DTile1DTile, 0 /* flags */);
+      kParallelize1DTile1DTile, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize1DTile1DRange);
 }
@@ -1181,7 +1179,294 @@ TEST(Parallelize1DTile1D, MultiThreadPoolWorkStealing) {
       threadpool.get(),
       reinterpret_cast<pthreadpool_task_1d_tile_1d_t>(WorkImbalance1DTile1D),
       static_cast<void*>(&num_processed_items), kParallelize1DTile1DRange,
-      kParallelize1DTile1DTile, 0 /* flags */);
+      kParallelize1DTile1DTile, /*flags=*/0);
+  EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
+            kParallelize1DTile1DRange);
+}
+
+static void ComputeNothing1DDynamic(void*, size_t, size_t) {}
+
+TEST(Parallelize1DTile1DDynamic, SingleThreadPoolCompletes) {
+  auto_pthreadpool_t threadpool(pthreadpool_create(1), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  pthreadpool_parallelize_1d_tile_1d_dynamic(
+      threadpool.get(), ComputeNothing1DDynamic, nullptr,
+      kParallelize1DTile1DRange, kParallelize1DTile1DTile, /*flags=*/0);
+}
+
+TEST(Parallelize1DTile1DDynamic, MultiThreadPoolCompletes) {
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  pthreadpool_parallelize_1d_tile_1d_dynamic(
+      threadpool.get(), ComputeNothing1DDynamic, nullptr,
+      kParallelize1DTile1DRange, kParallelize1DTile1DTile, /*flags=*/0);
+}
+
+static void CheckBounds1DDynamic(void*, size_t start_i, size_t tile_i) {
+  EXPECT_LT(start_i, kParallelize1DTile1DRange);
+  EXPECT_LE(start_i + tile_i, kParallelize1DTile1DRange);
+}
+
+TEST(Parallelize1DTile1DDynamic, SingleThreadPoolAllItemsInBounds) {
+  auto_pthreadpool_t threadpool(pthreadpool_create(1), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  pthreadpool_parallelize_1d_tile_1d_dynamic(
+      threadpool.get(), CheckBounds1DDynamic, nullptr,
+      kParallelize1DTile1DRange, kParallelize1DTile1DTile, /*flags=*/0);
+}
+
+TEST(Parallelize1DTile1DDynamic, MultiThreadPoolAllItemsInBounds) {
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  pthreadpool_parallelize_1d_tile_1d_dynamic(
+      threadpool.get(), CheckBounds1DDynamic, nullptr,
+      kParallelize1DTile1DRange, kParallelize1DTile1DTile, /*flags=*/0);
+}
+
+static void CheckTiling1DDynamic(void*, size_t start_i, size_t tile_i) {
+  EXPECT_GT(tile_i, 0);
+  EXPECT_LE(tile_i, kParallelize1DTile1DRange);
+  EXPECT_EQ(start_i % kParallelize1DTile1DTile, 0);
+}
+
+TEST(Parallelize1DTile1DDynamic, SingleThreadPoolUniformTiling) {
+  auto_pthreadpool_t threadpool(pthreadpool_create(1), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  pthreadpool_parallelize_1d_tile_1d_dynamic(
+      threadpool.get(), CheckTiling1DDynamic, nullptr,
+      kParallelize1DTile1DRange, kParallelize1DTile1DTile, /*flags=*/0);
+}
+
+TEST(Parallelize1DTile1DDynamic, MultiThreadPoolUniformTiling) {
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  pthreadpool_parallelize_1d_tile_1d_dynamic(
+      threadpool.get(), CheckTiling1DDynamic, nullptr,
+      kParallelize1DTile1DRange, kParallelize1DTile1DTile, /*flags=*/0);
+}
+
+static void SetTrue1DDynamic(std::atomic_bool* processed_indicators,
+                             size_t start_i, size_t tile_i) {
+  for (size_t i = start_i; i < start_i + tile_i; i++) {
+    processed_indicators[i].store(true, std::memory_order_relaxed);
+  }
+}
+
+TEST(Parallelize1DTile1DDynamic, SingleThreadPoolAllItemsProcessed) {
+  std::vector<std::atomic_bool> indicators(kParallelize1DTile1DRange);
+
+  auto_pthreadpool_t threadpool(pthreadpool_create(1), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  pthreadpool_parallelize_1d_tile_1d_dynamic(
+      threadpool.get(),
+      reinterpret_cast<pthreadpool_task_1d_tile_1d_t>(SetTrue1DDynamic),
+      static_cast<void*>(indicators.data()), kParallelize1DTile1DRange,
+      kParallelize1DTile1DTile, /*flags=*/0);
+
+  for (size_t i = 0; i < kParallelize1DTile1DRange; i++) {
+    EXPECT_TRUE(indicators[i].load(std::memory_order_relaxed))
+        << "Element " << i << " not processed";
+  }
+}
+
+TEST(Parallelize1DTile1DDynamic, MultiThreadPoolAllItemsProcessed) {
+  std::vector<std::atomic_bool> indicators(kParallelize1DTile1DRange);
+
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  pthreadpool_parallelize_1d_tile_1d_dynamic(
+      threadpool.get(),
+      reinterpret_cast<pthreadpool_task_1d_tile_1d_t>(SetTrue1DDynamic),
+      static_cast<void*>(indicators.data()), kParallelize1DTile1DRange,
+      kParallelize1DTile1DTile, /*flags=*/0);
+
+  for (size_t i = 0; i < kParallelize1DTile1DRange; i++) {
+    EXPECT_TRUE(indicators[i].load(std::memory_order_relaxed))
+        << "Element " << i << " not processed";
+  }
+}
+
+static void Increment1DDynamic(std::atomic_int* processed_counters,
+                               size_t start_i, size_t tile_i) {
+  for (size_t i = start_i; i < start_i + tile_i; i++) {
+    processed_counters[i].fetch_add(1, std::memory_order_relaxed);
+  }
+}
+
+TEST(Parallelize1DTile1DDynamic, SingleThreadPoolEachItemProcessedOnce) {
+  std::vector<std::atomic_int> counters(kParallelize1DTile1DRange);
+
+  auto_pthreadpool_t threadpool(pthreadpool_create(1), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  pthreadpool_parallelize_1d_tile_1d_dynamic(
+      threadpool.get(),
+      reinterpret_cast<pthreadpool_task_1d_tile_1d_t>(Increment1DDynamic),
+      static_cast<void*>(counters.data()), kParallelize1DTile1DRange,
+      kParallelize1DTile1DTile, /*flags=*/0);
+
+  for (size_t i = 0; i < kParallelize1DTile1DRange; i++) {
+    EXPECT_EQ(counters[i].load(std::memory_order_relaxed), 1)
+        << "Element " << i << " was processed "
+        << counters[i].load(std::memory_order_relaxed)
+        << " times (expected: 1)";
+  }
+}
+
+TEST(Parallelize1DTile1DDynamic, MultiThreadPoolEachItemProcessedOnce) {
+  std::vector<std::atomic_int> counters(kParallelize1DTile1DRange);
+
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  pthreadpool_parallelize_1d_tile_1d_dynamic(
+      threadpool.get(),
+      reinterpret_cast<pthreadpool_task_1d_tile_1d_t>(Increment1DDynamic),
+      static_cast<void*>(counters.data()), kParallelize1DTile1DRange,
+      kParallelize1DTile1DTile, /*flags=*/0);
+
+  for (size_t i = 0; i < kParallelize1DTile1DRange; i++) {
+    EXPECT_EQ(counters[i].load(std::memory_order_relaxed), 1)
+        << "Element " << i << " was processed "
+        << counters[i].load(std::memory_order_relaxed)
+        << " times (expected: 1)";
+  }
+}
+
+TEST(Parallelize1DTile1DDynamic,
+     SingleThreadPoolEachItemProcessedMultipleTimes) {
+  std::vector<std::atomic_int> counters(kParallelize1DTile1DRange);
+
+  auto_pthreadpool_t threadpool(pthreadpool_create(1), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  for (size_t iteration = 0; iteration < kIncrementIterations; iteration++) {
+    pthreadpool_parallelize_1d_tile_1d_dynamic(
+        threadpool.get(),
+        reinterpret_cast<pthreadpool_task_1d_tile_1d_t>(Increment1DDynamic),
+        static_cast<void*>(counters.data()), kParallelize1DTile1DRange,
+        kParallelize1DTile1DTile,
+        /*flags=*/0);
+  }
+
+  for (size_t i = 0; i < kParallelize1DTile1DRange; i++) {
+    EXPECT_EQ(counters[i].load(std::memory_order_relaxed), kIncrementIterations)
+        << "Element " << i << " was processed "
+        << counters[i].load(std::memory_order_relaxed) << " times "
+        << "(expected: " << kIncrementIterations << ")";
+  }
+}
+
+TEST(Parallelize1DTile1DDynamic,
+     MultiThreadPoolEachItemProcessedMultipleTimes) {
+  std::vector<std::atomic_int> counters(kParallelize1DTile1DRange);
+
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  for (size_t iteration = 0; iteration < kIncrementIterations; iteration++) {
+    pthreadpool_parallelize_1d_tile_1d_dynamic(
+        threadpool.get(),
+        reinterpret_cast<pthreadpool_task_1d_tile_1d_t>(Increment1DDynamic),
+        static_cast<void*>(counters.data()), kParallelize1DTile1DRange,
+        kParallelize1DTile1DTile,
+        /*flags=*/0);
+  }
+
+  for (size_t i = 0; i < kParallelize1DTile1DRange; i++) {
+    EXPECT_EQ(counters[i].load(std::memory_order_relaxed), kIncrementIterations)
+        << "Element " << i << " was processed "
+        << counters[i].load(std::memory_order_relaxed) << " times "
+        << "(expected: " << kIncrementIterations << ")";
+  }
+}
+
+static void IncrementSame1DDynamic(std::atomic_int* num_processed_items,
+                                   size_t start_i, size_t tile_i) {
+  for (size_t i = start_i; i < start_i + tile_i; i++) {
+    num_processed_items->fetch_add(1, std::memory_order_relaxed);
+  }
+}
+
+TEST(Parallelize1DTile1DDynamic, MultiThreadPoolHighContention) {
+  std::atomic_int num_processed_items = ATOMIC_VAR_INIT(0);
+
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  pthreadpool_parallelize_1d_tile_1d_dynamic(
+      threadpool.get(),
+      reinterpret_cast<pthreadpool_task_1d_tile_1d_t>(IncrementSame1DDynamic),
+      static_cast<void*>(&num_processed_items), kParallelize1DTile1DRange,
+      kParallelize1DTile1DTile, /*flags=*/0);
+  EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
+            kParallelize1DTile1DRange);
+}
+
+static void WorkImbalance1DDynamic(std::atomic_int* num_processed_items,
+                                   size_t start_i, size_t tile_i) {
+  num_processed_items->fetch_add(tile_i, std::memory_order_relaxed);
+  if (start_i == 0) {
+    /* Sleep for a second. This differs from the non-dynamic `WorkImbalance*`
+     * strategies in that a thread may reserve more elements than fit into a
+     * single work function call. Blocking a single work function call will also
+     * block any potentially remaining elements allocated to that thread. We
+     * therefore just sleep for a second instead.*/
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+  }
+}
+
+TEST(Parallelize1DTile1DDynamic, MultiThreadPoolWorkStealing) {
+  std::atomic_int num_processed_items = ATOMIC_VAR_INIT(0);
+
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  pthreadpool_parallelize_1d_tile_1d_dynamic(
+      threadpool.get(),
+      reinterpret_cast<pthreadpool_task_1d_tile_1d_t>(WorkImbalance1DDynamic),
+      static_cast<void*>(&num_processed_items), kParallelize1DTile1DRange,
+      kParallelize1DTile1DTile, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize1DTile1DRange);
 }
@@ -1194,7 +1479,7 @@ TEST(Parallelize2D, SingleThreadPoolCompletes) {
 
   pthreadpool_parallelize_2d(threadpool.get(), ComputeNothing2D, nullptr,
                              kParallelize2DRangeI, kParallelize2DRangeJ,
-                             0 /* flags */);
+                             /*flags=*/0);
 }
 
 TEST(Parallelize2D, MultiThreadPoolCompletes) {
@@ -1207,7 +1492,7 @@ TEST(Parallelize2D, MultiThreadPoolCompletes) {
 
   pthreadpool_parallelize_2d(threadpool.get(), ComputeNothing2D, nullptr,
                              kParallelize2DRangeI, kParallelize2DRangeJ,
-                             0 /* flags */);
+                             /*flags=*/0);
 }
 
 static void CheckBounds2D(void*, size_t i, size_t j) {
@@ -1221,7 +1506,7 @@ TEST(Parallelize2D, SingleThreadPoolAllItemsInBounds) {
 
   pthreadpool_parallelize_2d(threadpool.get(), CheckBounds2D, nullptr,
                              kParallelize2DRangeI, kParallelize2DRangeJ,
-                             0 /* flags */);
+                             /*flags=*/0);
 }
 
 TEST(Parallelize2D, MultiThreadPoolAllItemsInBounds) {
@@ -1234,7 +1519,7 @@ TEST(Parallelize2D, MultiThreadPoolAllItemsInBounds) {
 
   pthreadpool_parallelize_2d(threadpool.get(), CheckBounds2D, nullptr,
                              kParallelize2DRangeI, kParallelize2DRangeJ,
-                             0 /* flags */);
+                             /*flags=*/0);
 }
 
 static void SetTrue2D(std::atomic_bool* processed_indicators, size_t i,
@@ -1253,7 +1538,7 @@ TEST(Parallelize2D, SingleThreadPoolAllItemsProcessed) {
   pthreadpool_parallelize_2d(
       threadpool.get(), reinterpret_cast<pthreadpool_task_2d_t>(SetTrue2D),
       static_cast<void*>(indicators.data()), kParallelize2DRangeI,
-      kParallelize2DRangeJ, 0 /* flags */);
+      kParallelize2DRangeJ, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize2DRangeI; i++) {
     for (size_t j = 0; j < kParallelize2DRangeJ; j++) {
@@ -1278,7 +1563,7 @@ TEST(Parallelize2D, MultiThreadPoolAllItemsProcessed) {
   pthreadpool_parallelize_2d(
       threadpool.get(), reinterpret_cast<pthreadpool_task_2d_t>(SetTrue2D),
       static_cast<void*>(indicators.data()), kParallelize2DRangeI,
-      kParallelize2DRangeJ, 0 /* flags */);
+      kParallelize2DRangeJ, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize2DRangeI; i++) {
     for (size_t j = 0; j < kParallelize2DRangeJ; j++) {
@@ -1305,7 +1590,7 @@ TEST(Parallelize2D, SingleThreadPoolEachItemProcessedOnce) {
   pthreadpool_parallelize_2d(
       threadpool.get(), reinterpret_cast<pthreadpool_task_2d_t>(Increment2D),
       static_cast<void*>(counters.data()), kParallelize2DRangeI,
-      kParallelize2DRangeJ, 0 /* flags */);
+      kParallelize2DRangeJ, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize2DRangeI; i++) {
     for (size_t j = 0; j < kParallelize2DRangeJ; j++) {
@@ -1332,7 +1617,7 @@ TEST(Parallelize2D, MultiThreadPoolEachItemProcessedOnce) {
   pthreadpool_parallelize_2d(
       threadpool.get(), reinterpret_cast<pthreadpool_task_2d_t>(Increment2D),
       static_cast<void*>(counters.data()), kParallelize2DRangeI,
-      kParallelize2DRangeJ, 0 /* flags */);
+      kParallelize2DRangeJ, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize2DRangeI; i++) {
     for (size_t j = 0; j < kParallelize2DRangeJ; j++) {
@@ -1356,7 +1641,7 @@ TEST(Parallelize2D, SingleThreadPoolEachItemProcessedMultipleTimes) {
     pthreadpool_parallelize_2d(
         threadpool.get(), reinterpret_cast<pthreadpool_task_2d_t>(Increment2D),
         static_cast<void*>(counters.data()), kParallelize2DRangeI,
-        kParallelize2DRangeJ, 0 /* flags */);
+        kParallelize2DRangeJ, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize2DRangeI; i++) {
@@ -1386,7 +1671,7 @@ TEST(Parallelize2D, MultiThreadPoolEachItemProcessedMultipleTimes) {
     pthreadpool_parallelize_2d(
         threadpool.get(), reinterpret_cast<pthreadpool_task_2d_t>(Increment2D),
         static_cast<void*>(counters.data()), kParallelize2DRangeI,
-        kParallelize2DRangeJ, 0 /* flags */);
+        kParallelize2DRangeJ, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize2DRangeI; i++) {
@@ -1420,7 +1705,7 @@ TEST(Parallelize2D, MultiThreadPoolHighContention) {
       threadpool.get(),
       reinterpret_cast<pthreadpool_task_2d_t>(IncrementSame2D),
       static_cast<void*>(&num_processed_items), kParallelize2DRangeI,
-      kParallelize2DRangeJ, 0 /* flags */);
+      kParallelize2DRangeJ, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize2DRangeI * kParallelize2DRangeJ);
 }
@@ -1451,7 +1736,7 @@ TEST(Parallelize2D, MultiThreadPoolWorkStealing) {
       threadpool.get(),
       reinterpret_cast<pthreadpool_task_2d_t>(WorkImbalance2D),
       static_cast<void*>(&num_processed_items), kParallelize2DRangeI,
-      kParallelize2DRangeJ, 0 /* flags */);
+      kParallelize2DRangeJ, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize2DRangeI * kParallelize2DRangeJ);
 }
@@ -1464,7 +1749,7 @@ TEST(Parallelize2DWithThread, SingleThreadPoolCompletes) {
 
   pthreadpool_parallelize_2d_with_thread(
       threadpool.get(), ComputeNothing2DWithThread, nullptr,
-      kParallelize2DRangeI, kParallelize2DRangeJ, 0 /* flags */);
+      kParallelize2DRangeI, kParallelize2DRangeJ, /*flags=*/0);
 }
 
 TEST(Parallelize2DWithThread, MultiThreadPoolCompletes) {
@@ -1477,7 +1762,7 @@ TEST(Parallelize2DWithThread, MultiThreadPoolCompletes) {
 
   pthreadpool_parallelize_2d_with_thread(
       threadpool.get(), ComputeNothing2DWithThread, nullptr,
-      kParallelize2DRangeI, kParallelize2DRangeJ, 0 /* flags */);
+      kParallelize2DRangeI, kParallelize2DRangeJ, /*flags=*/0);
 }
 
 static void CheckBounds2DWithThread(void*, size_t, size_t i, size_t j) {
@@ -1491,7 +1776,7 @@ TEST(Parallelize2DWithThread, SingleThreadPoolAllItemsInBounds) {
 
   pthreadpool_parallelize_2d_with_thread(
       threadpool.get(), CheckBounds2DWithThread, nullptr, kParallelize2DRangeI,
-      kParallelize2DRangeJ, 0 /* flags */);
+      kParallelize2DRangeJ, /*flags=*/0);
 }
 
 TEST(Parallelize2DWithThread, MultiThreadPoolAllItemsInBounds) {
@@ -1504,7 +1789,7 @@ TEST(Parallelize2DWithThread, MultiThreadPoolAllItemsInBounds) {
 
   pthreadpool_parallelize_2d_with_thread(
       threadpool.get(), CheckBounds2DWithThread, nullptr, kParallelize2DRangeI,
-      kParallelize2DRangeJ, 0 /* flags */);
+      kParallelize2DRangeJ, /*flags=*/0);
 }
 
 static void SetTrue2DWithThread(std::atomic_bool* processed_indicators, size_t,
@@ -1524,7 +1809,7 @@ TEST(Parallelize2DWithThread, SingleThreadPoolAllItemsProcessed) {
       threadpool.get(),
       reinterpret_cast<pthreadpool_task_2d_with_thread_t>(SetTrue2DWithThread),
       static_cast<void*>(indicators.data()), kParallelize2DRangeI,
-      kParallelize2DRangeJ, 0 /* flags */);
+      kParallelize2DRangeJ, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize2DRangeI; i++) {
     for (size_t j = 0; j < kParallelize2DRangeJ; j++) {
@@ -1550,7 +1835,7 @@ TEST(Parallelize2DWithThread, MultiThreadPoolAllItemsProcessed) {
       threadpool.get(),
       reinterpret_cast<pthreadpool_task_2d_with_thread_t>(SetTrue2DWithThread),
       static_cast<void*>(indicators.data()), kParallelize2DRangeI,
-      kParallelize2DRangeJ, 0 /* flags */);
+      kParallelize2DRangeJ, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize2DRangeI; i++) {
     for (size_t j = 0; j < kParallelize2DRangeJ; j++) {
@@ -1579,7 +1864,7 @@ TEST(Parallelize2DWithThread, SingleThreadPoolEachItemProcessedOnce) {
       reinterpret_cast<pthreadpool_task_2d_with_thread_t>(
           Increment2DWithThread),
       static_cast<void*>(counters.data()), kParallelize2DRangeI,
-      kParallelize2DRangeJ, 0 /* flags */);
+      kParallelize2DRangeJ, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize2DRangeI; i++) {
     for (size_t j = 0; j < kParallelize2DRangeJ; j++) {
@@ -1608,7 +1893,7 @@ TEST(Parallelize2DWithThread, MultiThreadPoolEachItemProcessedOnce) {
       reinterpret_cast<pthreadpool_task_2d_with_thread_t>(
           Increment2DWithThread),
       static_cast<void*>(counters.data()), kParallelize2DRangeI,
-      kParallelize2DRangeJ, 0 /* flags */);
+      kParallelize2DRangeJ, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize2DRangeI; i++) {
     for (size_t j = 0; j < kParallelize2DRangeJ; j++) {
@@ -1634,7 +1919,7 @@ TEST(Parallelize2DWithThread, SingleThreadPoolEachItemProcessedMultipleTimes) {
         reinterpret_cast<pthreadpool_task_2d_with_thread_t>(
             Increment2DWithThread),
         static_cast<void*>(counters.data()), kParallelize2DRangeI,
-        kParallelize2DRangeJ, 0 /* flags */);
+        kParallelize2DRangeJ, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize2DRangeI; i++) {
@@ -1666,7 +1951,7 @@ TEST(Parallelize2DWithThread, MultiThreadPoolEachItemProcessedMultipleTimes) {
         reinterpret_cast<pthreadpool_task_2d_with_thread_t>(
             Increment2DWithThread),
         static_cast<void*>(counters.data()), kParallelize2DRangeI,
-        kParallelize2DRangeJ, 0 /* flags */);
+        kParallelize2DRangeJ, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize2DRangeI; i++) {
@@ -1701,7 +1986,7 @@ TEST(Parallelize2DWithThread, MultiThreadPoolHighContention) {
       reinterpret_cast<pthreadpool_task_2d_with_thread_t>(
           IncrementSame2DWithThread),
       static_cast<void*>(&num_processed_items), kParallelize2DRangeI,
-      kParallelize2DRangeJ, 0 /* flags */);
+      kParallelize2DRangeJ, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize2DRangeI * kParallelize2DRangeJ);
 }
@@ -1733,7 +2018,7 @@ TEST(Parallelize2DWithThread, MultiThreadPoolWorkStealing) {
       reinterpret_cast<pthreadpool_task_2d_with_thread_t>(
           WorkImbalance2DWithThread),
       static_cast<void*>(&num_processed_items), kParallelize2DRangeI,
-      kParallelize2DRangeJ, 0 /* flags */);
+      kParallelize2DRangeJ, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize2DRangeI * kParallelize2DRangeJ);
 }
@@ -1758,7 +2043,7 @@ TEST(Parallelize2DWithThread, MultiThreadPoolThreadIndexValid) {
       reinterpret_cast<pthreadpool_task_2d_with_thread_t>(
           CheckThreadIndexValid2DWithThread),
       static_cast<void*>(&num_threads), kParallelize2DRangeI,
-      kParallelize2DRangeJ, 0 /* flags */);
+      kParallelize2DRangeJ, /*flags=*/0);
 }
 
 static void ComputeNothing2DTile1D(void*, size_t, size_t, size_t) {}
@@ -1770,7 +2055,7 @@ TEST(Parallelize2DTile1D, SingleThreadPoolCompletes) {
   pthreadpool_parallelize_2d_tile_1d(threadpool.get(), ComputeNothing2DTile1D,
                                      nullptr, kParallelize2DTile1DRangeI,
                                      kParallelize2DTile1DRangeJ,
-                                     kParallelize2DTile1DTileJ, 0 /* flags */);
+                                     kParallelize2DTile1DTileJ, /*flags=*/0);
 }
 
 TEST(Parallelize2DTile1D, MultiThreadPoolCompletes) {
@@ -1784,7 +2069,7 @@ TEST(Parallelize2DTile1D, MultiThreadPoolCompletes) {
   pthreadpool_parallelize_2d_tile_1d(threadpool.get(), ComputeNothing2DTile1D,
                                      nullptr, kParallelize2DTile1DRangeI,
                                      kParallelize2DTile1DRangeJ,
-                                     kParallelize2DTile1DTileJ, 0 /* flags */);
+                                     kParallelize2DTile1DTileJ, /*flags=*/0);
 }
 
 static void CheckBounds2DTile1D(void*, size_t i, size_t start_j,
@@ -1801,7 +2086,7 @@ TEST(Parallelize2DTile1D, SingleThreadPoolAllItemsInBounds) {
   pthreadpool_parallelize_2d_tile_1d(threadpool.get(), CheckBounds2DTile1D,
                                      nullptr, kParallelize2DTile1DRangeI,
                                      kParallelize2DTile1DRangeJ,
-                                     kParallelize2DTile1DTileJ, 0 /* flags */);
+                                     kParallelize2DTile1DTileJ, /*flags=*/0);
 }
 
 TEST(Parallelize2DTile1D, MultiThreadPoolAllItemsInBounds) {
@@ -1815,7 +2100,7 @@ TEST(Parallelize2DTile1D, MultiThreadPoolAllItemsInBounds) {
   pthreadpool_parallelize_2d_tile_1d(threadpool.get(), CheckBounds2DTile1D,
                                      nullptr, kParallelize2DTile1DRangeI,
                                      kParallelize2DTile1DRangeJ,
-                                     kParallelize2DTile1DTileJ, 0 /* flags */);
+                                     kParallelize2DTile1DTileJ, /*flags=*/0);
 }
 
 static void CheckTiling2DTile1D(void*, size_t i, size_t start_j,
@@ -1834,7 +2119,7 @@ TEST(Parallelize2DTile1D, SingleThreadPoolUniformTiling) {
   pthreadpool_parallelize_2d_tile_1d(threadpool.get(), CheckTiling2DTile1D,
                                      nullptr, kParallelize2DTile1DRangeI,
                                      kParallelize2DTile1DRangeJ,
-                                     kParallelize2DTile1DTileJ, 0 /* flags */);
+                                     kParallelize2DTile1DTileJ, /*flags=*/0);
 }
 
 TEST(Parallelize2DTile1D, MultiThreadPoolUniformTiling) {
@@ -1848,7 +2133,7 @@ TEST(Parallelize2DTile1D, MultiThreadPoolUniformTiling) {
   pthreadpool_parallelize_2d_tile_1d(threadpool.get(), CheckTiling2DTile1D,
                                      nullptr, kParallelize2DTile1DRangeI,
                                      kParallelize2DTile1DRangeJ,
-                                     kParallelize2DTile1DTileJ, 0 /* flags */);
+                                     kParallelize2DTile1DTileJ, /*flags=*/0);
 }
 
 static void SetTrue2DTile1D(std::atomic_bool* processed_indicators, size_t i,
@@ -1870,7 +2155,7 @@ TEST(Parallelize2DTile1D, SingleThreadPoolAllItemsProcessed) {
       threadpool.get(),
       reinterpret_cast<pthreadpool_task_2d_tile_1d_t>(SetTrue2DTile1D),
       static_cast<void*>(indicators.data()), kParallelize2DTile1DRangeI,
-      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, 0 /* flags */);
+      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize2DTile1DRangeI; i++) {
     for (size_t j = 0; j < kParallelize2DTile1DRangeJ; j++) {
@@ -1896,7 +2181,7 @@ TEST(Parallelize2DTile1D, MultiThreadPoolAllItemsProcessed) {
       threadpool.get(),
       reinterpret_cast<pthreadpool_task_2d_tile_1d_t>(SetTrue2DTile1D),
       static_cast<void*>(indicators.data()), kParallelize2DTile1DRangeI,
-      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, 0 /* flags */);
+      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize2DTile1DRangeI; i++) {
     for (size_t j = 0; j < kParallelize2DTile1DRangeJ; j++) {
@@ -1926,7 +2211,7 @@ TEST(Parallelize2DTile1D, SingleThreadPoolEachItemProcessedOnce) {
       threadpool.get(),
       reinterpret_cast<pthreadpool_task_2d_tile_1d_t>(Increment2DTile1D),
       static_cast<void*>(counters.data()), kParallelize2DTile1DRangeI,
-      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, 0 /* flags */);
+      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize2DTile1DRangeI; i++) {
     for (size_t j = 0; j < kParallelize2DTile1DRangeJ; j++) {
@@ -1954,7 +2239,7 @@ TEST(Parallelize2DTile1D, MultiThreadPoolEachItemProcessedOnce) {
       threadpool.get(),
       reinterpret_cast<pthreadpool_task_2d_tile_1d_t>(Increment2DTile1D),
       static_cast<void*>(counters.data()), kParallelize2DTile1DRangeI,
-      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, 0 /* flags */);
+      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize2DTile1DRangeI; i++) {
     for (size_t j = 0; j < kParallelize2DTile1DRangeJ; j++) {
@@ -1979,7 +2264,7 @@ TEST(Parallelize2DTile1D, SingleThreadPoolEachItemProcessedMultipleTimes) {
         threadpool.get(),
         reinterpret_cast<pthreadpool_task_2d_tile_1d_t>(Increment2DTile1D),
         static_cast<void*>(counters.data()), kParallelize2DTile1DRangeI,
-        kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, 0 /* flags */);
+        kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize2DTile1DRangeI; i++) {
@@ -2010,7 +2295,7 @@ TEST(Parallelize2DTile1D, MultiThreadPoolEachItemProcessedMultipleTimes) {
         threadpool.get(),
         reinterpret_cast<pthreadpool_task_2d_tile_1d_t>(Increment2DTile1D),
         static_cast<void*>(counters.data()), kParallelize2DTile1DRangeI,
-        kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, 0 /* flags */);
+        kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize2DTile1DRangeI; i++) {
@@ -2046,7 +2331,7 @@ TEST(Parallelize2DTile1D, MultiThreadPoolHighContention) {
       threadpool.get(),
       reinterpret_cast<pthreadpool_task_2d_tile_1d_t>(IncrementSame2DTile1D),
       static_cast<void*>(&num_processed_items), kParallelize2DTile1DRangeI,
-      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, 0 /* flags */);
+      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize2DTile1DRangeI * kParallelize2DTile1DRangeJ);
 }
@@ -2077,7 +2362,335 @@ TEST(Parallelize2DTile1D, MultiThreadPoolWorkStealing) {
       threadpool.get(),
       reinterpret_cast<pthreadpool_task_2d_tile_1d_t>(WorkImbalance2DTile1D),
       static_cast<void*>(&num_processed_items), kParallelize2DTile1DRangeI,
-      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, 0 /* flags */);
+      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, /*flags=*/0);
+  EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
+            kParallelize2DTile1DRangeI * kParallelize2DTile1DRangeJ);
+}
+
+static void ComputeNothing2DTile1DDynamic(void*, size_t, size_t, size_t) {}
+
+TEST(Parallelize2DTile1DDynamic, SingleThreadPoolCompletes) {
+  auto_pthreadpool_t threadpool(pthreadpool_create(1), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  pthreadpool_parallelize_2d_tile_1d(
+      threadpool.get(), ComputeNothing2DTile1DDynamic, nullptr,
+      kParallelize2DTile1DRangeI, kParallelize2DTile1DRangeJ,
+      kParallelize2DTile1DTileJ, /*flags=*/0);
+}
+
+TEST(Parallelize2DTile1DDynamic, MultiThreadPoolCompletes) {
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  pthreadpool_parallelize_2d_tile_1d(
+      threadpool.get(), ComputeNothing2DTile1DDynamic, nullptr,
+      kParallelize2DTile1DRangeI, kParallelize2DTile1DRangeJ,
+      kParallelize2DTile1DTileJ, /*flags=*/0);
+}
+
+static void CheckBounds2DTile1DDynamic(void*, size_t i, size_t start_j,
+                                       size_t tile_j) {
+  EXPECT_LT(i, kParallelize2DTile1DRangeI);
+  EXPECT_LT(start_j, kParallelize2DTile1DRangeJ);
+  EXPECT_LE(start_j + tile_j, kParallelize2DTile1DRangeJ);
+}
+
+TEST(Parallelize2DTile1DDynamic, SingleThreadPoolAllItemsInBounds) {
+  auto_pthreadpool_t threadpool(pthreadpool_create(1), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  pthreadpool_parallelize_2d_tile_1d(
+      threadpool.get(), CheckBounds2DTile1DDynamic, nullptr,
+      kParallelize2DTile1DRangeI, kParallelize2DTile1DRangeJ,
+      kParallelize2DTile1DTileJ, /*flags=*/0);
+}
+
+TEST(Parallelize2DTile1DDynamic, MultiThreadPoolAllItemsInBounds) {
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  pthreadpool_parallelize_2d_tile_1d(
+      threadpool.get(), CheckBounds2DTile1DDynamic, nullptr,
+      kParallelize2DTile1DRangeI, kParallelize2DTile1DRangeJ,
+      kParallelize2DTile1DTileJ, /*flags=*/0);
+}
+
+static void CheckTiling2DTile1DDynamic(void*, size_t i, size_t start_j,
+                                       size_t tile_j) {
+  EXPECT_GT(tile_j, 0);
+  EXPECT_LE(tile_j, kParallelize2DTile1DRangeJ);
+  EXPECT_EQ(start_j % kParallelize2DTile1DTileJ, 0);
+}
+
+TEST(Parallelize2DTile1DDynamic, SingleThreadPoolUniformTiling) {
+  auto_pthreadpool_t threadpool(pthreadpool_create(1), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  pthreadpool_parallelize_2d_tile_1d(
+      threadpool.get(), CheckTiling2DTile1DDynamic, nullptr,
+      kParallelize2DTile1DRangeI, kParallelize2DTile1DRangeJ,
+      kParallelize2DTile1DTileJ, /*flags=*/0);
+}
+
+TEST(Parallelize2DTile1DDynamic, MultiThreadPoolUniformTiling) {
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  pthreadpool_parallelize_2d_tile_1d(
+      threadpool.get(), CheckTiling2DTile1DDynamic, nullptr,
+      kParallelize2DTile1DRangeI, kParallelize2DTile1DRangeJ,
+      kParallelize2DTile1DTileJ, /*flags=*/0);
+}
+
+static void SetTrue2DTile1DDynamic(std::atomic_bool* processed_indicators,
+                                   size_t i, size_t start_j, size_t tile_j) {
+  for (size_t j = start_j; j < start_j + tile_j; j++) {
+    const size_t linear_idx = i * kParallelize2DTile1DRangeJ + j;
+    processed_indicators[linear_idx].store(true, std::memory_order_relaxed);
+  }
+}
+
+TEST(Parallelize2DTile1DDynamic, SingleThreadPoolAllItemsProcessed) {
+  std::vector<std::atomic_bool> indicators(kParallelize2DTile1DRangeI *
+                                           kParallelize2DTile1DRangeJ);
+
+  auto_pthreadpool_t threadpool(pthreadpool_create(1), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  pthreadpool_parallelize_2d_tile_1d(
+      threadpool.get(),
+      reinterpret_cast<pthreadpool_task_2d_tile_1d_t>(SetTrue2DTile1DDynamic),
+      static_cast<void*>(indicators.data()), kParallelize2DTile1DRangeI,
+      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, /*flags=*/0);
+
+  for (size_t i = 0; i < kParallelize2DTile1DRangeI; i++) {
+    for (size_t j = 0; j < kParallelize2DTile1DRangeJ; j++) {
+      const size_t linear_idx = i * kParallelize2DTile1DRangeJ + j;
+      EXPECT_TRUE(indicators[linear_idx].load(std::memory_order_relaxed))
+          << "Element (" << i << ", " << j << ") not processed";
+    }
+  }
+}
+
+TEST(Parallelize2DTile1DDynamic, MultiThreadPoolAllItemsProcessed) {
+  std::vector<std::atomic_bool> indicators(kParallelize2DTile1DRangeI *
+                                           kParallelize2DTile1DRangeJ);
+
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  pthreadpool_parallelize_2d_tile_1d(
+      threadpool.get(),
+      reinterpret_cast<pthreadpool_task_2d_tile_1d_t>(SetTrue2DTile1DDynamic),
+      static_cast<void*>(indicators.data()), kParallelize2DTile1DRangeI,
+      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, /*flags=*/0);
+
+  for (size_t i = 0; i < kParallelize2DTile1DRangeI; i++) {
+    for (size_t j = 0; j < kParallelize2DTile1DRangeJ; j++) {
+      const size_t linear_idx = i * kParallelize2DTile1DRangeJ + j;
+      EXPECT_TRUE(indicators[linear_idx].load(std::memory_order_relaxed))
+          << "Element (" << i << ", " << j << ") not processed";
+    }
+  }
+}
+
+static void Increment2DTile1DDynamic(std::atomic_int* processed_counters,
+                                     size_t i, size_t start_j, size_t tile_j) {
+  for (size_t j = start_j; j < start_j + tile_j; j++) {
+    const size_t linear_idx = i * kParallelize2DTile1DRangeJ + j;
+    processed_counters[linear_idx].fetch_add(1, std::memory_order_relaxed);
+  }
+}
+
+TEST(Parallelize2DTile1DDynamic, SingleThreadPoolEachItemProcessedOnce) {
+  std::vector<std::atomic_int> counters(kParallelize2DTile1DRangeI *
+                                        kParallelize2DTile1DRangeJ);
+
+  auto_pthreadpool_t threadpool(pthreadpool_create(1), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  pthreadpool_parallelize_2d_tile_1d(
+      threadpool.get(),
+      reinterpret_cast<pthreadpool_task_2d_tile_1d_t>(Increment2DTile1DDynamic),
+      static_cast<void*>(counters.data()), kParallelize2DTile1DRangeI,
+      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, /*flags=*/0);
+
+  for (size_t i = 0; i < kParallelize2DTile1DRangeI; i++) {
+    for (size_t j = 0; j < kParallelize2DTile1DRangeJ; j++) {
+      const size_t linear_idx = i * kParallelize2DTile1DRangeJ + j;
+      EXPECT_EQ(counters[linear_idx].load(std::memory_order_relaxed), 1)
+          << "Element (" << i << ", " << j << ") was processed "
+          << counters[linear_idx].load(std::memory_order_relaxed)
+          << " times (expected: 1)";
+    }
+  }
+}
+
+TEST(Parallelize2DTile1DDynamic, MultiThreadPoolEachItemProcessedOnce) {
+  std::vector<std::atomic_int> counters(kParallelize2DTile1DRangeI *
+                                        kParallelize2DTile1DRangeJ);
+
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  pthreadpool_parallelize_2d_tile_1d(
+      threadpool.get(),
+      reinterpret_cast<pthreadpool_task_2d_tile_1d_t>(Increment2DTile1DDynamic),
+      static_cast<void*>(counters.data()), kParallelize2DTile1DRangeI,
+      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, /*flags=*/0);
+
+  for (size_t i = 0; i < kParallelize2DTile1DRangeI; i++) {
+    for (size_t j = 0; j < kParallelize2DTile1DRangeJ; j++) {
+      const size_t linear_idx = i * kParallelize2DTile1DRangeJ + j;
+      EXPECT_EQ(counters[linear_idx].load(std::memory_order_relaxed), 1)
+          << "Element (" << i << ", " << j << ") was processed "
+          << counters[linear_idx].load(std::memory_order_relaxed)
+          << " times (expected: 1)";
+    }
+  }
+}
+
+TEST(Parallelize2DTile1DDynamic,
+     SingleThreadPoolEachItemProcessedMultipleTimes) {
+  std::vector<std::atomic_int> counters(kParallelize2DTile1DRangeI *
+                                        kParallelize2DTile1DRangeJ);
+
+  auto_pthreadpool_t threadpool(pthreadpool_create(1), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  for (size_t iteration = 0; iteration < kIncrementIterations; iteration++) {
+    pthreadpool_parallelize_2d_tile_1d(
+        threadpool.get(),
+        reinterpret_cast<pthreadpool_task_2d_tile_1d_t>(
+            Increment2DTile1DDynamic),
+        static_cast<void*>(counters.data()), kParallelize2DTile1DRangeI,
+        kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, /*flags=*/0);
+  }
+
+  for (size_t i = 0; i < kParallelize2DTile1DRangeI; i++) {
+    for (size_t j = 0; j < kParallelize2DTile1DRangeJ; j++) {
+      const size_t linear_idx = i * kParallelize2DTile1DRangeJ + j;
+      EXPECT_EQ(counters[linear_idx].load(std::memory_order_relaxed),
+                kIncrementIterations)
+          << "Element (" << i << ", " << j << ") was processed "
+          << counters[linear_idx].load(std::memory_order_relaxed) << " times "
+          << "(expected: " << kIncrementIterations << ")";
+    }
+  }
+}
+
+TEST(Parallelize2DTile1DDynamic,
+     MultiThreadPoolEachItemProcessedMultipleTimes) {
+  std::vector<std::atomic_int> counters(kParallelize2DTile1DRangeI *
+                                        kParallelize2DTile1DRangeJ);
+
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  for (size_t iteration = 0; iteration < kIncrementIterations; iteration++) {
+    pthreadpool_parallelize_2d_tile_1d(
+        threadpool.get(),
+        reinterpret_cast<pthreadpool_task_2d_tile_1d_t>(
+            Increment2DTile1DDynamic),
+        static_cast<void*>(counters.data()), kParallelize2DTile1DRangeI,
+        kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, /*flags=*/0);
+  }
+
+  for (size_t i = 0; i < kParallelize2DTile1DRangeI; i++) {
+    for (size_t j = 0; j < kParallelize2DTile1DRangeJ; j++) {
+      const size_t linear_idx = i * kParallelize2DTile1DRangeJ + j;
+      EXPECT_EQ(counters[linear_idx].load(std::memory_order_relaxed),
+                kIncrementIterations)
+          << "Element (" << i << ", " << j << ") was processed "
+          << counters[linear_idx].load(std::memory_order_relaxed) << " times "
+          << "(expected: " << kIncrementIterations << ")";
+    }
+  }
+}
+
+static void IncrementSame2DTile1DDynamic(std::atomic_int* num_processed_items,
+                                         size_t i, size_t start_j,
+                                         size_t tile_j) {
+  for (size_t j = start_j; j < start_j + tile_j; j++) {
+    num_processed_items->fetch_add(1, std::memory_order_relaxed);
+  }
+}
+
+TEST(Parallelize2DTile1DDynamic, MultiThreadPoolHighContention) {
+  std::atomic_int num_processed_items = ATOMIC_VAR_INIT(0);
+
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  pthreadpool_parallelize_2d_tile_1d(
+      threadpool.get(),
+      reinterpret_cast<pthreadpool_task_2d_tile_1d_t>(
+          IncrementSame2DTile1DDynamic),
+      static_cast<void*>(&num_processed_items), kParallelize2DTile1DRangeI,
+      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, /*flags=*/0);
+  EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
+            kParallelize2DTile1DRangeI * kParallelize2DTile1DRangeJ);
+}
+
+static void WorkImbalance2DTile1DDynamic(std::atomic_int* num_processed_items,
+                                         size_t i, size_t start_j,
+                                         size_t tile_j) {
+  num_processed_items->fetch_add(tile_j, std::memory_order_relaxed);
+  if (i == 0 && start_j == 0) {
+    /* Sleep for a second. This differs from the non-dynamic `WorkImbalance*`
+     * strategies in that a thread may reserve more elements than fit into a
+     * single work function call. Blocking a single work function call will also
+     * block any potentially remaining elements allocated to that thread. We
+     * therefore just sleep for a second instead.*/
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+  }
+}
+
+TEST(Parallelize2DTile1DDynamic, MultiThreadPoolWorkStealing) {
+  std::atomic_int num_processed_items = ATOMIC_VAR_INIT(0);
+
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  pthreadpool_parallelize_2d_tile_1d(
+      threadpool.get(),
+      reinterpret_cast<pthreadpool_task_2d_tile_1d_t>(
+          WorkImbalance2DTile1DDynamic),
+      static_cast<void*>(&num_processed_items), kParallelize2DTile1DRangeI,
+      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize2DTile1DRangeI * kParallelize2DTile1DRangeJ);
 }
@@ -2092,7 +2705,7 @@ TEST(Parallelize2DTile1DWithUArch, SingleThreadPoolCompletes) {
   pthreadpool_parallelize_2d_tile_1d_with_uarch(
       threadpool.get(), ComputeNothing2DTile1DWithUArch, nullptr,
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize2DTile1DRangeI,
-      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, 0 /* flags */);
+      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, /*flags=*/0);
 }
 
 TEST(Parallelize2DTile1DWithUArch, MultiThreadPoolCompletes) {
@@ -2106,7 +2719,7 @@ TEST(Parallelize2DTile1DWithUArch, MultiThreadPoolCompletes) {
   pthreadpool_parallelize_2d_tile_1d_with_uarch(
       threadpool.get(), ComputeNothing2DTile1DWithUArch, nullptr,
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize2DTile1DRangeI,
-      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, 0 /* flags */);
+      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, /*flags=*/0);
 }
 
 static void CheckUArch2DTile1DWithUArch(void*, uint32_t uarch_index, size_t,
@@ -2123,7 +2736,7 @@ TEST(Parallelize2DTile1DWithUArch, SingleThreadPoolUArchInBounds) {
   pthreadpool_parallelize_2d_tile_1d_with_uarch(
       threadpool.get(), CheckUArch2DTile1DWithUArch, nullptr,
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize2DTile1DRangeI,
-      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, 0 /* flags */);
+      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, /*flags=*/0);
 }
 
 TEST(Parallelize2DTile1DWithUArch, MultiThreadPoolUArchInBounds) {
@@ -2137,7 +2750,7 @@ TEST(Parallelize2DTile1DWithUArch, MultiThreadPoolUArchInBounds) {
   pthreadpool_parallelize_2d_tile_1d_with_uarch(
       threadpool.get(), CheckUArch2DTile1DWithUArch, nullptr,
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize2DTile1DRangeI,
-      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, 0 /* flags */);
+      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, /*flags=*/0);
 }
 
 static void CheckBounds2DTile1DWithUArch(void*, uint32_t, size_t i,
@@ -2154,7 +2767,7 @@ TEST(Parallelize2DTile1DWithUArch, SingleThreadPoolAllItemsInBounds) {
   pthreadpool_parallelize_2d_tile_1d_with_uarch(
       threadpool.get(), CheckBounds2DTile1DWithUArch, nullptr,
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize2DTile1DRangeI,
-      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, 0 /* flags */);
+      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, /*flags=*/0);
 }
 
 TEST(Parallelize2DTile1DWithUArch, MultiThreadPoolAllItemsInBounds) {
@@ -2168,7 +2781,7 @@ TEST(Parallelize2DTile1DWithUArch, MultiThreadPoolAllItemsInBounds) {
   pthreadpool_parallelize_2d_tile_1d_with_uarch(
       threadpool.get(), CheckBounds2DTile1DWithUArch, nullptr,
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize2DTile1DRangeI,
-      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, 0 /* flags */);
+      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, /*flags=*/0);
 }
 
 static void CheckTiling2DTile1DWithUArch(void*, uint32_t, size_t i,
@@ -2187,7 +2800,7 @@ TEST(Parallelize2DTile1DWithUArch, SingleThreadPoolUniformTiling) {
   pthreadpool_parallelize_2d_tile_1d_with_uarch(
       threadpool.get(), CheckTiling2DTile1DWithUArch, nullptr,
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize2DTile1DRangeI,
-      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, 0 /* flags */);
+      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, /*flags=*/0);
 }
 
 TEST(Parallelize2DTile1DWithUArch, MultiThreadPoolUniformTiling) {
@@ -2201,7 +2814,7 @@ TEST(Parallelize2DTile1DWithUArch, MultiThreadPoolUniformTiling) {
   pthreadpool_parallelize_2d_tile_1d_with_uarch(
       threadpool.get(), CheckTiling2DTile1DWithUArch, nullptr,
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize2DTile1DRangeI,
-      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, 0 /* flags */);
+      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, /*flags=*/0);
 }
 
 static void SetTrue2DTile1DWithUArch(std::atomic_bool* processed_indicators,
@@ -2226,7 +2839,7 @@ TEST(Parallelize2DTile1DWithUArch, SingleThreadPoolAllItemsProcessed) {
           SetTrue2DTile1DWithUArch),
       static_cast<void*>(indicators.data()), kDefaultUArchIndex, kMaxUArchIndex,
       kParallelize2DTile1DRangeI, kParallelize2DTile1DRangeJ,
-      kParallelize2DTile1DTileJ, 0 /* flags */);
+      kParallelize2DTile1DTileJ, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize2DTile1DRangeI; i++) {
     for (size_t j = 0; j < kParallelize2DTile1DRangeJ; j++) {
@@ -2254,7 +2867,7 @@ TEST(Parallelize2DTile1DWithUArch, MultiThreadPoolAllItemsProcessed) {
           SetTrue2DTile1DWithUArch),
       static_cast<void*>(indicators.data()), kDefaultUArchIndex, kMaxUArchIndex,
       kParallelize2DTile1DRangeI, kParallelize2DTile1DRangeJ,
-      kParallelize2DTile1DTileJ, 0 /* flags */);
+      kParallelize2DTile1DTileJ, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize2DTile1DRangeI; i++) {
     for (size_t j = 0; j < kParallelize2DTile1DRangeJ; j++) {
@@ -2287,7 +2900,7 @@ TEST(Parallelize2DTile1DWithUArch, SingleThreadPoolEachItemProcessedOnce) {
           Increment2DTile1DWithUArch),
       static_cast<void*>(counters.data()), kDefaultUArchIndex, kMaxUArchIndex,
       kParallelize2DTile1DRangeI, kParallelize2DTile1DRangeJ,
-      kParallelize2DTile1DTileJ, 0 /* flags */);
+      kParallelize2DTile1DTileJ, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize2DTile1DRangeI; i++) {
     for (size_t j = 0; j < kParallelize2DTile1DRangeJ; j++) {
@@ -2317,7 +2930,7 @@ TEST(Parallelize2DTile1DWithUArch, MultiThreadPoolEachItemProcessedOnce) {
           Increment2DTile1DWithUArch),
       static_cast<void*>(counters.data()), kDefaultUArchIndex, kMaxUArchIndex,
       kParallelize2DTile1DRangeI, kParallelize2DTile1DRangeJ,
-      kParallelize2DTile1DTileJ, 0 /* flags */);
+      kParallelize2DTile1DTileJ, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize2DTile1DRangeI; i++) {
     for (size_t j = 0; j < kParallelize2DTile1DRangeJ; j++) {
@@ -2345,7 +2958,7 @@ TEST(Parallelize2DTile1DWithUArch,
             Increment2DTile1DWithUArch),
         static_cast<void*>(counters.data()), kDefaultUArchIndex, kMaxUArchIndex,
         kParallelize2DTile1DRangeI, kParallelize2DTile1DRangeJ,
-        kParallelize2DTile1DTileJ, 0 /* flags */);
+        kParallelize2DTile1DTileJ, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize2DTile1DRangeI; i++) {
@@ -2379,7 +2992,7 @@ TEST(Parallelize2DTile1DWithUArch,
             Increment2DTile1DWithUArch),
         static_cast<void*>(counters.data()), kDefaultUArchIndex, kMaxUArchIndex,
         kParallelize2DTile1DRangeI, kParallelize2DTile1DRangeJ,
-        kParallelize2DTile1DTileJ, 0 /* flags */);
+        kParallelize2DTile1DTileJ, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize2DTile1DRangeI; i++) {
@@ -2418,7 +3031,7 @@ TEST(Parallelize2DTile1DWithUArch, MultiThreadPoolHighContention) {
           IncrementSame2DTile1DWithUArch),
       static_cast<void*>(&num_processed_items), kDefaultUArchIndex,
       kMaxUArchIndex, kParallelize2DTile1DRangeI, kParallelize2DTile1DRangeJ,
-      kParallelize2DTile1DTileJ, 0 /* flags */);
+      kParallelize2DTile1DTileJ, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize2DTile1DRangeI * kParallelize2DTile1DRangeJ);
 }
@@ -2452,7 +3065,7 @@ TEST(Parallelize2DTile1DWithUArch, MultiThreadPoolWorkStealing) {
           WorkImbalance2DTile1DWithUArch),
       static_cast<void*>(&num_processed_items), kDefaultUArchIndex,
       kMaxUArchIndex, kParallelize2DTile1DRangeI, kParallelize2DTile1DRangeJ,
-      kParallelize2DTile1DTileJ, 0 /* flags */);
+      kParallelize2DTile1DTileJ, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize2DTile1DRangeI * kParallelize2DTile1DRangeJ);
 }
@@ -2467,7 +3080,7 @@ TEST(Parallelize2DTile1DWithUArchWithThread, SingleThreadPoolCompletes) {
   pthreadpool_parallelize_2d_tile_1d_with_uarch_with_thread(
       threadpool.get(), ComputeNothing2DTile1DWithUArchWithThread, nullptr,
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize2DTile1DRangeI,
-      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, 0 /* flags */);
+      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, /*flags=*/0);
 }
 
 TEST(Parallelize2DTile1DWithUArchWithThread, MultiThreadPoolCompletes) {
@@ -2481,7 +3094,7 @@ TEST(Parallelize2DTile1DWithUArchWithThread, MultiThreadPoolCompletes) {
   pthreadpool_parallelize_2d_tile_1d_with_uarch_with_thread(
       threadpool.get(), ComputeNothing2DTile1DWithUArchWithThread, nullptr,
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize2DTile1DRangeI,
-      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, 0 /* flags */);
+      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, /*flags=*/0);
 }
 
 static void CheckUArch2DTile1DWithUArchWithThread(void*, uint32_t uarch_index,
@@ -2499,7 +3112,7 @@ TEST(Parallelize2DTile1DWithUArchWithThread, SingleThreadPoolUArchInBounds) {
   pthreadpool_parallelize_2d_tile_1d_with_uarch_with_thread(
       threadpool.get(), CheckUArch2DTile1DWithUArchWithThread, nullptr,
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize2DTile1DRangeI,
-      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, 0 /* flags */);
+      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, /*flags=*/0);
 }
 
 TEST(Parallelize2DTile1DWithUArchWithThread, MultiThreadPoolUArchInBounds) {
@@ -2513,7 +3126,7 @@ TEST(Parallelize2DTile1DWithUArchWithThread, MultiThreadPoolUArchInBounds) {
   pthreadpool_parallelize_2d_tile_1d_with_uarch_with_thread(
       threadpool.get(), CheckUArch2DTile1DWithUArchWithThread, nullptr,
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize2DTile1DRangeI,
-      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, 0 /* flags */);
+      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, /*flags=*/0);
 }
 
 static void CheckBounds2DTile1DWithUArchWithThread(void*, uint32_t, size_t,
@@ -2531,7 +3144,7 @@ TEST(Parallelize2DTile1DWithUArchWithThread, SingleThreadPoolAllItemsInBounds) {
   pthreadpool_parallelize_2d_tile_1d_with_uarch_with_thread(
       threadpool.get(), CheckBounds2DTile1DWithUArchWithThread, nullptr,
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize2DTile1DRangeI,
-      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, 0 /* flags */);
+      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, /*flags=*/0);
 }
 
 TEST(Parallelize2DTile1DWithUArchWithThread, MultiThreadPoolAllItemsInBounds) {
@@ -2545,7 +3158,7 @@ TEST(Parallelize2DTile1DWithUArchWithThread, MultiThreadPoolAllItemsInBounds) {
   pthreadpool_parallelize_2d_tile_1d_with_uarch_with_thread(
       threadpool.get(), CheckBounds2DTile1DWithUArchWithThread, nullptr,
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize2DTile1DRangeI,
-      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, 0 /* flags */);
+      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, /*flags=*/0);
 }
 
 static void CheckTiling2DTile1DWithUArchWithThread(void*, uint32_t, size_t,
@@ -2565,7 +3178,7 @@ TEST(Parallelize2DTile1DWithUArchWithThread, SingleThreadPoolUniformTiling) {
   pthreadpool_parallelize_2d_tile_1d_with_uarch_with_thread(
       threadpool.get(), CheckTiling2DTile1DWithUArchWithThread, nullptr,
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize2DTile1DRangeI,
-      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, 0 /* flags */);
+      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, /*flags=*/0);
 }
 
 TEST(Parallelize2DTile1DWithUArchWithThread, MultiThreadPoolUniformTiling) {
@@ -2579,7 +3192,7 @@ TEST(Parallelize2DTile1DWithUArchWithThread, MultiThreadPoolUniformTiling) {
   pthreadpool_parallelize_2d_tile_1d_with_uarch_with_thread(
       threadpool.get(), CheckTiling2DTile1DWithUArchWithThread, nullptr,
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize2DTile1DRangeI,
-      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, 0 /* flags */);
+      kParallelize2DTile1DRangeJ, kParallelize2DTile1DTileJ, /*flags=*/0);
 }
 
 static void SetTrue2DTile1DWithUArchWithThread(
@@ -2605,7 +3218,7 @@ TEST(Parallelize2DTile1DWithUArchWithThread,
           SetTrue2DTile1DWithUArchWithThread),
       static_cast<void*>(indicators.data()), kDefaultUArchIndex, kMaxUArchIndex,
       kParallelize2DTile1DRangeI, kParallelize2DTile1DRangeJ,
-      kParallelize2DTile1DTileJ, 0 /* flags */);
+      kParallelize2DTile1DTileJ, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize2DTile1DRangeI; i++) {
     for (size_t j = 0; j < kParallelize2DTile1DRangeJ; j++) {
@@ -2633,7 +3246,7 @@ TEST(Parallelize2DTile1DWithUArchWithThread, MultiThreadPoolAllItemsProcessed) {
           SetTrue2DTile1DWithUArchWithThread),
       static_cast<void*>(indicators.data()), kDefaultUArchIndex, kMaxUArchIndex,
       kParallelize2DTile1DRangeI, kParallelize2DTile1DRangeJ,
-      kParallelize2DTile1DTileJ, 0 /* flags */);
+      kParallelize2DTile1DTileJ, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize2DTile1DRangeI; i++) {
     for (size_t j = 0; j < kParallelize2DTile1DRangeJ; j++) {
@@ -2667,7 +3280,7 @@ TEST(Parallelize2DTile1DWithUArchWithThread,
           Increment2DTile1DWithUArchWithThread),
       static_cast<void*>(counters.data()), kDefaultUArchIndex, kMaxUArchIndex,
       kParallelize2DTile1DRangeI, kParallelize2DTile1DRangeJ,
-      kParallelize2DTile1DTileJ, 0 /* flags */);
+      kParallelize2DTile1DTileJ, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize2DTile1DRangeI; i++) {
     for (size_t j = 0; j < kParallelize2DTile1DRangeJ; j++) {
@@ -2698,7 +3311,7 @@ TEST(Parallelize2DTile1DWithUArchWithThread,
           Increment2DTile1DWithUArchWithThread),
       static_cast<void*>(counters.data()), kDefaultUArchIndex, kMaxUArchIndex,
       kParallelize2DTile1DRangeI, kParallelize2DTile1DRangeJ,
-      kParallelize2DTile1DTileJ, 0 /* flags */);
+      kParallelize2DTile1DTileJ, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize2DTile1DRangeI; i++) {
     for (size_t j = 0; j < kParallelize2DTile1DRangeJ; j++) {
@@ -2726,7 +3339,7 @@ TEST(Parallelize2DTile1DWithUArchWithThread,
             Increment2DTile1DWithUArchWithThread),
         static_cast<void*>(counters.data()), kDefaultUArchIndex, kMaxUArchIndex,
         kParallelize2DTile1DRangeI, kParallelize2DTile1DRangeJ,
-        kParallelize2DTile1DTileJ, 0 /* flags */);
+        kParallelize2DTile1DTileJ, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize2DTile1DRangeI; i++) {
@@ -2760,7 +3373,7 @@ TEST(Parallelize2DTile1DWithUArchWithThread,
             Increment2DTile1DWithUArchWithThread),
         static_cast<void*>(counters.data()), kDefaultUArchIndex, kMaxUArchIndex,
         kParallelize2DTile1DRangeI, kParallelize2DTile1DRangeJ,
-        kParallelize2DTile1DTileJ, 0 /* flags */);
+        kParallelize2DTile1DTileJ, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize2DTile1DRangeI; i++) {
@@ -2799,7 +3412,7 @@ TEST(Parallelize2DTile1DWithUArchWithThread, MultiThreadPoolHighContention) {
           IncrementSame2DTile1DWithUArchWithThread),
       static_cast<void*>(&num_processed_items), kDefaultUArchIndex,
       kMaxUArchIndex, kParallelize2DTile1DRangeI, kParallelize2DTile1DRangeJ,
-      kParallelize2DTile1DTileJ, 0 /* flags */);
+      kParallelize2DTile1DTileJ, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize2DTile1DRangeI * kParallelize2DTile1DRangeJ);
 }
@@ -2833,7 +3446,7 @@ TEST(Parallelize2DTile1DWithUArchWithThread, MultiThreadPoolWorkStealing) {
           WorkImbalance2DTile1DWithUArchWithThread),
       static_cast<void*>(&num_processed_items), kDefaultUArchIndex,
       kMaxUArchIndex, kParallelize2DTile1DRangeI, kParallelize2DTile1DRangeJ,
-      kParallelize2DTile1DTileJ, 0 /* flags */);
+      kParallelize2DTile1DTileJ, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize2DTile1DRangeI * kParallelize2DTile1DRangeJ);
 }
@@ -2858,7 +3471,7 @@ TEST(Parallelize2DTile1DWithUArchWithThread, MultiThreadPoolThreadIndexValid) {
           SetThreadTrue2DTile1DWithUArchWithThread),
       static_cast<void*>(&num_threads), kDefaultUArchIndex, kMaxUArchIndex,
       kParallelize2DTile1DRangeI, kParallelize2DTile1DRangeJ,
-      kParallelize2DTile1DTileJ, 0 /* flags */);
+      kParallelize2DTile1DTileJ, /*flags=*/0);
 }
 
 static void ComputeNothing2DTile2D(void*, size_t, size_t, size_t, size_t) {}
@@ -2870,7 +3483,7 @@ TEST(Parallelize2DTile2D, SingleThreadPoolCompletes) {
   pthreadpool_parallelize_2d_tile_2d(
       threadpool.get(), ComputeNothing2DTile2D, nullptr,
       kParallelize2DTile2DRangeI, kParallelize2DTile2DRangeJ,
-      kParallelize2DTile2DTileI, kParallelize2DTile2DTileJ, 0 /* flags */);
+      kParallelize2DTile2DTileI, kParallelize2DTile2DTileJ, /*flags=*/0);
 }
 
 TEST(Parallelize2DTile2D, MultiThreadPoolCompletes) {
@@ -2884,7 +3497,7 @@ TEST(Parallelize2DTile2D, MultiThreadPoolCompletes) {
   pthreadpool_parallelize_2d_tile_2d(
       threadpool.get(), ComputeNothing2DTile2D, nullptr,
       kParallelize2DTile2DRangeI, kParallelize2DTile2DRangeJ,
-      kParallelize2DTile2DTileI, kParallelize2DTile2DTileJ, 0 /* flags */);
+      kParallelize2DTile2DTileI, kParallelize2DTile2DTileJ, /*flags=*/0);
 }
 
 static void CheckBounds2DTile2D(void*, size_t start_i, size_t start_j,
@@ -2902,7 +3515,7 @@ TEST(Parallelize2DTile2D, SingleThreadPoolAllItemsInBounds) {
   pthreadpool_parallelize_2d_tile_2d(
       threadpool.get(), CheckBounds2DTile2D, nullptr,
       kParallelize2DTile2DRangeI, kParallelize2DTile2DRangeJ,
-      kParallelize2DTile2DTileI, kParallelize2DTile2DTileJ, 0 /* flags */);
+      kParallelize2DTile2DTileI, kParallelize2DTile2DTileJ, /*flags=*/0);
 }
 
 TEST(Parallelize2DTile2D, MultiThreadPoolAllItemsInBounds) {
@@ -2916,7 +3529,7 @@ TEST(Parallelize2DTile2D, MultiThreadPoolAllItemsInBounds) {
   pthreadpool_parallelize_2d_tile_2d(
       threadpool.get(), CheckBounds2DTile2D, nullptr,
       kParallelize2DTile2DRangeI, kParallelize2DTile2DRangeJ,
-      kParallelize2DTile2DTileI, kParallelize2DTile2DTileJ, 0 /* flags */);
+      kParallelize2DTile2DTileI, kParallelize2DTile2DTileJ, /*flags=*/0);
 }
 
 static void CheckTiling2DTile2D(void*, size_t start_i, size_t start_j,
@@ -2941,7 +3554,7 @@ TEST(Parallelize2DTile2D, SingleThreadPoolUniformTiling) {
   pthreadpool_parallelize_2d_tile_2d(
       threadpool.get(), CheckTiling2DTile2D, nullptr,
       kParallelize2DTile2DRangeI, kParallelize2DTile2DRangeJ,
-      kParallelize2DTile2DTileI, kParallelize2DTile2DTileJ, 0 /* flags */);
+      kParallelize2DTile2DTileI, kParallelize2DTile2DTileJ, /*flags=*/0);
 }
 
 TEST(Parallelize2DTile2D, MultiThreadPoolUniformTiling) {
@@ -2955,7 +3568,7 @@ TEST(Parallelize2DTile2D, MultiThreadPoolUniformTiling) {
   pthreadpool_parallelize_2d_tile_2d(
       threadpool.get(), CheckTiling2DTile2D, nullptr,
       kParallelize2DTile2DRangeI, kParallelize2DTile2DRangeJ,
-      kParallelize2DTile2DTileI, kParallelize2DTile2DTileJ, 0 /* flags */);
+      kParallelize2DTile2DTileI, kParallelize2DTile2DTileJ, /*flags=*/0);
 }
 
 static void SetTrue2DTile2D(std::atomic_bool* processed_indicators,
@@ -2981,7 +3594,7 @@ TEST(Parallelize2DTile2D, SingleThreadPoolAllItemsProcessed) {
       reinterpret_cast<pthreadpool_task_2d_tile_2d_t>(SetTrue2DTile2D),
       static_cast<void*>(indicators.data()), kParallelize2DTile2DRangeI,
       kParallelize2DTile2DRangeJ, kParallelize2DTile2DTileI,
-      kParallelize2DTile2DTileJ, 0 /* flags */);
+      kParallelize2DTile2DTileJ, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize2DTile2DRangeI; i++) {
     for (size_t j = 0; j < kParallelize2DTile2DRangeJ; j++) {
@@ -3008,7 +3621,7 @@ TEST(Parallelize2DTile2D, MultiThreadPoolAllItemsProcessed) {
       reinterpret_cast<pthreadpool_task_2d_tile_2d_t>(SetTrue2DTile2D),
       static_cast<void*>(indicators.data()), kParallelize2DTile2DRangeI,
       kParallelize2DTile2DRangeJ, kParallelize2DTile2DTileI,
-      kParallelize2DTile2DTileJ, 0 /* flags */);
+      kParallelize2DTile2DTileJ, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize2DTile2DRangeI; i++) {
     for (size_t j = 0; j < kParallelize2DTile2DRangeJ; j++) {
@@ -3042,7 +3655,7 @@ TEST(Parallelize2DTile2D, SingleThreadPoolEachItemProcessedOnce) {
       reinterpret_cast<pthreadpool_task_2d_tile_2d_t>(Increment2DTile2D),
       static_cast<void*>(counters.data()), kParallelize2DTile2DRangeI,
       kParallelize2DTile2DRangeJ, kParallelize2DTile2DTileI,
-      kParallelize2DTile2DTileJ, 0 /* flags */);
+      kParallelize2DTile2DTileJ, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize2DTile2DRangeI; i++) {
     for (size_t j = 0; j < kParallelize2DTile2DRangeJ; j++) {
@@ -3071,7 +3684,7 @@ TEST(Parallelize2DTile2D, MultiThreadPoolEachItemProcessedOnce) {
       reinterpret_cast<pthreadpool_task_2d_tile_2d_t>(Increment2DTile2D),
       static_cast<void*>(counters.data()), kParallelize2DTile2DRangeI,
       kParallelize2DTile2DRangeJ, kParallelize2DTile2DTileI,
-      kParallelize2DTile2DTileJ, 0 /* flags */);
+      kParallelize2DTile2DTileJ, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize2DTile2DRangeI; i++) {
     for (size_t j = 0; j < kParallelize2DTile2DRangeJ; j++) {
@@ -3097,7 +3710,7 @@ TEST(Parallelize2DTile2D, SingleThreadPoolEachItemProcessedMultipleTimes) {
         reinterpret_cast<pthreadpool_task_2d_tile_2d_t>(Increment2DTile2D),
         static_cast<void*>(counters.data()), kParallelize2DTile2DRangeI,
         kParallelize2DTile2DRangeJ, kParallelize2DTile2DTileI,
-        kParallelize2DTile2DTileJ, 0 /* flags */);
+        kParallelize2DTile2DTileJ, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize2DTile2DRangeI; i++) {
@@ -3129,7 +3742,7 @@ TEST(Parallelize2DTile2D, MultiThreadPoolEachItemProcessedMultipleTimes) {
         reinterpret_cast<pthreadpool_task_2d_tile_2d_t>(Increment2DTile2D),
         static_cast<void*>(counters.data()), kParallelize2DTile2DRangeI,
         kParallelize2DTile2DRangeJ, kParallelize2DTile2DTileI,
-        kParallelize2DTile2DTileJ, 0 /* flags */);
+        kParallelize2DTile2DTileJ, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize2DTile2DRangeI; i++) {
@@ -3169,7 +3782,7 @@ TEST(Parallelize2DTile2D, MultiThreadPoolHighContention) {
       reinterpret_cast<pthreadpool_task_2d_tile_2d_t>(IncrementSame2DTile2D),
       static_cast<void*>(&num_processed_items), kParallelize2DTile2DRangeI,
       kParallelize2DTile2DRangeJ, kParallelize2DTile2DTileI,
-      kParallelize2DTile2DTileJ, 0 /* flags */);
+      kParallelize2DTile2DTileJ, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize2DTile2DRangeI * kParallelize2DTile2DRangeJ);
 }
@@ -3202,7 +3815,755 @@ TEST(Parallelize2DTile2D, MultiThreadPoolWorkStealing) {
       reinterpret_cast<pthreadpool_task_2d_tile_2d_t>(WorkImbalance2DTile2D),
       static_cast<void*>(&num_processed_items), kParallelize2DTile2DRangeI,
       kParallelize2DTile2DRangeJ, kParallelize2DTile2DTileI,
-      kParallelize2DTile2DTileJ, 0 /* flags */);
+      kParallelize2DTile2DTileJ, /*flags=*/0);
+  EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
+            kParallelize2DTile2DRangeI * kParallelize2DTile2DRangeJ);
+}
+
+static void ComputeNothing2DDynamic(void*, size_t, size_t, size_t, size_t) {}
+
+TEST(Parallelize2DTile2DDynamic, SingleThreadPoolCompletes) {
+  auto_pthreadpool_t threadpool(pthreadpool_create(1), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  pthreadpool_parallelize_2d_tile_2d_dynamic(
+      threadpool.get(), ComputeNothing2DDynamic, nullptr,
+      kParallelize2DTile2DRangeI, kParallelize2DTile2DRangeJ,
+      kParallelize2DTile2DTileI, kParallelize2DTile2DTileJ, /*flags=*/0);
+}
+
+TEST(Parallelize2DTile2DDynamic, MultiThreadPoolCompletes) {
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  pthreadpool_parallelize_2d_tile_2d_dynamic(
+      threadpool.get(), ComputeNothing2DDynamic, nullptr,
+      kParallelize2DTile2DRangeI, kParallelize2DTile2DRangeJ,
+      kParallelize2DTile2DTileI, kParallelize2DTile2DTileJ, /*flags=*/0);
+}
+
+static void CheckBounds2DDynamic(void*, size_t start_i, size_t start_j,
+                                 size_t tile_i, size_t tile_j) {
+  EXPECT_LT(start_i, kParallelize2DTile2DRangeI);
+  EXPECT_LT(start_j, kParallelize2DTile2DRangeJ);
+  EXPECT_LE(start_i + tile_i, kParallelize2DTile2DRangeI);
+  EXPECT_LE(start_j + tile_j, kParallelize2DTile2DRangeJ);
+}
+
+TEST(Parallelize2DTile2DDynamic, SingleThreadPoolAllItemsInBounds) {
+  auto_pthreadpool_t threadpool(pthreadpool_create(1), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  pthreadpool_parallelize_2d_tile_2d_dynamic(
+      threadpool.get(), CheckBounds2DDynamic, nullptr,
+      kParallelize2DTile2DRangeI, kParallelize2DTile2DRangeJ,
+      kParallelize2DTile2DTileI, kParallelize2DTile2DTileJ, /*flags=*/0);
+}
+
+TEST(Parallelize2DTile2DDynamic, MultiThreadPoolAllItemsInBounds) {
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  pthreadpool_parallelize_2d_tile_2d_dynamic(
+      threadpool.get(), CheckBounds2DDynamic, nullptr,
+      kParallelize2DTile2DRangeI, kParallelize2DTile2DRangeJ,
+      kParallelize2DTile2DTileI, kParallelize2DTile2DTileJ, /*flags=*/0);
+}
+
+static void CheckTiling2DDynamic(void*, size_t start_i, size_t start_j,
+                                 size_t tile_i, size_t tile_j) {
+  EXPECT_GT(tile_i, 0);
+  EXPECT_LE(tile_i, kParallelize2DTile2DRangeI);
+  EXPECT_EQ(start_i % kParallelize2DTile2DTileI, 0);
+
+  EXPECT_GT(tile_j, 0);
+  EXPECT_LE(tile_j, kParallelize2DTile2DRangeJ);
+  EXPECT_EQ(start_j % kParallelize2DTile2DTileJ, 0);
+}
+
+TEST(Parallelize2DTile2DDynamic, SingleThreadPoolUniformTiling) {
+  auto_pthreadpool_t threadpool(pthreadpool_create(1), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  pthreadpool_parallelize_2d_tile_2d_dynamic(
+      threadpool.get(), CheckTiling2DDynamic, nullptr,
+      kParallelize2DTile2DRangeI, kParallelize2DTile2DRangeJ,
+      kParallelize2DTile2DTileI, kParallelize2DTile2DTileJ, /*flags=*/0);
+}
+
+TEST(Parallelize2DTile2DDynamic, MultiThreadPoolUniformTiling) {
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  pthreadpool_parallelize_2d_tile_2d_dynamic(
+      threadpool.get(), CheckTiling2DDynamic, nullptr,
+      kParallelize2DTile2DRangeI, kParallelize2DTile2DRangeJ,
+      kParallelize2DTile2DTileI, kParallelize2DTile2DTileJ, /*flags=*/0);
+}
+
+static void SetTrue2DDynamic(std::atomic_bool* processed_indicators,
+                             size_t start_i, size_t start_j, size_t tile_i,
+                             size_t tile_j) {
+  for (size_t i = start_i; i < start_i + tile_i; i++) {
+    for (size_t j = start_j; j < start_j + tile_j; j++) {
+      const size_t linear_idx = i * kParallelize2DTile2DRangeJ + j;
+      processed_indicators[linear_idx].store(true, std::memory_order_relaxed);
+    }
+  }
+}
+
+TEST(Parallelize2DTile2DDynamic, SingleThreadPoolAllItemsProcessed) {
+  std::vector<std::atomic_bool> indicators(kParallelize2DTile2DRangeI *
+                                           kParallelize2DTile2DRangeJ);
+
+  auto_pthreadpool_t threadpool(pthreadpool_create(1), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  pthreadpool_parallelize_2d_tile_2d_dynamic(
+      threadpool.get(),
+      reinterpret_cast<pthreadpool_task_2d_tile_2d_t>(SetTrue2DDynamic),
+      static_cast<void*>(indicators.data()), kParallelize2DTile2DRangeI,
+      kParallelize2DTile2DRangeJ, kParallelize2DTile2DTileI,
+      kParallelize2DTile2DTileJ, /*flags=*/0);
+
+  for (size_t i = 0; i < kParallelize2DTile2DRangeI; i++) {
+    for (size_t j = 0; j < kParallelize2DTile2DRangeJ; j++) {
+      const size_t linear_idx = i * kParallelize2DTile2DRangeJ + j;
+      EXPECT_TRUE(indicators[linear_idx].load(std::memory_order_relaxed))
+          << "Element (" << i << ", " << j << ") not processed";
+    }
+  }
+}
+
+TEST(Parallelize2DTile2DDynamic, MultiThreadPoolAllItemsProcessed) {
+  std::vector<std::atomic_bool> indicators(kParallelize2DTile2DRangeI *
+                                           kParallelize2DTile2DRangeJ);
+
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  pthreadpool_parallelize_2d_tile_2d_dynamic(
+      threadpool.get(),
+      reinterpret_cast<pthreadpool_task_2d_tile_2d_t>(SetTrue2DDynamic),
+      static_cast<void*>(indicators.data()), kParallelize2DTile2DRangeI,
+      kParallelize2DTile2DRangeJ, kParallelize2DTile2DTileI,
+      kParallelize2DTile2DTileJ, /*flags=*/0);
+
+  for (size_t i = 0; i < kParallelize2DTile2DRangeI; i++) {
+    for (size_t j = 0; j < kParallelize2DTile2DRangeJ; j++) {
+      const size_t linear_idx = i * kParallelize2DTile2DRangeJ + j;
+      EXPECT_TRUE(indicators[linear_idx].load(std::memory_order_relaxed))
+          << "Element (" << i << ", " << j << ") not processed";
+    }
+  }
+}
+
+static void Increment2DDynamic(std::atomic_int* processed_counters,
+                               size_t start_i, size_t start_j, size_t tile_i,
+                               size_t tile_j) {
+  for (size_t i = start_i; i < start_i + tile_i; i++) {
+    for (size_t j = start_j; j < start_j + tile_j; j++) {
+      const size_t linear_idx = i * kParallelize2DTile2DRangeJ + j;
+      processed_counters[linear_idx].fetch_add(1, std::memory_order_relaxed);
+    }
+  }
+}
+
+TEST(Parallelize2DTile2DDynamic, SingleThreadPoolEachItemProcessedOnce) {
+  std::vector<std::atomic_int> counters(kParallelize2DTile2DRangeI *
+                                        kParallelize2DTile2DRangeJ);
+
+  auto_pthreadpool_t threadpool(pthreadpool_create(1), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  pthreadpool_parallelize_2d_tile_2d_dynamic(
+      threadpool.get(),
+      reinterpret_cast<pthreadpool_task_2d_tile_2d_t>(Increment2DDynamic),
+      static_cast<void*>(counters.data()), kParallelize2DTile2DRangeI,
+      kParallelize2DTile2DRangeJ, kParallelize2DTile2DTileI,
+      kParallelize2DTile2DTileJ, /*flags=*/0);
+
+  for (size_t i = 0; i < kParallelize2DTile2DRangeI; i++) {
+    for (size_t j = 0; j < kParallelize2DTile2DRangeJ; j++) {
+      const size_t linear_idx = i * kParallelize2DTile2DRangeJ + j;
+      EXPECT_EQ(counters[linear_idx].load(std::memory_order_relaxed), 1)
+          << "Element (" << i << ", " << j << ") was processed "
+          << counters[linear_idx].load(std::memory_order_relaxed)
+          << " times (expected: 1)";
+    }
+  }
+}
+
+TEST(Parallelize2DTile2DDynamic, MultiThreadPoolEachItemProcessedOnce) {
+  std::vector<std::atomic_int> counters(kParallelize2DTile2DRangeI *
+                                        kParallelize2DTile2DRangeJ);
+
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  pthreadpool_parallelize_2d_tile_2d_dynamic(
+      threadpool.get(),
+      reinterpret_cast<pthreadpool_task_2d_tile_2d_t>(Increment2DDynamic),
+      static_cast<void*>(counters.data()), kParallelize2DTile2DRangeI,
+      kParallelize2DTile2DRangeJ, kParallelize2DTile2DTileI,
+      kParallelize2DTile2DTileJ, /*flags=*/0);
+
+  for (size_t i = 0; i < kParallelize2DTile2DRangeI; i++) {
+    for (size_t j = 0; j < kParallelize2DTile2DRangeJ; j++) {
+      const size_t linear_idx = i * kParallelize2DTile2DRangeJ + j;
+      EXPECT_EQ(counters[linear_idx].load(std::memory_order_relaxed), 1)
+          << "Element (" << i << ", " << j << ") was processed "
+          << counters[linear_idx].load(std::memory_order_relaxed)
+          << " times (expected: 1)";
+    }
+  }
+}
+
+TEST(Parallelize2DTile2DDynamic,
+     SingleThreadPoolEachItemProcessedMultipleTimes) {
+  std::vector<std::atomic_int> counters(kParallelize2DTile2DRangeI *
+                                        kParallelize2DTile2DRangeJ);
+
+  auto_pthreadpool_t threadpool(pthreadpool_create(1), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  for (size_t iteration = 0; iteration < kIncrementIterations; iteration++) {
+    pthreadpool_parallelize_2d_tile_2d_dynamic(
+        threadpool.get(),
+        reinterpret_cast<pthreadpool_task_2d_tile_2d_t>(Increment2DDynamic),
+        static_cast<void*>(counters.data()), kParallelize2DTile2DRangeI,
+        kParallelize2DTile2DRangeJ, kParallelize2DTile2DTileI,
+        kParallelize2DTile2DTileJ, /*flags=*/0);
+  }
+
+  for (size_t i = 0; i < kParallelize2DTile2DRangeI; i++) {
+    for (size_t j = 0; j < kParallelize2DTile2DRangeJ; j++) {
+      const size_t linear_idx = i * kParallelize2DTile2DRangeJ + j;
+      EXPECT_EQ(counters[linear_idx].load(std::memory_order_relaxed),
+                kIncrementIterations)
+          << "Element (" << i << ", " << j << ") was processed "
+          << counters[linear_idx].load(std::memory_order_relaxed) << " times "
+          << "(expected: " << kIncrementIterations << ")";
+    }
+  }
+}
+
+TEST(Parallelize2DTile2DDynamic,
+     MultiThreadPoolEachItemProcessedMultipleTimes) {
+  std::vector<std::atomic_int> counters(kParallelize2DTile2DRangeI *
+                                        kParallelize2DTile2DRangeJ);
+
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  for (size_t iteration = 0; iteration < kIncrementIterations; iteration++) {
+    pthreadpool_parallelize_2d_tile_2d_dynamic(
+        threadpool.get(),
+        reinterpret_cast<pthreadpool_task_2d_tile_2d_t>(Increment2DDynamic),
+        static_cast<void*>(counters.data()), kParallelize2DTile2DRangeI,
+        kParallelize2DTile2DRangeJ, kParallelize2DTile2DTileI,
+        kParallelize2DTile2DTileJ, /*flags=*/0);
+  }
+
+  for (size_t i = 0; i < kParallelize2DTile2DRangeI; i++) {
+    for (size_t j = 0; j < kParallelize2DTile2DRangeJ; j++) {
+      const size_t linear_idx = i * kParallelize2DTile2DRangeJ + j;
+      EXPECT_EQ(counters[linear_idx].load(std::memory_order_relaxed),
+                kIncrementIterations)
+          << "Element (" << i << ", " << j << ") was processed "
+          << counters[linear_idx].load(std::memory_order_relaxed) << " times "
+          << "(expected: " << kIncrementIterations << ")";
+    }
+  }
+}
+
+static void IncrementSame2DDynamic(std::atomic_int* num_processed_items,
+                                   size_t start_i, size_t start_j,
+                                   size_t tile_i, size_t tile_j) {
+  for (size_t i = start_i; i < start_i + tile_i; i++) {
+    for (size_t j = start_j; j < start_j + tile_j; j++) {
+      num_processed_items->fetch_add(1, std::memory_order_relaxed);
+    }
+  }
+}
+
+TEST(Parallelize2DTile2DDynamic, MultiThreadPoolHighContention) {
+  std::atomic_int num_processed_items = ATOMIC_VAR_INIT(0);
+
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  pthreadpool_parallelize_2d_tile_2d_dynamic(
+      threadpool.get(),
+      reinterpret_cast<pthreadpool_task_2d_tile_2d_t>(IncrementSame2DDynamic),
+      static_cast<void*>(&num_processed_items), kParallelize2DTile2DRangeI,
+      kParallelize2DTile2DRangeJ, kParallelize2DTile2DTileI,
+      kParallelize2DTile2DTileJ, /*flags=*/0);
+  EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
+            kParallelize2DTile2DRangeI * kParallelize2DTile2DRangeJ);
+}
+
+static void WorkImbalance2DDynamic(std::atomic_int* num_processed_items,
+                                   size_t start_i, size_t start_j,
+                                   size_t tile_i, size_t tile_j) {
+  num_processed_items->fetch_add(tile_i * tile_j, std::memory_order_relaxed);
+  if (start_i == 0 && start_j == 0) {
+    /* Sleep for a second. This differs from the non-dynamic `WorkImbalance*`
+     * strategies in that a thread may reserve more elements than fit into a
+     * single work function call. Blocking a single work function call will also
+     * block any potentially remaining elements allocated to that thread. We
+     * therefore just sleep for a second instead.*/
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+  }
+}
+
+TEST(Parallelize2DTile2DDynamic, MultiThreadPoolWorkStealing) {
+  std::atomic_int num_processed_items = ATOMIC_VAR_INIT(0);
+
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  pthreadpool_parallelize_2d_tile_2d_dynamic(
+      threadpool.get(),
+      reinterpret_cast<pthreadpool_task_2d_tile_2d_t>(WorkImbalance2DDynamic),
+      static_cast<void*>(&num_processed_items), kParallelize2DTile2DRangeI,
+      kParallelize2DTile2DRangeJ, kParallelize2DTile2DTileI,
+      kParallelize2DTile2DTileJ, /*flags=*/0);
+  EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
+            kParallelize2DTile2DRangeI * kParallelize2DTile2DRangeJ);
+}
+
+static void ComputeNothing2DTile2DDynamicWithUArch(void*, uint32_t, size_t,
+                                                   size_t, size_t, size_t) {}
+
+TEST(Parallelize2DTile2DDynamicWithUArch, SingleThreadPoolCompletes) {
+  auto_pthreadpool_t threadpool(pthreadpool_create(1), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  pthreadpool_parallelize_2d_tile_2d_dynamic_with_uarch(
+      threadpool.get(), ComputeNothing2DTile2DDynamicWithUArch, nullptr,
+      kDefaultUArchIndex, kMaxUArchIndex, kParallelize2DTile2DRangeI,
+      kParallelize2DTile2DRangeJ, kParallelize2DTile2DTileI,
+      kParallelize2DTile2DTileJ, /*flags=*/0);
+}
+
+TEST(Parallelize2DTile2DDynamicWithUArch, MultiThreadPoolCompletes) {
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  pthreadpool_parallelize_2d_tile_2d_dynamic_with_uarch(
+      threadpool.get(), ComputeNothing2DTile2DDynamicWithUArch, nullptr,
+      kDefaultUArchIndex, kMaxUArchIndex, kParallelize2DTile2DRangeI,
+      kParallelize2DTile2DRangeJ, kParallelize2DTile2DTileI,
+      kParallelize2DTile2DTileJ, /*flags=*/0);
+}
+
+static void CheckUArch2DTile2DDynamicWithUArch(void*, uint32_t uarch_index,
+                                               size_t, size_t, size_t, size_t) {
+  if (uarch_index != kDefaultUArchIndex) {
+    EXPECT_LE(uarch_index, kMaxUArchIndex);
+  }
+}
+
+TEST(Parallelize2DTile2DDynamicWithUArch, SingleThreadPoolUArchInBounds) {
+  auto_pthreadpool_t threadpool(pthreadpool_create(1), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  pthreadpool_parallelize_2d_tile_2d_dynamic_with_uarch(
+      threadpool.get(), CheckUArch2DTile2DDynamicWithUArch, nullptr,
+      kDefaultUArchIndex, kMaxUArchIndex, kParallelize2DTile2DRangeI,
+      kParallelize2DTile2DRangeJ, kParallelize2DTile2DTileI,
+      kParallelize2DTile2DTileJ, /*flags=*/0);
+}
+
+TEST(Parallelize2DTile2DDynamicWithUArch, MultiThreadPoolUArchInBounds) {
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  pthreadpool_parallelize_2d_tile_2d_dynamic_with_uarch(
+      threadpool.get(), CheckUArch2DTile2DDynamicWithUArch, nullptr,
+      kDefaultUArchIndex, kMaxUArchIndex, kParallelize2DTile2DRangeI,
+      kParallelize2DTile2DRangeJ, kParallelize2DTile2DTileI,
+      kParallelize2DTile2DTileJ, /*flags=*/0);
+}
+
+static void CheckBounds2DTile2DDynamicWithUArch(void*, uint32_t, size_t start_i,
+                                                size_t start_j, size_t tile_i,
+                                                size_t tile_j) {
+  EXPECT_LT(start_i, kParallelize2DTile2DRangeI);
+  EXPECT_LT(start_j, kParallelize2DTile2DRangeJ);
+  EXPECT_LE(start_i + tile_i, kParallelize2DTile2DRangeI);
+  EXPECT_LE(start_j + tile_j, kParallelize2DTile2DRangeJ);
+}
+
+TEST(Parallelize2DTile2DDynamicWithUArch, SingleThreadPoolAllItemsInBounds) {
+  auto_pthreadpool_t threadpool(pthreadpool_create(1), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  pthreadpool_parallelize_2d_tile_2d_dynamic_with_uarch(
+      threadpool.get(), CheckBounds2DTile2DDynamicWithUArch, nullptr,
+      kDefaultUArchIndex, kMaxUArchIndex, kParallelize2DTile2DRangeI,
+      kParallelize2DTile2DRangeJ, kParallelize2DTile2DTileI,
+      kParallelize2DTile2DTileJ, /*flags=*/0);
+}
+
+TEST(Parallelize2DTile2DDynamicWithUArch, MultiThreadPoolAllItemsInBounds) {
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  pthreadpool_parallelize_2d_tile_2d_dynamic_with_uarch(
+      threadpool.get(), CheckBounds2DTile2DDynamicWithUArch, nullptr,
+      kDefaultUArchIndex, kMaxUArchIndex, kParallelize2DTile2DRangeI,
+      kParallelize2DTile2DRangeJ, kParallelize2DTile2DTileI,
+      kParallelize2DTile2DTileJ, /*flags=*/0);
+}
+
+static void CheckTiling2DTile2DDynamicWithUArch(void*, uint32_t, size_t start_i,
+                                                size_t start_j, size_t tile_i,
+                                                size_t tile_j) {
+  EXPECT_GT(tile_i, 0);
+  EXPECT_TRUE(tile_i % kParallelize2DTile2DTileI == 0 ||
+              tile_i == kParallelize2DTile2DRangeI - start_i);
+  EXPECT_EQ(start_i % kParallelize2DTile2DTileI, 0);
+  EXPECT_LE(start_i + tile_i, kParallelize2DTile2DRangeI);
+
+  EXPECT_GT(tile_j, 0);
+  EXPECT_TRUE(tile_j % kParallelize2DTile2DTileJ == 0 ||
+              tile_j == kParallelize2DTile2DRangeJ - start_j);
+  EXPECT_EQ(start_j % kParallelize2DTile2DTileJ, 0);
+  EXPECT_LE(start_j + tile_j, kParallelize2DTile2DRangeJ);
+}
+
+TEST(Parallelize2DTile2DDynamicWithUArch, SingleThreadPoolUniformTiling) {
+  auto_pthreadpool_t threadpool(pthreadpool_create(1), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  pthreadpool_parallelize_2d_tile_2d_dynamic_with_uarch(
+      threadpool.get(), CheckTiling2DTile2DDynamicWithUArch, nullptr,
+      kDefaultUArchIndex, kMaxUArchIndex, kParallelize2DTile2DRangeI,
+      kParallelize2DTile2DRangeJ, kParallelize2DTile2DTileI,
+      kParallelize2DTile2DTileJ, /*flags=*/0);
+}
+
+TEST(Parallelize2DTile2DDynamicWithUArch, MultiThreadPoolUniformTiling) {
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  pthreadpool_parallelize_2d_tile_2d_dynamic_with_uarch(
+      threadpool.get(), CheckTiling2DTile2DDynamicWithUArch, nullptr,
+      kDefaultUArchIndex, kMaxUArchIndex, kParallelize2DTile2DRangeI,
+      kParallelize2DTile2DRangeJ, kParallelize2DTile2DTileI,
+      kParallelize2DTile2DTileJ, /*flags=*/0);
+}
+
+static void SetTrue2DTile2DDynamicWithUArch(
+    std::atomic_bool* processed_indicators, uint32_t, size_t start_i,
+    size_t start_j, size_t tile_i, size_t tile_j) {
+  for (size_t i = start_i; i < start_i + tile_i; i++) {
+    for (size_t j = start_j; j < start_j + tile_j; j++) {
+      const size_t linear_idx = i * kParallelize2DTile2DRangeJ + j;
+      processed_indicators[linear_idx].store(true, std::memory_order_relaxed);
+    }
+  }
+}
+
+TEST(Parallelize2DTile2DDynamicWithUArch, SingleThreadPoolAllItemsProcessed) {
+  std::vector<std::atomic_bool> indicators(kParallelize2DTile2DRangeI *
+                                           kParallelize2DTile2DRangeJ);
+
+  auto_pthreadpool_t threadpool(pthreadpool_create(1), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  pthreadpool_parallelize_2d_tile_2d_dynamic_with_uarch(
+      threadpool.get(),
+      reinterpret_cast<pthreadpool_task_2d_tile_2d_dynamic_with_id_t>(
+          SetTrue2DTile2DDynamicWithUArch),
+      static_cast<void*>(indicators.data()), kDefaultUArchIndex, kMaxUArchIndex,
+      kParallelize2DTile2DRangeI, kParallelize2DTile2DRangeJ,
+      kParallelize2DTile2DTileI, kParallelize2DTile2DTileJ, /*flags=*/0);
+
+  for (size_t i = 0; i < kParallelize2DTile2DRangeI; i++) {
+    for (size_t j = 0; j < kParallelize2DTile2DRangeJ; j++) {
+      const size_t linear_idx = i * kParallelize2DTile2DRangeJ + j;
+      EXPECT_TRUE(indicators[linear_idx].load(std::memory_order_relaxed))
+          << "Element (" << i << ", " << j << ") not processed";
+    }
+  }
+}
+
+TEST(Parallelize2DTile2DDynamicWithUArch, MultiThreadPoolAllItemsProcessed) {
+  std::vector<std::atomic_bool> indicators(kParallelize2DTile2DRangeI *
+                                           kParallelize2DTile2DRangeJ);
+
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  pthreadpool_parallelize_2d_tile_2d_dynamic_with_uarch(
+      threadpool.get(),
+      reinterpret_cast<pthreadpool_task_2d_tile_2d_dynamic_with_id_t>(
+          SetTrue2DTile2DDynamicWithUArch),
+      static_cast<void*>(indicators.data()), kDefaultUArchIndex, kMaxUArchIndex,
+      kParallelize2DTile2DRangeI, kParallelize2DTile2DRangeJ,
+      kParallelize2DTile2DTileI, kParallelize2DTile2DTileJ, /*flags=*/0);
+
+  for (size_t i = 0; i < kParallelize2DTile2DRangeI; i++) {
+    for (size_t j = 0; j < kParallelize2DTile2DRangeJ; j++) {
+      const size_t linear_idx = i * kParallelize2DTile2DRangeJ + j;
+      EXPECT_TRUE(indicators[linear_idx].load(std::memory_order_relaxed))
+          << "Element (" << i << ", " << j << ") not processed";
+    }
+  }
+}
+
+static void Increment2DTile2DDynamicWithUArch(
+    std::atomic_int* processed_counters, uint32_t, size_t start_i,
+    size_t start_j, size_t tile_i, size_t tile_j) {
+  for (size_t i = start_i; i < start_i + tile_i; i++) {
+    for (size_t j = start_j; j < start_j + tile_j; j++) {
+      const size_t linear_idx = i * kParallelize2DTile2DRangeJ + j;
+      processed_counters[linear_idx].fetch_add(1, std::memory_order_relaxed);
+    }
+  }
+}
+
+TEST(Parallelize2DTile2DDynamicWithUArch,
+     SingleThreadPoolEachItemProcessedOnce) {
+  std::vector<std::atomic_int> counters(kParallelize2DTile2DRangeI *
+                                        kParallelize2DTile2DRangeJ);
+
+  auto_pthreadpool_t threadpool(pthreadpool_create(1), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  pthreadpool_parallelize_2d_tile_2d_dynamic_with_uarch(
+      threadpool.get(),
+      reinterpret_cast<pthreadpool_task_2d_tile_2d_dynamic_with_id_t>(
+          Increment2DTile2DDynamicWithUArch),
+      static_cast<void*>(counters.data()), kDefaultUArchIndex, kMaxUArchIndex,
+      kParallelize2DTile2DRangeI, kParallelize2DTile2DRangeJ,
+      kParallelize2DTile2DTileI, kParallelize2DTile2DTileJ, /*flags=*/0);
+
+  for (size_t i = 0; i < kParallelize2DTile2DRangeI; i++) {
+    for (size_t j = 0; j < kParallelize2DTile2DRangeJ; j++) {
+      const size_t linear_idx = i * kParallelize2DTile2DRangeJ + j;
+      EXPECT_EQ(counters[linear_idx].load(std::memory_order_relaxed), 1)
+          << "Element (" << i << ", " << j << ") was processed "
+          << counters[linear_idx].load(std::memory_order_relaxed)
+          << " times (expected: 1)";
+    }
+  }
+}
+
+TEST(Parallelize2DTile2DDynamicWithUArch,
+     MultiThreadPoolEachItemProcessedOnce) {
+  std::vector<std::atomic_int> counters(kParallelize2DTile2DRangeI *
+                                        kParallelize2DTile2DRangeJ);
+
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  pthreadpool_parallelize_2d_tile_2d_dynamic_with_uarch(
+      threadpool.get(),
+      reinterpret_cast<pthreadpool_task_2d_tile_2d_dynamic_with_id_t>(
+          Increment2DTile2DDynamicWithUArch),
+      static_cast<void*>(counters.data()), kDefaultUArchIndex, kMaxUArchIndex,
+      kParallelize2DTile2DRangeI, kParallelize2DTile2DRangeJ,
+      kParallelize2DTile2DTileI, kParallelize2DTile2DTileJ, /*flags=*/0);
+
+  for (size_t i = 0; i < kParallelize2DTile2DRangeI; i++) {
+    for (size_t j = 0; j < kParallelize2DTile2DRangeJ; j++) {
+      const size_t linear_idx = i * kParallelize2DTile2DRangeJ + j;
+      EXPECT_EQ(counters[linear_idx].load(std::memory_order_relaxed), 1)
+          << "Element (" << i << ", " << j << ") was processed "
+          << counters[linear_idx].load(std::memory_order_relaxed)
+          << " times (expected: 1)";
+    }
+  }
+}
+
+TEST(Parallelize2DTile2DDynamicWithUArch,
+     SingleThreadPoolEachItemProcessedMultipleTimes) {
+  std::vector<std::atomic_int> counters(kParallelize2DTile2DRangeI *
+                                        kParallelize2DTile2DRangeJ);
+
+  auto_pthreadpool_t threadpool(pthreadpool_create(1), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  for (size_t iteration = 0; iteration < kIncrementIterations; iteration++) {
+    pthreadpool_parallelize_2d_tile_2d_dynamic_with_uarch(
+        threadpool.get(),
+        reinterpret_cast<pthreadpool_task_2d_tile_2d_dynamic_with_id_t>(
+            Increment2DTile2DDynamicWithUArch),
+        static_cast<void*>(counters.data()), kDefaultUArchIndex, kMaxUArchIndex,
+        kParallelize2DTile2DRangeI, kParallelize2DTile2DRangeJ,
+        kParallelize2DTile2DTileI, kParallelize2DTile2DTileJ,
+        /*flags=*/0);
+  }
+
+  for (size_t i = 0; i < kParallelize2DTile2DRangeI; i++) {
+    for (size_t j = 0; j < kParallelize2DTile2DRangeJ; j++) {
+      const size_t linear_idx = i * kParallelize2DTile2DRangeJ + j;
+      EXPECT_EQ(counters[linear_idx].load(std::memory_order_relaxed),
+                kIncrementIterations)
+          << "Element (" << i << ", " << j << ") was processed "
+          << counters[linear_idx].load(std::memory_order_relaxed) << " times "
+          << "(expected: " << kIncrementIterations << ")";
+    }
+  }
+}
+
+TEST(Parallelize2DTile2DDynamicWithUArch,
+     MultiThreadPoolEachItemProcessedMultipleTimes) {
+  std::vector<std::atomic_int> counters(kParallelize2DTile2DRangeI *
+                                        kParallelize2DTile2DRangeJ);
+
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  for (size_t iteration = 0; iteration < kIncrementIterations; iteration++) {
+    pthreadpool_parallelize_2d_tile_2d_dynamic_with_uarch(
+        threadpool.get(),
+        reinterpret_cast<pthreadpool_task_2d_tile_2d_dynamic_with_id_t>(
+            Increment2DTile2DDynamicWithUArch),
+        static_cast<void*>(counters.data()), kDefaultUArchIndex, kMaxUArchIndex,
+        kParallelize2DTile2DRangeI, kParallelize2DTile2DRangeJ,
+        kParallelize2DTile2DTileI, kParallelize2DTile2DTileJ,
+        /*flags=*/0);
+  }
+
+  for (size_t i = 0; i < kParallelize2DTile2DRangeI; i++) {
+    for (size_t j = 0; j < kParallelize2DTile2DRangeJ; j++) {
+      const size_t linear_idx = i * kParallelize2DTile2DRangeJ + j;
+      EXPECT_EQ(counters[linear_idx].load(std::memory_order_relaxed),
+                kIncrementIterations)
+          << "Element (" << i << ", " << j << ") was processed "
+          << counters[linear_idx].load(std::memory_order_relaxed) << " times "
+          << "(expected: " << kIncrementIterations << ")";
+    }
+  }
+}
+
+static void IncrementSame2DTile2DDynamicWithUArch(
+    std::atomic_int* num_processed_items, uint32_t, size_t start_i,
+    size_t start_j, size_t tile_i, size_t tile_j) {
+  for (size_t i = start_i; i < start_i + tile_i; i++) {
+    for (size_t j = start_j; j < start_j + tile_j; j++) {
+      num_processed_items->fetch_add(1, std::memory_order_relaxed);
+    }
+  }
+}
+
+TEST(Parallelize2DTile2DDynamicWithUArch, MultiThreadPoolHighContention) {
+  std::atomic_int num_processed_items = ATOMIC_VAR_INIT(0);
+
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  pthreadpool_parallelize_2d_tile_2d_dynamic_with_uarch(
+      threadpool.get(),
+      reinterpret_cast<pthreadpool_task_2d_tile_2d_dynamic_with_id_t>(
+          IncrementSame2DTile2DDynamicWithUArch),
+      static_cast<void*>(&num_processed_items), kDefaultUArchIndex,
+      kMaxUArchIndex, kParallelize2DTile2DRangeI, kParallelize2DTile2DRangeJ,
+      kParallelize2DTile2DTileI, kParallelize2DTile2DTileJ, /*flags=*/0);
+  EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
+            kParallelize2DTile2DRangeI * kParallelize2DTile2DRangeJ);
+}
+
+static void WorkImbalance2DTile2DDynamicWithUArch(
+    std::atomic_int* num_processed_items, uint32_t, size_t start_i,
+    size_t start_j, size_t tile_i, size_t tile_j) {
+  num_processed_items->fetch_add(tile_i * tile_j, std::memory_order_relaxed);
+  if (start_i == 0 && start_j == 0) {
+    /* Sleep for a second. This differs from the non-dynamic `WorkImbalance*`
+     * strategies in that a thread may reserve more elements than fit into a
+     * single work function call. Blocking a single work function call will also
+     * block any potentially remaining elements allocated to that thread. We
+     * therefore just sleep for a second instead.*/
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+  }
+}
+
+TEST(Parallelize2DTile2DDynamicWithUArch, MultiThreadPoolWorkStealing) {
+  std::atomic_int num_processed_items = ATOMIC_VAR_INIT(0);
+
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  pthreadpool_parallelize_2d_tile_2d_dynamic_with_uarch(
+      threadpool.get(),
+      reinterpret_cast<pthreadpool_task_2d_tile_2d_dynamic_with_id_t>(
+          WorkImbalance2DTile2DDynamicWithUArch),
+      static_cast<void*>(&num_processed_items), kDefaultUArchIndex,
+      kMaxUArchIndex, kParallelize2DTile2DRangeI, kParallelize2DTile2DRangeJ,
+      kParallelize2DTile2DTileI, kParallelize2DTile2DTileJ, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize2DTile2DRangeI * kParallelize2DTile2DRangeJ);
 }
@@ -3218,7 +4579,7 @@ TEST(Parallelize2DTile2DWithUArch, SingleThreadPoolCompletes) {
       threadpool.get(), ComputeNothing2DTile2DWithUArch, nullptr,
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize2DTile2DRangeI,
       kParallelize2DTile2DRangeJ, kParallelize2DTile2DTileI,
-      kParallelize2DTile2DTileJ, 0 /* flags */);
+      kParallelize2DTile2DTileJ, /*flags=*/0);
 }
 
 TEST(Parallelize2DTile2DWithUArch, MultiThreadPoolCompletes) {
@@ -3233,7 +4594,7 @@ TEST(Parallelize2DTile2DWithUArch, MultiThreadPoolCompletes) {
       threadpool.get(), ComputeNothing2DTile2DWithUArch, nullptr,
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize2DTile2DRangeI,
       kParallelize2DTile2DRangeJ, kParallelize2DTile2DTileI,
-      kParallelize2DTile2DTileJ, 0 /* flags */);
+      kParallelize2DTile2DTileJ, /*flags=*/0);
 }
 
 static void CheckUArch2DTile2DWithUArch(void*, uint32_t uarch_index, size_t,
@@ -3251,7 +4612,7 @@ TEST(Parallelize2DTile2DWithUArch, SingleThreadPoolUArchInBounds) {
       threadpool.get(), CheckUArch2DTile2DWithUArch, nullptr,
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize2DTile2DRangeI,
       kParallelize2DTile2DRangeJ, kParallelize2DTile2DTileI,
-      kParallelize2DTile2DTileJ, 0 /* flags */);
+      kParallelize2DTile2DTileJ, /*flags=*/0);
 }
 
 TEST(Parallelize2DTile2DWithUArch, MultiThreadPoolUArchInBounds) {
@@ -3266,7 +4627,7 @@ TEST(Parallelize2DTile2DWithUArch, MultiThreadPoolUArchInBounds) {
       threadpool.get(), CheckUArch2DTile2DWithUArch, nullptr,
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize2DTile2DRangeI,
       kParallelize2DTile2DRangeJ, kParallelize2DTile2DTileI,
-      kParallelize2DTile2DTileJ, 0 /* flags */);
+      kParallelize2DTile2DTileJ, /*flags=*/0);
 }
 
 static void CheckBounds2DTile2DWithUArch(void*, uint32_t, size_t start_i,
@@ -3286,7 +4647,7 @@ TEST(Parallelize2DTile2DWithUArch, SingleThreadPoolAllItemsInBounds) {
       threadpool.get(), CheckBounds2DTile2DWithUArch, nullptr,
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize2DTile2DRangeI,
       kParallelize2DTile2DRangeJ, kParallelize2DTile2DTileI,
-      kParallelize2DTile2DTileJ, 0 /* flags */);
+      kParallelize2DTile2DTileJ, /*flags=*/0);
 }
 
 TEST(Parallelize2DTile2DWithUArch, MultiThreadPoolAllItemsInBounds) {
@@ -3301,7 +4662,7 @@ TEST(Parallelize2DTile2DWithUArch, MultiThreadPoolAllItemsInBounds) {
       threadpool.get(), CheckBounds2DTile2DWithUArch, nullptr,
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize2DTile2DRangeI,
       kParallelize2DTile2DRangeJ, kParallelize2DTile2DTileI,
-      kParallelize2DTile2DTileJ, 0 /* flags */);
+      kParallelize2DTile2DTileJ, /*flags=*/0);
 }
 
 static void CheckTiling2DTile2DWithUArch(void*, uint32_t, size_t start_i,
@@ -3328,7 +4689,7 @@ TEST(Parallelize2DTile2DWithUArch, SingleThreadPoolUniformTiling) {
       threadpool.get(), CheckTiling2DTile2DWithUArch, nullptr,
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize2DTile2DRangeI,
       kParallelize2DTile2DRangeJ, kParallelize2DTile2DTileI,
-      kParallelize2DTile2DTileJ, 0 /* flags */);
+      kParallelize2DTile2DTileJ, /*flags=*/0);
 }
 
 TEST(Parallelize2DTile2DWithUArch, MultiThreadPoolUniformTiling) {
@@ -3343,7 +4704,7 @@ TEST(Parallelize2DTile2DWithUArch, MultiThreadPoolUniformTiling) {
       threadpool.get(), CheckTiling2DTile2DWithUArch, nullptr,
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize2DTile2DRangeI,
       kParallelize2DTile2DRangeJ, kParallelize2DTile2DTileI,
-      kParallelize2DTile2DTileJ, 0 /* flags */);
+      kParallelize2DTile2DTileJ, /*flags=*/0);
 }
 
 static void SetTrue2DTile2DWithUArch(std::atomic_bool* processed_indicators,
@@ -3370,7 +4731,7 @@ TEST(Parallelize2DTile2DWithUArch, SingleThreadPoolAllItemsProcessed) {
           SetTrue2DTile2DWithUArch),
       static_cast<void*>(indicators.data()), kDefaultUArchIndex, kMaxUArchIndex,
       kParallelize2DTile2DRangeI, kParallelize2DTile2DRangeJ,
-      kParallelize2DTile2DTileI, kParallelize2DTile2DTileJ, 0 /* flags */);
+      kParallelize2DTile2DTileI, kParallelize2DTile2DTileJ, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize2DTile2DRangeI; i++) {
     for (size_t j = 0; j < kParallelize2DTile2DRangeJ; j++) {
@@ -3398,7 +4759,7 @@ TEST(Parallelize2DTile2DWithUArch, MultiThreadPoolAllItemsProcessed) {
           SetTrue2DTile2DWithUArch),
       static_cast<void*>(indicators.data()), kDefaultUArchIndex, kMaxUArchIndex,
       kParallelize2DTile2DRangeI, kParallelize2DTile2DRangeJ,
-      kParallelize2DTile2DTileI, kParallelize2DTile2DTileJ, 0 /* flags */);
+      kParallelize2DTile2DTileI, kParallelize2DTile2DTileJ, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize2DTile2DRangeI; i++) {
     for (size_t j = 0; j < kParallelize2DTile2DRangeJ; j++) {
@@ -3433,7 +4794,7 @@ TEST(Parallelize2DTile2DWithUArch, SingleThreadPoolEachItemProcessedOnce) {
           Increment2DTile2DWithUArch),
       static_cast<void*>(counters.data()), kDefaultUArchIndex, kMaxUArchIndex,
       kParallelize2DTile2DRangeI, kParallelize2DTile2DRangeJ,
-      kParallelize2DTile2DTileI, kParallelize2DTile2DTileJ, 0 /* flags */);
+      kParallelize2DTile2DTileI, kParallelize2DTile2DTileJ, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize2DTile2DRangeI; i++) {
     for (size_t j = 0; j < kParallelize2DTile2DRangeJ; j++) {
@@ -3463,7 +4824,7 @@ TEST(Parallelize2DTile2DWithUArch, MultiThreadPoolEachItemProcessedOnce) {
           Increment2DTile2DWithUArch),
       static_cast<void*>(counters.data()), kDefaultUArchIndex, kMaxUArchIndex,
       kParallelize2DTile2DRangeI, kParallelize2DTile2DRangeJ,
-      kParallelize2DTile2DTileI, kParallelize2DTile2DTileJ, 0 /* flags */);
+      kParallelize2DTile2DTileI, kParallelize2DTile2DTileJ, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize2DTile2DRangeI; i++) {
     for (size_t j = 0; j < kParallelize2DTile2DRangeJ; j++) {
@@ -3491,7 +4852,7 @@ TEST(Parallelize2DTile2DWithUArch,
             Increment2DTile2DWithUArch),
         static_cast<void*>(counters.data()), kDefaultUArchIndex, kMaxUArchIndex,
         kParallelize2DTile2DRangeI, kParallelize2DTile2DRangeJ,
-        kParallelize2DTile2DTileI, kParallelize2DTile2DTileJ, 0 /* flags */);
+        kParallelize2DTile2DTileI, kParallelize2DTile2DTileJ, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize2DTile2DRangeI; i++) {
@@ -3525,7 +4886,7 @@ TEST(Parallelize2DTile2DWithUArch,
             Increment2DTile2DWithUArch),
         static_cast<void*>(counters.data()), kDefaultUArchIndex, kMaxUArchIndex,
         kParallelize2DTile2DRangeI, kParallelize2DTile2DRangeJ,
-        kParallelize2DTile2DTileI, kParallelize2DTile2DTileJ, 0 /* flags */);
+        kParallelize2DTile2DTileI, kParallelize2DTile2DTileJ, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize2DTile2DRangeI; i++) {
@@ -3567,7 +4928,7 @@ TEST(Parallelize2DTile2DWithUArch, MultiThreadPoolHighContention) {
           IncrementSame2DTile2DWithUArch),
       static_cast<void*>(&num_processed_items), kDefaultUArchIndex,
       kMaxUArchIndex, kParallelize2DTile2DRangeI, kParallelize2DTile2DRangeJ,
-      kParallelize2DTile2DTileI, kParallelize2DTile2DTileJ, 0 /* flags */);
+      kParallelize2DTile2DTileI, kParallelize2DTile2DTileJ, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize2DTile2DRangeI * kParallelize2DTile2DRangeJ);
 }
@@ -3602,7 +4963,7 @@ TEST(Parallelize2DTile2DWithUArch, MultiThreadPoolWorkStealing) {
           WorkImbalance2DTile2DWithUArch),
       static_cast<void*>(&num_processed_items), kDefaultUArchIndex,
       kMaxUArchIndex, kParallelize2DTile2DRangeI, kParallelize2DTile2DRangeJ,
-      kParallelize2DTile2DTileI, kParallelize2DTile2DTileJ, 0 /* flags */);
+      kParallelize2DTile2DTileI, kParallelize2DTile2DTileJ, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize2DTile2DRangeI * kParallelize2DTile2DRangeJ);
 }
@@ -3615,7 +4976,7 @@ TEST(Parallelize3D, SingleThreadPoolCompletes) {
 
   pthreadpool_parallelize_3d(threadpool.get(), ComputeNothing3D, nullptr,
                              kParallelize3DRangeI, kParallelize3DRangeJ,
-                             kParallelize3DRangeK, 0 /* flags */);
+                             kParallelize3DRangeK, /*flags=*/0);
 }
 
 TEST(Parallelize3D, MultiThreadPoolCompletes) {
@@ -3628,7 +4989,7 @@ TEST(Parallelize3D, MultiThreadPoolCompletes) {
 
   pthreadpool_parallelize_3d(threadpool.get(), ComputeNothing3D, nullptr,
                              kParallelize3DRangeI, kParallelize3DRangeJ,
-                             kParallelize3DRangeK, 0 /* flags */);
+                             kParallelize3DRangeK, /*flags=*/0);
 }
 
 static void CheckBounds3D(void*, size_t i, size_t j, size_t k) {
@@ -3643,7 +5004,7 @@ TEST(Parallelize3D, SingleThreadPoolAllItemsInBounds) {
 
   pthreadpool_parallelize_3d(threadpool.get(), CheckBounds3D, nullptr,
                              kParallelize3DRangeI, kParallelize3DRangeJ,
-                             kParallelize3DRangeK, 0 /* flags */);
+                             kParallelize3DRangeK, /*flags=*/0);
 }
 
 TEST(Parallelize3D, MultiThreadPoolAllItemsInBounds) {
@@ -3656,7 +5017,7 @@ TEST(Parallelize3D, MultiThreadPoolAllItemsInBounds) {
 
   pthreadpool_parallelize_3d(threadpool.get(), CheckBounds3D, nullptr,
                              kParallelize3DRangeI, kParallelize3DRangeJ,
-                             kParallelize3DRangeK, 0 /* flags */);
+                             kParallelize3DRangeK, /*flags=*/0);
 }
 
 static void SetTrue3D(std::atomic_bool* processed_indicators, size_t i,
@@ -3676,7 +5037,7 @@ TEST(Parallelize3D, SingleThreadPoolAllItemsProcessed) {
   pthreadpool_parallelize_3d(
       threadpool.get(), reinterpret_cast<pthreadpool_task_3d_t>(SetTrue3D),
       static_cast<void*>(indicators.data()), kParallelize3DRangeI,
-      kParallelize3DRangeJ, kParallelize3DRangeK, 0 /* flags */);
+      kParallelize3DRangeJ, kParallelize3DRangeK, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize3DRangeI; i++) {
     for (size_t j = 0; j < kParallelize3DRangeJ; j++) {
@@ -3704,7 +5065,7 @@ TEST(Parallelize3D, MultiThreadPoolAllItemsProcessed) {
   pthreadpool_parallelize_3d(
       threadpool.get(), reinterpret_cast<pthreadpool_task_3d_t>(SetTrue3D),
       static_cast<void*>(indicators.data()), kParallelize3DRangeI,
-      kParallelize3DRangeJ, kParallelize3DRangeK, 0 /* flags */);
+      kParallelize3DRangeJ, kParallelize3DRangeK, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize3DRangeI; i++) {
     for (size_t j = 0; j < kParallelize3DRangeJ; j++) {
@@ -3735,7 +5096,7 @@ TEST(Parallelize3D, SingleThreadPoolEachItemProcessedOnce) {
   pthreadpool_parallelize_3d(
       threadpool.get(), reinterpret_cast<pthreadpool_task_3d_t>(Increment3D),
       static_cast<void*>(counters.data()), kParallelize3DRangeI,
-      kParallelize3DRangeJ, kParallelize3DRangeK, 0 /* flags */);
+      kParallelize3DRangeJ, kParallelize3DRangeK, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize3DRangeI; i++) {
     for (size_t j = 0; j < kParallelize3DRangeJ; j++) {
@@ -3765,7 +5126,7 @@ TEST(Parallelize3D, MultiThreadPoolEachItemProcessedOnce) {
   pthreadpool_parallelize_3d(
       threadpool.get(), reinterpret_cast<pthreadpool_task_3d_t>(Increment3D),
       static_cast<void*>(counters.data()), kParallelize3DRangeI,
-      kParallelize3DRangeJ, kParallelize3DRangeK, 0 /* flags */);
+      kParallelize3DRangeJ, kParallelize3DRangeK, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize3DRangeI; i++) {
     for (size_t j = 0; j < kParallelize3DRangeJ; j++) {
@@ -3792,7 +5153,7 @@ TEST(Parallelize3D, SingleThreadPoolEachItemProcessedMultipleTimes) {
     pthreadpool_parallelize_3d(
         threadpool.get(), reinterpret_cast<pthreadpool_task_3d_t>(Increment3D),
         static_cast<void*>(counters.data()), kParallelize3DRangeI,
-        kParallelize3DRangeJ, kParallelize3DRangeK, 0 /* flags */);
+        kParallelize3DRangeJ, kParallelize3DRangeK, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize3DRangeI; i++) {
@@ -3825,7 +5186,7 @@ TEST(Parallelize3D, MultiThreadPoolEachItemProcessedMultipleTimes) {
     pthreadpool_parallelize_3d(
         threadpool.get(), reinterpret_cast<pthreadpool_task_3d_t>(Increment3D),
         static_cast<void*>(counters.data()), kParallelize3DRangeI,
-        kParallelize3DRangeJ, kParallelize3DRangeK, 0 /* flags */);
+        kParallelize3DRangeJ, kParallelize3DRangeK, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize3DRangeI; i++) {
@@ -3862,7 +5223,7 @@ TEST(Parallelize3D, MultiThreadPoolHighContention) {
       threadpool.get(),
       reinterpret_cast<pthreadpool_task_3d_t>(IncrementSame3D),
       static_cast<void*>(&num_processed_items), kParallelize3DRangeI,
-      kParallelize3DRangeJ, kParallelize3DRangeK, 0 /* flags */);
+      kParallelize3DRangeJ, kParallelize3DRangeK, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize3DRangeI * kParallelize3DRangeJ * kParallelize3DRangeK);
 }
@@ -3893,7 +5254,7 @@ TEST(Parallelize3D, MultiThreadPoolWorkStealing) {
       threadpool.get(),
       reinterpret_cast<pthreadpool_task_3d_t>(WorkImbalance3D),
       static_cast<void*>(&num_processed_items), kParallelize3DRangeI,
-      kParallelize3DRangeJ, kParallelize3DRangeK, 0 /* flags */);
+      kParallelize3DRangeJ, kParallelize3DRangeK, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize3DRangeI * kParallelize3DRangeJ * kParallelize3DRangeK);
 }
@@ -3907,7 +5268,7 @@ TEST(Parallelize3DTile1D, SingleThreadPoolCompletes) {
   pthreadpool_parallelize_3d_tile_1d(
       threadpool.get(), ComputeNothing3DTile1D, nullptr,
       kParallelize3DTile1DRangeI, kParallelize3DTile1DRangeJ,
-      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, /*flags=*/0);
 }
 
 TEST(Parallelize3DTile1D, MultiThreadPoolCompletes) {
@@ -3921,7 +5282,7 @@ TEST(Parallelize3DTile1D, MultiThreadPoolCompletes) {
   pthreadpool_parallelize_3d_tile_1d(
       threadpool.get(), ComputeNothing3DTile1D, nullptr,
       kParallelize3DTile1DRangeI, kParallelize3DTile1DRangeJ,
-      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, /*flags=*/0);
 }
 
 static void CheckBounds3DTile1D(void*, size_t i, size_t j, size_t start_k,
@@ -3939,7 +5300,7 @@ TEST(Parallelize3DTile1D, SingleThreadPoolAllItemsInBounds) {
   pthreadpool_parallelize_3d_tile_1d(
       threadpool.get(), CheckBounds3DTile1D, nullptr,
       kParallelize3DTile1DRangeI, kParallelize3DTile1DRangeJ,
-      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, /*flags=*/0);
 }
 
 TEST(Parallelize3DTile1D, MultiThreadPoolAllItemsInBounds) {
@@ -3953,7 +5314,7 @@ TEST(Parallelize3DTile1D, MultiThreadPoolAllItemsInBounds) {
   pthreadpool_parallelize_3d_tile_1d(
       threadpool.get(), CheckBounds3DTile1D, nullptr,
       kParallelize3DTile1DRangeI, kParallelize3DTile1DRangeJ,
-      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, /*flags=*/0);
 }
 
 static void CheckTiling3DTile1D(void*, size_t i, size_t j, size_t start_k,
@@ -3972,7 +5333,7 @@ TEST(Parallelize3DTile1D, SingleThreadPoolUniformTiling) {
   pthreadpool_parallelize_3d_tile_1d(
       threadpool.get(), CheckTiling3DTile1D, nullptr,
       kParallelize3DTile1DRangeI, kParallelize3DTile1DRangeJ,
-      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, /*flags=*/0);
 }
 
 TEST(Parallelize3DTile1D, MultiThreadPoolUniformTiling) {
@@ -3986,7 +5347,7 @@ TEST(Parallelize3DTile1D, MultiThreadPoolUniformTiling) {
   pthreadpool_parallelize_3d_tile_1d(
       threadpool.get(), CheckTiling3DTile1D, nullptr,
       kParallelize3DTile1DRangeI, kParallelize3DTile1DRangeJ,
-      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, /*flags=*/0);
 }
 
 static void SetTrue3DTile1D(std::atomic_bool* processed_indicators, size_t i,
@@ -4011,7 +5372,7 @@ TEST(Parallelize3DTile1D, SingleThreadPoolAllItemsProcessed) {
       reinterpret_cast<pthreadpool_task_3d_tile_1d_t>(SetTrue3DTile1D),
       static_cast<void*>(indicators.data()), kParallelize3DTile1DRangeI,
       kParallelize3DTile1DRangeJ, kParallelize3DTile1DRangeK,
-      kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DTileK, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize3DTile1DRangeI; i++) {
     for (size_t j = 0; j < kParallelize3DTile1DRangeJ; j++) {
@@ -4043,7 +5404,7 @@ TEST(Parallelize3DTile1D, MultiThreadPoolAllItemsProcessed) {
       reinterpret_cast<pthreadpool_task_3d_tile_1d_t>(SetTrue3DTile1D),
       static_cast<void*>(indicators.data()), kParallelize3DTile1DRangeI,
       kParallelize3DTile1DRangeJ, kParallelize3DTile1DRangeK,
-      kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DTileK, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize3DTile1DRangeI; i++) {
     for (size_t j = 0; j < kParallelize3DTile1DRangeJ; j++) {
@@ -4080,7 +5441,7 @@ TEST(Parallelize3DTile1D, SingleThreadPoolEachItemProcessedOnce) {
       reinterpret_cast<pthreadpool_task_3d_tile_1d_t>(Increment3DTile1D),
       static_cast<void*>(counters.data()), kParallelize3DTile1DRangeI,
       kParallelize3DTile1DRangeJ, kParallelize3DTile1DRangeK,
-      kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DTileK, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize3DTile1DRangeI; i++) {
     for (size_t j = 0; j < kParallelize3DTile1DRangeJ; j++) {
@@ -4114,7 +5475,7 @@ TEST(Parallelize3DTile1D, MultiThreadPoolEachItemProcessedOnce) {
       reinterpret_cast<pthreadpool_task_3d_tile_1d_t>(Increment3DTile1D),
       static_cast<void*>(counters.data()), kParallelize3DTile1DRangeI,
       kParallelize3DTile1DRangeJ, kParallelize3DTile1DRangeK,
-      kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DTileK, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize3DTile1DRangeI; i++) {
     for (size_t j = 0; j < kParallelize3DTile1DRangeJ; j++) {
@@ -4145,7 +5506,7 @@ TEST(Parallelize3DTile1D, SingleThreadPoolEachItemProcessedMultipleTimes) {
         reinterpret_cast<pthreadpool_task_3d_tile_1d_t>(Increment3DTile1D),
         static_cast<void*>(counters.data()), kParallelize3DTile1DRangeI,
         kParallelize3DTile1DRangeJ, kParallelize3DTile1DRangeK,
-        kParallelize3DTile1DTileK, 0 /* flags */);
+        kParallelize3DTile1DTileK, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize3DTile1DRangeI; i++) {
@@ -4182,7 +5543,7 @@ TEST(Parallelize3DTile1D, MultiThreadPoolEachItemProcessedMultipleTimes) {
         reinterpret_cast<pthreadpool_task_3d_tile_1d_t>(Increment3DTile1D),
         static_cast<void*>(counters.data()), kParallelize3DTile1DRangeI,
         kParallelize3DTile1DRangeJ, kParallelize3DTile1DRangeK,
-        kParallelize3DTile1DTileK, 0 /* flags */);
+        kParallelize3DTile1DTileK, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize3DTile1DRangeI; i++) {
@@ -4224,7 +5585,7 @@ TEST(Parallelize3DTile1D, MultiThreadPoolHighContention) {
       reinterpret_cast<pthreadpool_task_3d_tile_1d_t>(IncrementSame3DTile1D),
       static_cast<void*>(&num_processed_items), kParallelize3DTile1DRangeI,
       kParallelize3DTile1DRangeJ, kParallelize3DTile1DRangeK,
-      kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DTileK, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize3DTile1DRangeI * kParallelize3DTile1DRangeJ *
                 kParallelize3DTile1DRangeK);
@@ -4259,7 +5620,7 @@ TEST(Parallelize3DTile1D, MultiThreadPoolWorkStealing) {
       reinterpret_cast<pthreadpool_task_3d_tile_1d_t>(WorkImbalance3DTile1D),
       static_cast<void*>(&num_processed_items), kParallelize3DTile1DRangeI,
       kParallelize3DTile1DRangeJ, kParallelize3DTile1DRangeK,
-      kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DTileK, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize3DTile1DRangeI * kParallelize3DTile1DRangeJ *
                 kParallelize3DTile1DRangeK);
@@ -4275,7 +5636,7 @@ TEST(Parallelize3DTile1DWithThread, SingleThreadPoolCompletes) {
   pthreadpool_parallelize_3d_tile_1d_with_thread(
       threadpool.get(), ComputeNothing3DTile1DWithThread, nullptr,
       kParallelize3DTile1DRangeI, kParallelize3DTile1DRangeJ,
-      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, /*flags=*/0);
 }
 
 TEST(Parallelize3DTile1DWithThread, MultiThreadPoolCompletes) {
@@ -4289,7 +5650,7 @@ TEST(Parallelize3DTile1DWithThread, MultiThreadPoolCompletes) {
   pthreadpool_parallelize_3d_tile_1d_with_thread(
       threadpool.get(), ComputeNothing3DTile1DWithThread, nullptr,
       kParallelize3DTile1DRangeI, kParallelize3DTile1DRangeJ,
-      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, /*flags=*/0);
 }
 
 static void CheckBounds3DTile1DWithThread(void*, size_t, size_t i, size_t j,
@@ -4307,7 +5668,7 @@ TEST(Parallelize3DTile1DWithThread, SingleThreadPoolAllItemsInBounds) {
   pthreadpool_parallelize_3d_tile_1d_with_thread(
       threadpool.get(), CheckBounds3DTile1DWithThread, nullptr,
       kParallelize3DTile1DRangeI, kParallelize3DTile1DRangeJ,
-      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, /*flags=*/0);
 }
 
 TEST(Parallelize3DTile1DWithThread, MultiThreadPoolAllItemsInBounds) {
@@ -4321,7 +5682,7 @@ TEST(Parallelize3DTile1DWithThread, MultiThreadPoolAllItemsInBounds) {
   pthreadpool_parallelize_3d_tile_1d_with_thread(
       threadpool.get(), CheckBounds3DTile1DWithThread, nullptr,
       kParallelize3DTile1DRangeI, kParallelize3DTile1DRangeJ,
-      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, /*flags=*/0);
 }
 
 static void CheckTiling3DTile1DWithThread(void*, size_t, size_t i, size_t j,
@@ -4340,7 +5701,7 @@ TEST(Parallelize3DTile1DWithThread, SingleThreadPoolUniformTiling) {
   pthreadpool_parallelize_3d_tile_1d_with_thread(
       threadpool.get(), CheckTiling3DTile1DWithThread, nullptr,
       kParallelize3DTile1DRangeI, kParallelize3DTile1DRangeJ,
-      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, /*flags=*/0);
 }
 
 TEST(Parallelize3DTile1DWithThread, MultiThreadPoolUniformTiling) {
@@ -4354,7 +5715,7 @@ TEST(Parallelize3DTile1DWithThread, MultiThreadPoolUniformTiling) {
   pthreadpool_parallelize_3d_tile_1d_with_thread(
       threadpool.get(), CheckTiling3DTile1DWithThread, nullptr,
       kParallelize3DTile1DRangeI, kParallelize3DTile1DRangeJ,
-      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, /*flags=*/0);
 }
 
 static void SetTrue3DTile1DWithThread(std::atomic_bool* processed_indicators,
@@ -4381,7 +5742,7 @@ TEST(Parallelize3DTile1DWithThread, SingleThreadPoolAllItemsProcessed) {
           SetTrue3DTile1DWithThread),
       static_cast<void*>(indicators.data()), kParallelize3DTile1DRangeI,
       kParallelize3DTile1DRangeJ, kParallelize3DTile1DRangeK,
-      kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DTileK, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize3DTile1DRangeI; i++) {
     for (size_t j = 0; j < kParallelize3DTile1DRangeJ; j++) {
@@ -4414,7 +5775,7 @@ TEST(Parallelize3DTile1DWithThread, MultiThreadPoolAllItemsProcessed) {
           SetTrue3DTile1DWithThread),
       static_cast<void*>(indicators.data()), kParallelize3DTile1DRangeI,
       kParallelize3DTile1DRangeJ, kParallelize3DTile1DRangeK,
-      kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DTileK, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize3DTile1DRangeI; i++) {
     for (size_t j = 0; j < kParallelize3DTile1DRangeJ; j++) {
@@ -4453,7 +5814,7 @@ TEST(Parallelize3DTile1DWithThread, SingleThreadPoolEachItemProcessedOnce) {
           Increment3DTile1DWithThread),
       static_cast<void*>(counters.data()), kParallelize3DTile1DRangeI,
       kParallelize3DTile1DRangeJ, kParallelize3DTile1DRangeK,
-      kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DTileK, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize3DTile1DRangeI; i++) {
     for (size_t j = 0; j < kParallelize3DTile1DRangeJ; j++) {
@@ -4488,7 +5849,7 @@ TEST(Parallelize3DTile1DWithThread, MultiThreadPoolEachItemProcessedOnce) {
           Increment3DTile1DWithThread),
       static_cast<void*>(counters.data()), kParallelize3DTile1DRangeI,
       kParallelize3DTile1DRangeJ, kParallelize3DTile1DRangeK,
-      kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DTileK, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize3DTile1DRangeI; i++) {
     for (size_t j = 0; j < kParallelize3DTile1DRangeJ; j++) {
@@ -4521,7 +5882,7 @@ TEST(Parallelize3DTile1DWithThread,
             Increment3DTile1DWithThread),
         static_cast<void*>(counters.data()), kParallelize3DTile1DRangeI,
         kParallelize3DTile1DRangeJ, kParallelize3DTile1DRangeK,
-        kParallelize3DTile1DTileK, 0 /* flags */);
+        kParallelize3DTile1DTileK, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize3DTile1DRangeI; i++) {
@@ -4560,7 +5921,7 @@ TEST(Parallelize3DTile1DWithThread,
             Increment3DTile1DWithThread),
         static_cast<void*>(counters.data()), kParallelize3DTile1DRangeI,
         kParallelize3DTile1DRangeJ, kParallelize3DTile1DRangeK,
-        kParallelize3DTile1DTileK, 0 /* flags */);
+        kParallelize3DTile1DTileK, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize3DTile1DRangeI; i++) {
@@ -4603,7 +5964,7 @@ TEST(Parallelize3DTile1DWithThread, MultiThreadPoolHighContention) {
           IncrementSame3DTile1DWithThread),
       static_cast<void*>(&num_processed_items), kParallelize3DTile1DRangeI,
       kParallelize3DTile1DRangeJ, kParallelize3DTile1DRangeK,
-      kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DTileK, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize3DTile1DRangeI * kParallelize3DTile1DRangeJ *
                 kParallelize3DTile1DRangeK);
@@ -4639,7 +6000,7 @@ TEST(Parallelize3DTile1DWithThread, MultiThreadPoolWorkStealing) {
           WorkImbalance3DTile1DWithThread),
       static_cast<void*>(&num_processed_items), kParallelize3DTile1DRangeI,
       kParallelize3DTile1DRangeJ, kParallelize3DTile1DRangeK,
-      kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DTileK, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize3DTile1DRangeI * kParallelize3DTile1DRangeJ *
                 kParallelize3DTile1DRangeK);
@@ -4665,7 +6026,7 @@ TEST(Parallelize3DTile1DWithThread, MultiThreadPoolThreadIndexValid) {
           CheckThreadIndexValid3DTile1DWithThread),
       static_cast<void*>(&num_threads), kParallelize3DTile1DRangeI,
       kParallelize3DTile1DRangeJ, kParallelize3DTile1DRangeK,
-      kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DTileK, /*flags=*/0);
 }
 
 static void ComputeNothing3DTile1DWithUArch(void*, uint32_t, size_t, size_t,
@@ -4679,7 +6040,7 @@ TEST(Parallelize3DTile1DWithUArch, SingleThreadPoolCompletes) {
       threadpool.get(), ComputeNothing3DTile1DWithUArch, nullptr,
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize3DTile1DRangeI,
       kParallelize3DTile1DRangeJ, kParallelize3DTile1DRangeK,
-      kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DTileK, /*flags=*/0);
 }
 
 TEST(Parallelize3DTile1DWithUArch, MultiThreadPoolCompletes) {
@@ -4694,7 +6055,7 @@ TEST(Parallelize3DTile1DWithUArch, MultiThreadPoolCompletes) {
       threadpool.get(), ComputeNothing3DTile1DWithUArch, nullptr,
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize3DTile1DRangeI,
       kParallelize3DTile1DRangeJ, kParallelize3DTile1DRangeK,
-      kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DTileK, /*flags=*/0);
 }
 
 static void CheckUArch3DTile1DWithUArch(void*, uint32_t uarch_index, size_t,
@@ -4712,7 +6073,7 @@ TEST(Parallelize3DTile1DWithUArch, SingleThreadPoolUArchInBounds) {
       threadpool.get(), CheckUArch3DTile1DWithUArch, nullptr,
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize3DTile1DRangeI,
       kParallelize3DTile1DRangeJ, kParallelize3DTile1DRangeK,
-      kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DTileK, /*flags=*/0);
 }
 
 TEST(Parallelize3DTile1DWithUArch, MultiThreadPoolUArchInBounds) {
@@ -4727,7 +6088,7 @@ TEST(Parallelize3DTile1DWithUArch, MultiThreadPoolUArchInBounds) {
       threadpool.get(), CheckUArch3DTile1DWithUArch, nullptr,
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize3DTile1DRangeI,
       kParallelize3DTile1DRangeJ, kParallelize3DTile1DRangeK,
-      kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DTileK, /*flags=*/0);
 }
 
 static void CheckBounds3DTile1DWithUArch(void*, uint32_t, size_t i, size_t j,
@@ -4746,7 +6107,7 @@ TEST(Parallelize3DTile1DWithUArch, SingleThreadPoolAllItemsInBounds) {
       threadpool.get(), CheckBounds3DTile1DWithUArch, nullptr,
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize3DTile1DRangeI,
       kParallelize3DTile1DRangeJ, kParallelize3DTile1DRangeK,
-      kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DTileK, /*flags=*/0);
 }
 
 TEST(Parallelize3DTile1DWithUArch, MultiThreadPoolAllItemsInBounds) {
@@ -4761,7 +6122,7 @@ TEST(Parallelize3DTile1DWithUArch, MultiThreadPoolAllItemsInBounds) {
       threadpool.get(), CheckBounds3DTile1DWithUArch, nullptr,
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize3DTile1DRangeI,
       kParallelize3DTile1DRangeJ, kParallelize3DTile1DRangeK,
-      kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DTileK, /*flags=*/0);
 }
 
 static void CheckTiling3DTile1DWithUArch(void*, uint32_t, size_t i, size_t j,
@@ -4781,7 +6142,7 @@ TEST(Parallelize3DTile1DWithUArch, SingleThreadPoolUniformTiling) {
       threadpool.get(), CheckTiling3DTile1DWithUArch, nullptr,
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize3DTile1DRangeI,
       kParallelize3DTile1DRangeJ, kParallelize3DTile1DRangeK,
-      kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DTileK, /*flags=*/0);
 }
 
 TEST(Parallelize3DTile1DWithUArch, MultiThreadPoolUniformTiling) {
@@ -4796,7 +6157,7 @@ TEST(Parallelize3DTile1DWithUArch, MultiThreadPoolUniformTiling) {
       threadpool.get(), CheckTiling3DTile1DWithUArch, nullptr,
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize3DTile1DRangeI,
       kParallelize3DTile1DRangeJ, kParallelize3DTile1DRangeK,
-      kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DTileK, /*flags=*/0);
 }
 
 static void SetTrue3DTile1DWithUArch(std::atomic_bool* processed_indicators,
@@ -4823,7 +6184,7 @@ TEST(Parallelize3DTile1DWithUArch, SingleThreadPoolAllItemsProcessed) {
           SetTrue3DTile1DWithUArch),
       static_cast<void*>(indicators.data()), kDefaultUArchIndex, kMaxUArchIndex,
       kParallelize3DTile1DRangeI, kParallelize3DTile1DRangeJ,
-      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize3DTile1DRangeI; i++) {
     for (size_t j = 0; j < kParallelize3DTile1DRangeJ; j++) {
@@ -4856,7 +6217,7 @@ TEST(Parallelize3DTile1DWithUArch, MultiThreadPoolAllItemsProcessed) {
           SetTrue3DTile1DWithUArch),
       static_cast<void*>(indicators.data()), kDefaultUArchIndex, kMaxUArchIndex,
       kParallelize3DTile1DRangeI, kParallelize3DTile1DRangeJ,
-      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize3DTile1DRangeI; i++) {
     for (size_t j = 0; j < kParallelize3DTile1DRangeJ; j++) {
@@ -4895,7 +6256,7 @@ TEST(Parallelize3DTile1DWithUArch, SingleThreadPoolEachItemProcessedOnce) {
           Increment3DTile1DWithUArch),
       static_cast<void*>(counters.data()), kDefaultUArchIndex, kMaxUArchIndex,
       kParallelize3DTile1DRangeI, kParallelize3DTile1DRangeJ,
-      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize3DTile1DRangeI; i++) {
     for (size_t j = 0; j < kParallelize3DTile1DRangeJ; j++) {
@@ -4930,7 +6291,7 @@ TEST(Parallelize3DTile1DWithUArch, MultiThreadPoolEachItemProcessedOnce) {
           Increment3DTile1DWithUArch),
       static_cast<void*>(counters.data()), kDefaultUArchIndex, kMaxUArchIndex,
       kParallelize3DTile1DRangeI, kParallelize3DTile1DRangeJ,
-      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize3DTile1DRangeI; i++) {
     for (size_t j = 0; j < kParallelize3DTile1DRangeJ; j++) {
@@ -4963,7 +6324,7 @@ TEST(Parallelize3DTile1DWithUArch,
             Increment3DTile1DWithUArch),
         static_cast<void*>(counters.data()), kDefaultUArchIndex, kMaxUArchIndex,
         kParallelize3DTile1DRangeI, kParallelize3DTile1DRangeJ,
-        kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, 0 /* flags */);
+        kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize3DTile1DRangeI; i++) {
@@ -5002,7 +6363,7 @@ TEST(Parallelize3DTile1DWithUArch,
             Increment3DTile1DWithUArch),
         static_cast<void*>(counters.data()), kDefaultUArchIndex, kMaxUArchIndex,
         kParallelize3DTile1DRangeI, kParallelize3DTile1DRangeJ,
-        kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, 0 /* flags */);
+        kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize3DTile1DRangeI; i++) {
@@ -5045,7 +6406,7 @@ TEST(Parallelize3DTile1DWithUArch, MultiThreadPoolHighContention) {
           IncrementSame3DTile1DWithUArch),
       static_cast<void*>(&num_processed_items), kDefaultUArchIndex,
       kMaxUArchIndex, kParallelize3DTile1DRangeI, kParallelize3DTile1DRangeJ,
-      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize3DTile1DRangeI * kParallelize3DTile1DRangeJ *
                 kParallelize3DTile1DRangeK);
@@ -5081,7 +6442,7 @@ TEST(Parallelize3DTile1DWithUArch, MultiThreadPoolWorkStealing) {
           WorkImbalance3DTile1DWithUArch),
       static_cast<void*>(&num_processed_items), kDefaultUArchIndex,
       kMaxUArchIndex, kParallelize3DTile1DRangeI, kParallelize3DTile1DRangeJ,
-      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize3DTile1DRangeI * kParallelize3DTile1DRangeJ *
                 kParallelize3DTile1DRangeK);
@@ -5099,7 +6460,7 @@ TEST(Parallelize3DTile1DWithUArchWithThread, SingleThreadPoolCompletes) {
       threadpool.get(), ComputeNothing3DTile1DWithUArchWithThread, nullptr,
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize3DTile1DRangeI,
       kParallelize3DTile1DRangeJ, kParallelize3DTile1DRangeK,
-      kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DTileK, /*flags=*/0);
 }
 
 TEST(Parallelize3DTile1DWithUArchWithThread, MultiThreadPoolCompletes) {
@@ -5114,7 +6475,7 @@ TEST(Parallelize3DTile1DWithUArchWithThread, MultiThreadPoolCompletes) {
       threadpool.get(), ComputeNothing3DTile1DWithUArchWithThread, nullptr,
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize3DTile1DRangeI,
       kParallelize3DTile1DRangeJ, kParallelize3DTile1DRangeK,
-      kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DTileK, /*flags=*/0);
 }
 
 static void CheckUArch3DTile1DWithUArchWithThread(void*, uint32_t uarch_index,
@@ -5133,7 +6494,7 @@ TEST(Parallelize3DTile1DWithUArchWithThread, SingleThreadPoolUArchInBounds) {
       threadpool.get(), CheckUArch3DTile1DWithUArchWithThread, nullptr,
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize3DTile1DRangeI,
       kParallelize3DTile1DRangeJ, kParallelize3DTile1DRangeK,
-      kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DTileK, /*flags=*/0);
 }
 
 TEST(Parallelize3DTile1DWithUArchWithThread, MultiThreadPoolUArchInBounds) {
@@ -5148,7 +6509,7 @@ TEST(Parallelize3DTile1DWithUArchWithThread, MultiThreadPoolUArchInBounds) {
       threadpool.get(), CheckUArch3DTile1DWithUArchWithThread, nullptr,
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize3DTile1DRangeI,
       kParallelize3DTile1DRangeJ, kParallelize3DTile1DRangeK,
-      kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DTileK, /*flags=*/0);
 }
 
 static void CheckBounds3DTile1DWithUArchWithThread(void*, uint32_t, size_t,
@@ -5169,7 +6530,7 @@ TEST(Parallelize3DTile1DWithUArchWithThread, SingleThreadPoolAllItemsInBounds) {
       threadpool.get(), CheckBounds3DTile1DWithUArchWithThread, nullptr,
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize3DTile1DRangeI,
       kParallelize3DTile1DRangeJ, kParallelize3DTile1DRangeK,
-      kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DTileK, /*flags=*/0);
 }
 
 TEST(Parallelize3DTile1DWithUArchWithThread, MultiThreadPoolAllItemsInBounds) {
@@ -5184,7 +6545,7 @@ TEST(Parallelize3DTile1DWithUArchWithThread, MultiThreadPoolAllItemsInBounds) {
       threadpool.get(), CheckBounds3DTile1DWithUArchWithThread, nullptr,
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize3DTile1DRangeI,
       kParallelize3DTile1DRangeJ, kParallelize3DTile1DRangeK,
-      kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DTileK, /*flags=*/0);
 }
 
 static void CheckTiling3DTile1DWithUArchWithThread(void*, uint32_t, size_t,
@@ -5206,7 +6567,7 @@ TEST(Parallelize3DTile1DWithUArchWithThread, SingleThreadPoolUniformTiling) {
       threadpool.get(), CheckTiling3DTile1DWithUArchWithThread, nullptr,
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize3DTile1DRangeI,
       kParallelize3DTile1DRangeJ, kParallelize3DTile1DRangeK,
-      kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DTileK, /*flags=*/0);
 }
 
 TEST(Parallelize3DTile1DWithUArchWithThread, MultiThreadPoolUniformTiling) {
@@ -5221,7 +6582,7 @@ TEST(Parallelize3DTile1DWithUArchWithThread, MultiThreadPoolUniformTiling) {
       threadpool.get(), CheckTiling3DTile1DWithUArchWithThread, nullptr,
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize3DTile1DRangeI,
       kParallelize3DTile1DRangeJ, kParallelize3DTile1DRangeK,
-      kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DTileK, /*flags=*/0);
 }
 
 static void SetTrue3DTile1DWithUArchWithThread(
@@ -5249,7 +6610,7 @@ TEST(Parallelize3DTile1DWithUArchWithThread,
           SetTrue3DTile1DWithUArchWithThread),
       static_cast<void*>(indicators.data()), kDefaultUArchIndex, kMaxUArchIndex,
       kParallelize3DTile1DRangeI, kParallelize3DTile1DRangeJ,
-      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize3DTile1DRangeI; i++) {
     for (size_t j = 0; j < kParallelize3DTile1DRangeJ; j++) {
@@ -5282,7 +6643,7 @@ TEST(Parallelize3DTile1DWithUArchWithThread, MultiThreadPoolAllItemsProcessed) {
           SetTrue3DTile1DWithUArchWithThread),
       static_cast<void*>(indicators.data()), kDefaultUArchIndex, kMaxUArchIndex,
       kParallelize3DTile1DRangeI, kParallelize3DTile1DRangeJ,
-      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize3DTile1DRangeI; i++) {
     for (size_t j = 0; j < kParallelize3DTile1DRangeJ; j++) {
@@ -5322,7 +6683,7 @@ TEST(Parallelize3DTile1DWithUArchWithThread,
           Increment3DTile1DWithUArchWithThread),
       static_cast<void*>(counters.data()), kDefaultUArchIndex, kMaxUArchIndex,
       kParallelize3DTile1DRangeI, kParallelize3DTile1DRangeJ,
-      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize3DTile1DRangeI; i++) {
     for (size_t j = 0; j < kParallelize3DTile1DRangeJ; j++) {
@@ -5358,7 +6719,7 @@ TEST(Parallelize3DTile1DWithUArchWithThread,
           Increment3DTile1DWithUArchWithThread),
       static_cast<void*>(counters.data()), kDefaultUArchIndex, kMaxUArchIndex,
       kParallelize3DTile1DRangeI, kParallelize3DTile1DRangeJ,
-      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize3DTile1DRangeI; i++) {
     for (size_t j = 0; j < kParallelize3DTile1DRangeJ; j++) {
@@ -5391,7 +6752,7 @@ TEST(Parallelize3DTile1DWithUArchWithThread,
             Increment3DTile1DWithUArchWithThread),
         static_cast<void*>(counters.data()), kDefaultUArchIndex, kMaxUArchIndex,
         kParallelize3DTile1DRangeI, kParallelize3DTile1DRangeJ,
-        kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, 0 /* flags */);
+        kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize3DTile1DRangeI; i++) {
@@ -5430,7 +6791,7 @@ TEST(Parallelize3DTile1DWithUArchWithThread,
             Increment3DTile1DWithUArchWithThread),
         static_cast<void*>(counters.data()), kDefaultUArchIndex, kMaxUArchIndex,
         kParallelize3DTile1DRangeI, kParallelize3DTile1DRangeJ,
-        kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, 0 /* flags */);
+        kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize3DTile1DRangeI; i++) {
@@ -5473,7 +6834,7 @@ TEST(Parallelize3DTile1DWithUArchWithThread, MultiThreadPoolHighContention) {
           IncrementSame3DTile1DWithUArchWithThread),
       static_cast<void*>(&num_processed_items), kDefaultUArchIndex,
       kMaxUArchIndex, kParallelize3DTile1DRangeI, kParallelize3DTile1DRangeJ,
-      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize3DTile1DRangeI * kParallelize3DTile1DRangeJ *
                 kParallelize3DTile1DRangeK);
@@ -5509,7 +6870,7 @@ TEST(Parallelize3DTile1DWithUArchWithThread, MultiThreadPoolWorkStealing) {
           WorkImbalance3DTile1DWithUArchWithThread),
       static_cast<void*>(&num_processed_items), kDefaultUArchIndex,
       kMaxUArchIndex, kParallelize3DTile1DRangeI, kParallelize3DTile1DRangeJ,
-      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize3DTile1DRangeI * kParallelize3DTile1DRangeJ *
                 kParallelize3DTile1DRangeK);
@@ -5533,7 +6894,7 @@ TEST(Parallelize3DTile1DWithUArchWithThread, MultiThreadPoolThreadIndexValid) {
           SetThreadTrue3DTile1DWithUArchWithThread),
       static_cast<void*>(&num_threads), kDefaultUArchIndex, kMaxUArchIndex,
       kParallelize3DTile1DRangeI, kParallelize3DTile1DRangeJ,
-      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, 0 /* flags */);
+      kParallelize3DTile1DRangeK, kParallelize3DTile1DTileK, /*flags=*/0);
 }
 
 static void ComputeNothing3DTile2D(void*, size_t, size_t, size_t, size_t,
@@ -5547,7 +6908,7 @@ TEST(Parallelize3DTile2D, SingleThreadPoolCompletes) {
       threadpool.get(), ComputeNothing3DTile2D, nullptr,
       kParallelize3DTile2DRangeI, kParallelize3DTile2DRangeJ,
       kParallelize3DTile2DRangeK, kParallelize3DTile2DTileJ,
-      kParallelize3DTile2DTileK, 0 /* flags */);
+      kParallelize3DTile2DTileK, /*flags=*/0);
 }
 
 TEST(Parallelize3DTile2D, MultiThreadPoolCompletes) {
@@ -5562,7 +6923,7 @@ TEST(Parallelize3DTile2D, MultiThreadPoolCompletes) {
       threadpool.get(), ComputeNothing3DTile2D, nullptr,
       kParallelize3DTile2DRangeI, kParallelize3DTile2DRangeJ,
       kParallelize3DTile2DRangeK, kParallelize3DTile2DTileJ,
-      kParallelize3DTile2DTileK, 0 /* flags */);
+      kParallelize3DTile2DTileK, /*flags=*/0);
 }
 
 static void CheckBounds3DTile2D(void*, size_t i, size_t start_j, size_t start_k,
@@ -5582,7 +6943,7 @@ TEST(Parallelize3DTile2D, SingleThreadPoolAllItemsInBounds) {
       threadpool.get(), CheckBounds3DTile2D, nullptr,
       kParallelize3DTile2DRangeI, kParallelize3DTile2DRangeJ,
       kParallelize3DTile2DRangeK, kParallelize3DTile2DTileJ,
-      kParallelize3DTile2DTileK, 0 /* flags */);
+      kParallelize3DTile2DTileK, /*flags=*/0);
 }
 
 TEST(Parallelize3DTile2D, MultiThreadPoolAllItemsInBounds) {
@@ -5597,7 +6958,7 @@ TEST(Parallelize3DTile2D, MultiThreadPoolAllItemsInBounds) {
       threadpool.get(), CheckBounds3DTile2D, nullptr,
       kParallelize3DTile2DRangeI, kParallelize3DTile2DRangeJ,
       kParallelize3DTile2DRangeK, kParallelize3DTile2DTileJ,
-      kParallelize3DTile2DTileK, 0 /* flags */);
+      kParallelize3DTile2DTileK, /*flags=*/0);
 }
 
 static void CheckTiling3DTile2D(void*, size_t i, size_t start_j, size_t start_k,
@@ -5623,7 +6984,7 @@ TEST(Parallelize3DTile2D, SingleThreadPoolUniformTiling) {
       threadpool.get(), CheckTiling3DTile2D, nullptr,
       kParallelize3DTile2DRangeI, kParallelize3DTile2DRangeJ,
       kParallelize3DTile2DRangeK, kParallelize3DTile2DTileJ,
-      kParallelize3DTile2DTileK, 0 /* flags */);
+      kParallelize3DTile2DTileK, /*flags=*/0);
 }
 
 TEST(Parallelize3DTile2D, MultiThreadPoolUniformTiling) {
@@ -5638,7 +6999,7 @@ TEST(Parallelize3DTile2D, MultiThreadPoolUniformTiling) {
       threadpool.get(), CheckTiling3DTile2D, nullptr,
       kParallelize3DTile2DRangeI, kParallelize3DTile2DRangeJ,
       kParallelize3DTile2DRangeK, kParallelize3DTile2DTileJ,
-      kParallelize3DTile2DTileK, 0 /* flags */);
+      kParallelize3DTile2DTileK, /*flags=*/0);
 }
 
 static void SetTrue3DTile2D(std::atomic_bool* processed_indicators, size_t i,
@@ -5666,7 +7027,7 @@ TEST(Parallelize3DTile2D, SingleThreadPoolAllItemsProcessed) {
       reinterpret_cast<pthreadpool_task_3d_tile_2d_t>(SetTrue3DTile2D),
       static_cast<void*>(indicators.data()), kParallelize3DTile2DRangeI,
       kParallelize3DTile2DRangeJ, kParallelize3DTile2DRangeK,
-      kParallelize3DTile2DTileJ, kParallelize3DTile2DTileK, 0 /* flags */);
+      kParallelize3DTile2DTileJ, kParallelize3DTile2DTileK, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize3DTile2DRangeI; i++) {
     for (size_t j = 0; j < kParallelize3DTile2DRangeJ; j++) {
@@ -5698,7 +7059,7 @@ TEST(Parallelize3DTile2D, MultiThreadPoolAllItemsProcessed) {
       reinterpret_cast<pthreadpool_task_3d_tile_2d_t>(SetTrue3DTile2D),
       static_cast<void*>(indicators.data()), kParallelize3DTile2DRangeI,
       kParallelize3DTile2DRangeJ, kParallelize3DTile2DRangeK,
-      kParallelize3DTile2DTileJ, kParallelize3DTile2DTileK, 0 /* flags */);
+      kParallelize3DTile2DTileJ, kParallelize3DTile2DTileK, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize3DTile2DRangeI; i++) {
     for (size_t j = 0; j < kParallelize3DTile2DRangeJ; j++) {
@@ -5738,7 +7099,7 @@ TEST(Parallelize3DTile2D, SingleThreadPoolEachItemProcessedOnce) {
       reinterpret_cast<pthreadpool_task_3d_tile_2d_t>(Increment3DTile2D),
       static_cast<void*>(counters.data()), kParallelize3DTile2DRangeI,
       kParallelize3DTile2DRangeJ, kParallelize3DTile2DRangeK,
-      kParallelize3DTile2DTileJ, kParallelize3DTile2DTileK, 0 /* flags */);
+      kParallelize3DTile2DTileJ, kParallelize3DTile2DTileK, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize3DTile2DRangeI; i++) {
     for (size_t j = 0; j < kParallelize3DTile2DRangeJ; j++) {
@@ -5772,7 +7133,7 @@ TEST(Parallelize3DTile2D, MultiThreadPoolEachItemProcessedOnce) {
       reinterpret_cast<pthreadpool_task_3d_tile_2d_t>(Increment3DTile2D),
       static_cast<void*>(counters.data()), kParallelize3DTile2DRangeI,
       kParallelize3DTile2DRangeJ, kParallelize3DTile2DRangeK,
-      kParallelize3DTile2DTileJ, kParallelize3DTile2DTileK, 0 /* flags */);
+      kParallelize3DTile2DTileJ, kParallelize3DTile2DTileK, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize3DTile2DRangeI; i++) {
     for (size_t j = 0; j < kParallelize3DTile2DRangeJ; j++) {
@@ -5803,7 +7164,7 @@ TEST(Parallelize3DTile2D, SingleThreadPoolEachItemProcessedMultipleTimes) {
         reinterpret_cast<pthreadpool_task_3d_tile_2d_t>(Increment3DTile2D),
         static_cast<void*>(counters.data()), kParallelize3DTile2DRangeI,
         kParallelize3DTile2DRangeJ, kParallelize3DTile2DRangeK,
-        kParallelize3DTile2DTileJ, kParallelize3DTile2DTileK, 0 /* flags */);
+        kParallelize3DTile2DTileJ, kParallelize3DTile2DTileK, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize3DTile2DRangeI; i++) {
@@ -5840,7 +7201,7 @@ TEST(Parallelize3DTile2D, MultiThreadPoolEachItemProcessedMultipleTimes) {
         reinterpret_cast<pthreadpool_task_3d_tile_2d_t>(Increment3DTile2D),
         static_cast<void*>(counters.data()), kParallelize3DTile2DRangeI,
         kParallelize3DTile2DRangeJ, kParallelize3DTile2DRangeK,
-        kParallelize3DTile2DTileJ, kParallelize3DTile2DTileK, 0 /* flags */);
+        kParallelize3DTile2DTileJ, kParallelize3DTile2DTileK, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize3DTile2DRangeI; i++) {
@@ -5884,7 +7245,7 @@ TEST(Parallelize3DTile2D, MultiThreadPoolHighContention) {
       reinterpret_cast<pthreadpool_task_3d_tile_2d_t>(IncrementSame3DTile2D),
       static_cast<void*>(&num_processed_items), kParallelize3DTile2DRangeI,
       kParallelize3DTile2DRangeJ, kParallelize3DTile2DRangeK,
-      kParallelize3DTile2DTileJ, kParallelize3DTile2DTileK, 0 /* flags */);
+      kParallelize3DTile2DTileJ, kParallelize3DTile2DTileK, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize3DTile2DRangeI * kParallelize3DTile2DRangeJ *
                 kParallelize3DTile2DRangeK);
@@ -5919,7 +7280,850 @@ TEST(Parallelize3DTile2D, MultiThreadPoolWorkStealing) {
       reinterpret_cast<pthreadpool_task_3d_tile_2d_t>(WorkImbalance3DTile2D),
       static_cast<void*>(&num_processed_items), kParallelize3DTile2DRangeI,
       kParallelize3DTile2DRangeJ, kParallelize3DTile2DRangeK,
-      kParallelize3DTile2DTileJ, kParallelize3DTile2DTileK, 0 /* flags */);
+      kParallelize3DTile2DTileJ, kParallelize3DTile2DTileK, /*flags=*/0);
+  EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
+            kParallelize3DTile2DRangeI * kParallelize3DTile2DRangeJ *
+                kParallelize3DTile2DRangeK);
+}
+
+static void ComputeNothing3DTile2DDynamic(void*, size_t, size_t, size_t, size_t,
+                                          size_t) {}
+
+TEST(Parallelize3DTile2DDynamic, SingleThreadPoolCompletes) {
+  auto_pthreadpool_t threadpool(pthreadpool_create(1), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  pthreadpool_parallelize_3d_tile_2d_dynamic(
+      threadpool.get(), ComputeNothing3DTile2DDynamic, nullptr,
+      kParallelize3DTile2DRangeI, kParallelize3DTile2DRangeJ,
+      kParallelize3DTile2DRangeK, kParallelize3DTile2DTileJ,
+      kParallelize3DTile2DTileK, /*flags=*/0);
+}
+
+TEST(Parallelize3DTile2DDynamic, MultiThreadPoolCompletes) {
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  pthreadpool_parallelize_3d_tile_2d_dynamic(
+      threadpool.get(), ComputeNothing3DTile2DDynamic, nullptr,
+      kParallelize3DTile2DRangeI, kParallelize3DTile2DRangeJ,
+      kParallelize3DTile2DRangeK, kParallelize3DTile2DTileJ,
+      kParallelize3DTile2DTileK, /*flags=*/0);
+}
+
+static void CheckBounds3DTile2DDynamic(void*, size_t i, size_t start_j,
+                                       size_t start_k, size_t tile_j,
+                                       size_t tile_k) {
+  EXPECT_LT(i, kParallelize3DTile2DRangeI);
+  EXPECT_LT(start_j, kParallelize3DTile2DRangeJ);
+  EXPECT_LT(start_k, kParallelize3DTile2DRangeK);
+  EXPECT_LE(start_j + tile_j, kParallelize3DTile2DRangeJ);
+  EXPECT_LE(start_k + tile_k, kParallelize3DTile2DRangeK);
+}
+
+TEST(Parallelize3DTile2DDynamic, SingleThreadPoolAllItemsInBounds) {
+  auto_pthreadpool_t threadpool(pthreadpool_create(1), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  pthreadpool_parallelize_3d_tile_2d_dynamic(
+      threadpool.get(), CheckBounds3DTile2DDynamic, nullptr,
+      kParallelize3DTile2DRangeI, kParallelize3DTile2DRangeJ,
+      kParallelize3DTile2DRangeK, kParallelize3DTile2DTileJ,
+      kParallelize3DTile2DTileK, /*flags=*/0);
+}
+
+TEST(Parallelize3DTile2DDynamic, MultiThreadPoolAllItemsInBounds) {
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  pthreadpool_parallelize_3d_tile_2d_dynamic(
+      threadpool.get(), CheckBounds3DTile2DDynamic, nullptr,
+      kParallelize3DTile2DRangeI, kParallelize3DTile2DRangeJ,
+      kParallelize3DTile2DRangeK, kParallelize3DTile2DTileJ,
+      kParallelize3DTile2DTileK, /*flags=*/0);
+}
+
+static void CheckTiling3DTile2DDynamic(void*, size_t i, size_t start_j,
+                                       size_t start_k, size_t tile_j,
+                                       size_t tile_k) {
+  EXPECT_GT(tile_j, 0);
+  EXPECT_LE(tile_j, kParallelize3DTile2DRangeJ);
+  EXPECT_EQ(start_j % kParallelize3DTile2DTileJ, 0);
+
+  EXPECT_GT(tile_k, 0);
+  EXPECT_LE(tile_k, kParallelize3DTile2DRangeK);
+  EXPECT_EQ(start_k % kParallelize3DTile2DTileK, 0);
+}
+
+TEST(Parallelize3DTile2DDynamic, SingleThreadPoolUniformTiling) {
+  auto_pthreadpool_t threadpool(pthreadpool_create(1), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  pthreadpool_parallelize_3d_tile_2d_dynamic(
+      threadpool.get(), CheckTiling3DTile2DDynamic, nullptr,
+      kParallelize3DTile2DRangeI, kParallelize3DTile2DRangeJ,
+      kParallelize3DTile2DRangeK, kParallelize3DTile2DTileJ,
+      kParallelize3DTile2DTileK, /*flags=*/0);
+}
+
+TEST(Parallelize3DTile2DDynamic, MultiThreadPoolUniformTiling) {
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  pthreadpool_parallelize_3d_tile_2d_dynamic(
+      threadpool.get(), CheckTiling3DTile2DDynamic, nullptr,
+      kParallelize3DTile2DRangeI, kParallelize3DTile2DRangeJ,
+      kParallelize3DTile2DRangeK, kParallelize3DTile2DTileJ,
+      kParallelize3DTile2DTileK, /*flags=*/0);
+}
+
+static void SetTrue3DTile2DDynamic(std::atomic_bool* processed_indicators,
+                                   size_t i, size_t start_j, size_t start_k,
+                                   size_t tile_j, size_t tile_k) {
+  for (size_t j = start_j; j < start_j + tile_j; j++) {
+    for (size_t k = start_k; k < start_k + tile_k; k++) {
+      const size_t linear_idx =
+          (i * kParallelize3DTile2DRangeJ + j) * kParallelize3DTile2DRangeK + k;
+      processed_indicators[linear_idx].store(true, std::memory_order_relaxed);
+    }
+  }
+}
+
+TEST(Parallelize3DTile2DDynamic, SingleThreadPoolAllItemsProcessed) {
+  std::vector<std::atomic_bool> indicators(kParallelize3DTile2DRangeI *
+                                           kParallelize3DTile2DRangeJ *
+                                           kParallelize3DTile2DRangeK);
+
+  auto_pthreadpool_t threadpool(pthreadpool_create(1), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  pthreadpool_parallelize_3d_tile_2d_dynamic(
+      threadpool.get(),
+      reinterpret_cast<pthreadpool_task_3d_tile_2d_t>(SetTrue3DTile2DDynamic),
+      static_cast<void*>(indicators.data()), kParallelize3DTile2DRangeI,
+      kParallelize3DTile2DRangeJ, kParallelize3DTile2DRangeK,
+      kParallelize3DTile2DTileJ, kParallelize3DTile2DTileK, /*flags=*/0);
+
+  for (size_t i = 0; i < kParallelize3DTile2DRangeI; i++) {
+    for (size_t j = 0; j < kParallelize3DTile2DRangeJ; j++) {
+      for (size_t k = 0; k < kParallelize3DTile2DRangeK; k++) {
+        const size_t linear_idx =
+            (i * kParallelize3DTile2DRangeJ + j) * kParallelize3DTile2DRangeK +
+            k;
+        EXPECT_TRUE(indicators[linear_idx].load(std::memory_order_relaxed))
+            << "Element (" << i << ", " << j << ", " << k << ") not processed";
+      }
+    }
+  }
+}
+
+TEST(Parallelize3DTile2DDynamic, MultiThreadPoolAllItemsProcessed) {
+  std::vector<std::atomic_bool> indicators(kParallelize3DTile2DRangeI *
+                                           kParallelize3DTile2DRangeJ *
+                                           kParallelize3DTile2DRangeK);
+
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  pthreadpool_parallelize_3d_tile_2d_dynamic(
+      threadpool.get(),
+      reinterpret_cast<pthreadpool_task_3d_tile_2d_t>(SetTrue3DTile2DDynamic),
+      static_cast<void*>(indicators.data()), kParallelize3DTile2DRangeI,
+      kParallelize3DTile2DRangeJ, kParallelize3DTile2DRangeK,
+      kParallelize3DTile2DTileJ, kParallelize3DTile2DTileK, /*flags=*/0);
+
+  for (size_t i = 0; i < kParallelize3DTile2DRangeI; i++) {
+    for (size_t j = 0; j < kParallelize3DTile2DRangeJ; j++) {
+      for (size_t k = 0; k < kParallelize3DTile2DRangeK; k++) {
+        const size_t linear_idx =
+            (i * kParallelize3DTile2DRangeJ + j) * kParallelize3DTile2DRangeK +
+            k;
+        EXPECT_TRUE(indicators[linear_idx].load(std::memory_order_relaxed))
+            << "Element (" << i << ", " << j << ", " << k << ") not processed";
+      }
+    }
+  }
+}
+
+static void Increment3DTile2DDynamic(std::atomic_int* processed_counters,
+                                     size_t i, size_t start_j, size_t start_k,
+                                     size_t tile_j, size_t tile_k) {
+  for (size_t j = start_j; j < start_j + tile_j; j++) {
+    for (size_t k = start_k; k < start_k + tile_k; k++) {
+      const size_t linear_idx =
+          (i * kParallelize3DTile2DRangeJ + j) * kParallelize3DTile2DRangeK + k;
+      processed_counters[linear_idx].fetch_add(1, std::memory_order_relaxed);
+    }
+  }
+}
+
+TEST(Parallelize3DTile2DDynamic, SingleThreadPoolEachItemProcessedOnce) {
+  std::vector<std::atomic_int> counters(kParallelize3DTile2DRangeI *
+                                        kParallelize3DTile2DRangeJ *
+                                        kParallelize3DTile2DRangeK);
+
+  auto_pthreadpool_t threadpool(pthreadpool_create(1), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  pthreadpool_parallelize_3d_tile_2d_dynamic(
+      threadpool.get(),
+      reinterpret_cast<pthreadpool_task_3d_tile_2d_t>(Increment3DTile2DDynamic),
+      static_cast<void*>(counters.data()), kParallelize3DTile2DRangeI,
+      kParallelize3DTile2DRangeJ, kParallelize3DTile2DRangeK,
+      kParallelize3DTile2DTileJ, kParallelize3DTile2DTileK, /*flags=*/0);
+
+  for (size_t i = 0; i < kParallelize3DTile2DRangeI; i++) {
+    for (size_t j = 0; j < kParallelize3DTile2DRangeJ; j++) {
+      for (size_t k = 0; k < kParallelize3DTile2DRangeK; k++) {
+        const size_t linear_idx =
+            (i * kParallelize3DTile2DRangeJ + j) * kParallelize3DTile2DRangeK +
+            k;
+        EXPECT_EQ(counters[linear_idx].load(std::memory_order_relaxed), 1)
+            << "Element (" << i << ", " << j << ", " << k << ") was processed "
+            << counters[linear_idx].load(std::memory_order_relaxed)
+            << " times (expected: 1)";
+      }
+    }
+  }
+}
+
+TEST(Parallelize3DTile2DDynamic, MultiThreadPoolEachItemProcessedOnce) {
+  std::vector<std::atomic_int> counters(kParallelize3DTile2DRangeI *
+                                        kParallelize3DTile2DRangeJ *
+                                        kParallelize3DTile2DRangeK);
+
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  pthreadpool_parallelize_3d_tile_2d_dynamic(
+      threadpool.get(),
+      reinterpret_cast<pthreadpool_task_3d_tile_2d_t>(Increment3DTile2DDynamic),
+      static_cast<void*>(counters.data()), kParallelize3DTile2DRangeI,
+      kParallelize3DTile2DRangeJ, kParallelize3DTile2DRangeK,
+      kParallelize3DTile2DTileJ, kParallelize3DTile2DTileK, /*flags=*/0);
+
+  for (size_t i = 0; i < kParallelize3DTile2DRangeI; i++) {
+    for (size_t j = 0; j < kParallelize3DTile2DRangeJ; j++) {
+      for (size_t k = 0; k < kParallelize3DTile2DRangeK; k++) {
+        const size_t linear_idx =
+            (i * kParallelize3DTile2DRangeJ + j) * kParallelize3DTile2DRangeK +
+            k;
+        EXPECT_EQ(counters[linear_idx].load(std::memory_order_relaxed), 1)
+            << "Element (" << i << ", " << j << ", " << k << ") was processed "
+            << counters[linear_idx].load(std::memory_order_relaxed)
+            << " times (expected: 1)";
+      }
+    }
+  }
+}
+
+TEST(Parallelize3DTile2DDynamic,
+     SingleThreadPoolEachItemProcessedMultipleTimes) {
+  std::vector<std::atomic_int> counters(kParallelize3DTile2DRangeI *
+                                        kParallelize3DTile2DRangeJ *
+                                        kParallelize3DTile2DRangeK);
+
+  auto_pthreadpool_t threadpool(pthreadpool_create(1), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  for (size_t iteration = 0; iteration < kIncrementIterations; iteration++) {
+    pthreadpool_parallelize_3d_tile_2d_dynamic(
+        threadpool.get(),
+        reinterpret_cast<pthreadpool_task_3d_tile_2d_t>(
+            Increment3DTile2DDynamic),
+        static_cast<void*>(counters.data()), kParallelize3DTile2DRangeI,
+        kParallelize3DTile2DRangeJ, kParallelize3DTile2DRangeK,
+        kParallelize3DTile2DTileJ, kParallelize3DTile2DTileK,
+        /*flags=*/0);
+  }
+
+  for (size_t i = 0; i < kParallelize3DTile2DRangeI; i++) {
+    for (size_t j = 0; j < kParallelize3DTile2DRangeJ; j++) {
+      for (size_t k = 0; k < kParallelize3DTile2DRangeK; k++) {
+        const size_t linear_idx =
+            (i * kParallelize3DTile2DRangeJ + j) * kParallelize3DTile2DRangeK +
+            k;
+        EXPECT_EQ(counters[linear_idx].load(std::memory_order_relaxed),
+                  kIncrementIterations)
+            << "Element (" << i << ", " << j << ", " << k << ") was processed "
+            << counters[linear_idx].load(std::memory_order_relaxed) << " times "
+            << "(expected: " << kIncrementIterations << ")";
+      }
+    }
+  }
+}
+
+TEST(Parallelize3DTile2DDynamic,
+     MultiThreadPoolEachItemProcessedMultipleTimes) {
+  std::vector<std::atomic_int> counters(kParallelize3DTile2DRangeI *
+                                        kParallelize3DTile2DRangeJ *
+                                        kParallelize3DTile2DRangeK);
+
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  for (size_t iteration = 0; iteration < kIncrementIterations; iteration++) {
+    pthreadpool_parallelize_3d_tile_2d_dynamic(
+        threadpool.get(),
+        reinterpret_cast<pthreadpool_task_3d_tile_2d_t>(
+            Increment3DTile2DDynamic),
+        static_cast<void*>(counters.data()), kParallelize3DTile2DRangeI,
+        kParallelize3DTile2DRangeJ, kParallelize3DTile2DRangeK,
+        kParallelize3DTile2DTileJ, kParallelize3DTile2DTileK,
+        /*flags=*/0);
+  }
+
+  for (size_t i = 0; i < kParallelize3DTile2DRangeI; i++) {
+    for (size_t j = 0; j < kParallelize3DTile2DRangeJ; j++) {
+      for (size_t k = 0; k < kParallelize3DTile2DRangeK; k++) {
+        const size_t linear_idx =
+            (i * kParallelize3DTile2DRangeJ + j) * kParallelize3DTile2DRangeK +
+            k;
+        EXPECT_EQ(counters[linear_idx].load(std::memory_order_relaxed),
+                  kIncrementIterations)
+            << "Element (" << i << ", " << j << ", " << k << ") was processed "
+            << counters[linear_idx].load(std::memory_order_relaxed) << " times "
+            << "(expected: " << kIncrementIterations << ")";
+      }
+    }
+  }
+}
+
+static void IncrementSame3DTile2DDynamic(std::atomic_int* num_processed_items,
+                                         size_t i, size_t start_j,
+                                         size_t start_k, size_t tile_j,
+                                         size_t tile_k) {
+  for (size_t j = start_j; j < start_j + tile_j; j++) {
+    for (size_t k = start_k; k < start_k + tile_k; k++) {
+      num_processed_items->fetch_add(1, std::memory_order_relaxed);
+    }
+  }
+}
+
+TEST(Parallelize3DTile2DDynamic, MultiThreadPoolHighContention) {
+  std::atomic_int num_processed_items = ATOMIC_VAR_INIT(0);
+
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  pthreadpool_parallelize_3d_tile_2d_dynamic(
+      threadpool.get(),
+      reinterpret_cast<pthreadpool_task_3d_tile_2d_t>(
+          IncrementSame3DTile2DDynamic),
+      static_cast<void*>(&num_processed_items), kParallelize3DTile2DRangeI,
+      kParallelize3DTile2DRangeJ, kParallelize3DTile2DRangeK,
+      kParallelize3DTile2DTileJ, kParallelize3DTile2DTileK, /*flags=*/0);
+  EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
+            kParallelize3DTile2DRangeI * kParallelize3DTile2DRangeJ *
+                kParallelize3DTile2DRangeK);
+}
+
+static void WorkImbalance3DTile2DDynamic(std::atomic_int* num_processed_items,
+                                         size_t i, size_t start_j,
+                                         size_t start_k, size_t tile_j,
+                                         size_t tile_k) {
+  num_processed_items->fetch_add(tile_j * tile_k, std::memory_order_relaxed);
+  if (i == 0 && start_j == 0 && start_k == 0) {
+    /* Sleep for a second. This differs from the non-dynamic `WorkImbalance*`
+     * strategies in that a thread may reserve more elements than fit into a
+     * single work function call. Blocking a single work function call will also
+     * block any potentially remaining elements allocated to that thread. We
+     * therefore just sleep for a second instead.*/
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+  }
+}
+
+TEST(Parallelize3DTile2DDynamic, MultiThreadPoolWorkStealing) {
+  std::atomic_int num_processed_items = ATOMIC_VAR_INIT(0);
+
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  pthreadpool_parallelize_3d_tile_2d_dynamic(
+      threadpool.get(),
+      reinterpret_cast<pthreadpool_task_3d_tile_2d_t>(
+          WorkImbalance3DTile2DDynamic),
+      static_cast<void*>(&num_processed_items), kParallelize3DTile2DRangeI,
+      kParallelize3DTile2DRangeJ, kParallelize3DTile2DRangeK,
+      kParallelize3DTile2DTileJ, kParallelize3DTile2DTileK, /*flags=*/0);
+  EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
+            kParallelize3DTile2DRangeI * kParallelize3DTile2DRangeJ *
+                kParallelize3DTile2DRangeK);
+}
+
+static void ComputeNothing3DTile2DDynamicWithUArch(void*, uint32_t, size_t,
+                                                   size_t, size_t, size_t,
+                                                   size_t) {}
+
+TEST(Parallelize3DTile2DDynamicWithUArch, SingleThreadPoolCompletes) {
+  auto_pthreadpool_t threadpool(pthreadpool_create(1), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  pthreadpool_parallelize_3d_tile_2d_dynamic_with_uarch(
+      threadpool.get(), ComputeNothing3DTile2DDynamicWithUArch, nullptr,
+      kDefaultUArchIndex, kMaxUArchIndex, kParallelize3DTile2DRangeI,
+      kParallelize3DTile2DRangeJ, kParallelize3DTile2DRangeK,
+      kParallelize3DTile2DTileJ, kParallelize3DTile2DTileK, /*flags=*/0);
+}
+
+TEST(Parallelize3DTile2DDynamicWithUArch, MultiThreadPoolCompletes) {
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  pthreadpool_parallelize_3d_tile_2d_dynamic_with_uarch(
+      threadpool.get(), ComputeNothing3DTile2DDynamicWithUArch, nullptr,
+      kDefaultUArchIndex, kMaxUArchIndex, kParallelize3DTile2DRangeI,
+      kParallelize3DTile2DRangeJ, kParallelize3DTile2DRangeK,
+      kParallelize3DTile2DTileJ, kParallelize3DTile2DTileK, /*flags=*/0);
+}
+
+static void CheckUArch3DTile2DDynamicWithUArch(void*, uint32_t uarch_index,
+                                               size_t, size_t, size_t, size_t,
+                                               size_t) {
+  if (uarch_index != kDefaultUArchIndex) {
+    EXPECT_LE(uarch_index, kMaxUArchIndex);
+  }
+}
+
+TEST(Parallelize3DTile2DDynamicWithUArch, SingleThreadPoolUArchInBounds) {
+  auto_pthreadpool_t threadpool(pthreadpool_create(1), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  pthreadpool_parallelize_3d_tile_2d_dynamic_with_uarch(
+      threadpool.get(), CheckUArch3DTile2DDynamicWithUArch, nullptr,
+      kDefaultUArchIndex, kMaxUArchIndex, kParallelize3DTile2DRangeI,
+      kParallelize3DTile2DRangeJ, kParallelize3DTile2DRangeK,
+      kParallelize3DTile2DTileJ, kParallelize3DTile2DTileK, /*flags=*/0);
+}
+
+TEST(Parallelize3DTile2DDynamicWithUArch, MultiThreadPoolUArchInBounds) {
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  pthreadpool_parallelize_3d_tile_2d_dynamic_with_uarch(
+      threadpool.get(), CheckUArch3DTile2DDynamicWithUArch, nullptr,
+      kDefaultUArchIndex, kMaxUArchIndex, kParallelize3DTile2DRangeI,
+      kParallelize3DTile2DRangeJ, kParallelize3DTile2DRangeK,
+      kParallelize3DTile2DTileJ, kParallelize3DTile2DTileK, /*flags=*/0);
+}
+
+static void CheckBounds3DTile2DDynamicWithUArch(void*, uint32_t, size_t i,
+                                                size_t start_j, size_t start_k,
+                                                size_t tile_j, size_t tile_k) {
+  EXPECT_LT(i, kParallelize3DTile2DRangeI);
+  EXPECT_LT(start_j, kParallelize3DTile2DRangeJ);
+  EXPECT_LT(start_k, kParallelize3DTile2DRangeK);
+  EXPECT_LE(start_j + tile_j, kParallelize3DTile2DRangeJ);
+  EXPECT_LE(start_k + tile_k, kParallelize3DTile2DRangeK);
+}
+
+TEST(Parallelize3DTile2DDynamicWithUArch, SingleThreadPoolAllItemsInBounds) {
+  auto_pthreadpool_t threadpool(pthreadpool_create(1), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  pthreadpool_parallelize_3d_tile_2d_dynamic_with_uarch(
+      threadpool.get(), CheckBounds3DTile2DDynamicWithUArch, nullptr,
+      kDefaultUArchIndex, kMaxUArchIndex, kParallelize3DTile2DRangeI,
+      kParallelize3DTile2DRangeJ, kParallelize3DTile2DRangeK,
+      kParallelize3DTile2DTileJ, kParallelize3DTile2DTileK, /*flags=*/0);
+}
+
+TEST(Parallelize3DTile2DDynamicWithUArch, MultiThreadPoolAllItemsInBounds) {
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  pthreadpool_parallelize_3d_tile_2d_dynamic_with_uarch(
+      threadpool.get(), CheckBounds3DTile2DDynamicWithUArch, nullptr,
+      kDefaultUArchIndex, kMaxUArchIndex, kParallelize3DTile2DRangeI,
+      kParallelize3DTile2DRangeJ, kParallelize3DTile2DRangeK,
+      kParallelize3DTile2DTileJ, kParallelize3DTile2DTileK, /*flags=*/0);
+}
+
+static void CheckTiling3DTile2DDynamicWithUArch(void*, uint32_t, size_t i,
+                                                size_t start_j, size_t start_k,
+                                                size_t tile_j, size_t tile_k) {
+  EXPECT_GT(tile_j, 0);
+  EXPECT_TRUE(tile_j % kParallelize3DTile2DTileJ == 0 ||
+              tile_j == kParallelize3DTile2DRangeJ - start_j);
+  EXPECT_EQ(start_j % kParallelize3DTile2DTileJ, 0);
+  EXPECT_LE(start_j + tile_j, kParallelize3DTile2DRangeJ);
+
+  EXPECT_GT(tile_k, 0);
+  EXPECT_TRUE(tile_k % kParallelize3DTile2DTileK == 0 ||
+              tile_k == kParallelize3DTile2DRangeK - start_k);
+  EXPECT_EQ(start_k % kParallelize3DTile2DTileK, 0);
+  EXPECT_LE(start_k + tile_k, kParallelize3DTile2DRangeK);
+}
+
+TEST(Parallelize3DTile2DDynamicWithUArch, SingleThreadPoolUniformTiling) {
+  auto_pthreadpool_t threadpool(pthreadpool_create(1), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  pthreadpool_parallelize_3d_tile_2d_dynamic_with_uarch(
+      threadpool.get(), CheckTiling3DTile2DDynamicWithUArch, nullptr,
+      kDefaultUArchIndex, kMaxUArchIndex, kParallelize3DTile2DRangeI,
+      kParallelize3DTile2DRangeJ, kParallelize3DTile2DRangeK,
+      kParallelize3DTile2DTileJ, kParallelize3DTile2DTileK, /*flags=*/0);
+}
+
+TEST(Parallelize3DTile2DDynamicWithUArch, MultiThreadPoolUniformTiling) {
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  pthreadpool_parallelize_3d_tile_2d_dynamic_with_uarch(
+      threadpool.get(), CheckTiling3DTile2DDynamicWithUArch, nullptr,
+      kDefaultUArchIndex, kMaxUArchIndex, kParallelize3DTile2DRangeI,
+      kParallelize3DTile2DRangeJ, kParallelize3DTile2DRangeK,
+      kParallelize3DTile2DTileJ, kParallelize3DTile2DTileK, /*flags=*/0);
+}
+
+static void SetTrue3DTile2DDynamicWithUArch(
+    std::atomic_bool* processed_indicators, uint32_t, size_t i, size_t start_j,
+    size_t start_k, size_t tile_j, size_t tile_k) {
+  for (size_t j = start_j; j < start_j + tile_j; j++) {
+    for (size_t k = start_k; k < start_k + tile_k; k++) {
+      const size_t linear_idx =
+          (i * kParallelize3DTile2DRangeJ + j) * kParallelize3DTile2DRangeK + k;
+      processed_indicators[linear_idx].store(true, std::memory_order_relaxed);
+    }
+  }
+}
+
+TEST(Parallelize3DTile2DDynamicWithUArch, SingleThreadPoolAllItemsProcessed) {
+  std::vector<std::atomic_bool> indicators(kParallelize3DTile2DRangeI *
+                                           kParallelize3DTile2DRangeJ *
+                                           kParallelize3DTile2DRangeK);
+
+  auto_pthreadpool_t threadpool(pthreadpool_create(1), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  pthreadpool_parallelize_3d_tile_2d_dynamic_with_uarch(
+      threadpool.get(),
+      reinterpret_cast<pthreadpool_task_3d_tile_2d_with_id_t>(
+          SetTrue3DTile2DDynamicWithUArch),
+      static_cast<void*>(indicators.data()), kDefaultUArchIndex, kMaxUArchIndex,
+      kParallelize3DTile2DRangeI, kParallelize3DTile2DRangeJ,
+      kParallelize3DTile2DRangeK, kParallelize3DTile2DTileJ,
+      kParallelize3DTile2DTileK, /*flags=*/0);
+
+  for (size_t i = 0; i < kParallelize3DTile2DRangeI; i++) {
+    for (size_t j = 0; j < kParallelize3DTile2DRangeJ; j++) {
+      for (size_t k = 0; k < kParallelize3DTile2DRangeK; k++) {
+        const size_t linear_idx =
+            (i * kParallelize3DTile2DRangeJ + j) * kParallelize3DTile2DRangeK +
+            k;
+        EXPECT_TRUE(indicators[linear_idx].load(std::memory_order_relaxed))
+            << "Element (" << i << ", " << j << ", " << k << ") not processed";
+      }
+    }
+  }
+}
+
+TEST(Parallelize3DTile2DDynamicWithUArch, MultiThreadPoolAllItemsProcessed) {
+  std::vector<std::atomic_bool> indicators(kParallelize3DTile2DRangeI *
+                                           kParallelize3DTile2DRangeJ *
+                                           kParallelize3DTile2DRangeK);
+
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  pthreadpool_parallelize_3d_tile_2d_dynamic_with_uarch(
+      threadpool.get(),
+      reinterpret_cast<pthreadpool_task_3d_tile_2d_with_id_t>(
+          SetTrue3DTile2DDynamicWithUArch),
+      static_cast<void*>(indicators.data()), kDefaultUArchIndex, kMaxUArchIndex,
+      kParallelize3DTile2DRangeI, kParallelize3DTile2DRangeJ,
+      kParallelize3DTile2DRangeK, kParallelize3DTile2DTileJ,
+      kParallelize3DTile2DTileK, /*flags=*/0);
+
+  for (size_t i = 0; i < kParallelize3DTile2DRangeI; i++) {
+    for (size_t j = 0; j < kParallelize3DTile2DRangeJ; j++) {
+      for (size_t k = 0; k < kParallelize3DTile2DRangeK; k++) {
+        const size_t linear_idx =
+            (i * kParallelize3DTile2DRangeJ + j) * kParallelize3DTile2DRangeK +
+            k;
+        EXPECT_TRUE(indicators[linear_idx].load(std::memory_order_relaxed))
+            << "Element (" << i << ", " << j << ", " << k << ") not processed";
+      }
+    }
+  }
+}
+
+static void Increment3DTile2DDynamicWithUArch(
+    std::atomic_int* processed_counters, uint32_t, size_t i, size_t start_j,
+    size_t start_k, size_t tile_j, size_t tile_k) {
+  for (size_t j = start_j; j < start_j + tile_j; j++) {
+    for (size_t k = start_k; k < start_k + tile_k; k++) {
+      const size_t linear_idx =
+          (i * kParallelize3DTile2DRangeJ + j) * kParallelize3DTile2DRangeK + k;
+      processed_counters[linear_idx].fetch_add(1, std::memory_order_relaxed);
+    }
+  }
+}
+
+TEST(Parallelize3DTile2DDynamicWithUArch,
+     SingleThreadPoolEachItemProcessedOnce) {
+  std::vector<std::atomic_int> counters(kParallelize3DTile2DRangeI *
+                                        kParallelize3DTile2DRangeJ *
+                                        kParallelize3DTile2DRangeK);
+
+  auto_pthreadpool_t threadpool(pthreadpool_create(1), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  pthreadpool_parallelize_3d_tile_2d_dynamic_with_uarch(
+      threadpool.get(),
+      reinterpret_cast<pthreadpool_task_3d_tile_2d_with_id_t>(
+          Increment3DTile2DDynamicWithUArch),
+      static_cast<void*>(counters.data()), kDefaultUArchIndex, kMaxUArchIndex,
+      kParallelize3DTile2DRangeI, kParallelize3DTile2DRangeJ,
+      kParallelize3DTile2DRangeK, kParallelize3DTile2DTileJ,
+      kParallelize3DTile2DTileK, /*flags=*/0);
+
+  for (size_t i = 0; i < kParallelize3DTile2DRangeI; i++) {
+    for (size_t j = 0; j < kParallelize3DTile2DRangeJ; j++) {
+      for (size_t k = 0; k < kParallelize3DTile2DRangeK; k++) {
+        const size_t linear_idx =
+            (i * kParallelize3DTile2DRangeJ + j) * kParallelize3DTile2DRangeK +
+            k;
+        EXPECT_EQ(counters[linear_idx].load(std::memory_order_relaxed), 1)
+            << "Element (" << i << ", " << j << ", " << k << ") was processed "
+            << counters[linear_idx].load(std::memory_order_relaxed)
+            << " times (expected: 1)";
+      }
+    }
+  }
+}
+
+TEST(Parallelize3DTile2DDynamicWithUArch,
+     MultiThreadPoolEachItemProcessedOnce) {
+  std::vector<std::atomic_int> counters(kParallelize3DTile2DRangeI *
+                                        kParallelize3DTile2DRangeJ *
+                                        kParallelize3DTile2DRangeK);
+
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  pthreadpool_parallelize_3d_tile_2d_dynamic_with_uarch(
+      threadpool.get(),
+      reinterpret_cast<pthreadpool_task_3d_tile_2d_with_id_t>(
+          Increment3DTile2DDynamicWithUArch),
+      static_cast<void*>(counters.data()), kDefaultUArchIndex, kMaxUArchIndex,
+      kParallelize3DTile2DRangeI, kParallelize3DTile2DRangeJ,
+      kParallelize3DTile2DRangeK, kParallelize3DTile2DTileJ,
+      kParallelize3DTile2DTileK, /*flags=*/0);
+
+  for (size_t i = 0; i < kParallelize3DTile2DRangeI; i++) {
+    for (size_t j = 0; j < kParallelize3DTile2DRangeJ; j++) {
+      for (size_t k = 0; k < kParallelize3DTile2DRangeK; k++) {
+        const size_t linear_idx =
+            (i * kParallelize3DTile2DRangeJ + j) * kParallelize3DTile2DRangeK +
+            k;
+        EXPECT_EQ(counters[linear_idx].load(std::memory_order_relaxed), 1)
+            << "Element (" << i << ", " << j << ", " << k << ") was processed "
+            << counters[linear_idx].load(std::memory_order_relaxed)
+            << " times (expected: 1)";
+      }
+    }
+  }
+}
+
+TEST(Parallelize3DTile2DDynamicWithUArch,
+     SingleThreadPoolEachItemProcessedMultipleTimes) {
+  std::vector<std::atomic_int> counters(kParallelize3DTile2DRangeI *
+                                        kParallelize3DTile2DRangeJ *
+                                        kParallelize3DTile2DRangeK);
+
+  auto_pthreadpool_t threadpool(pthreadpool_create(1), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  for (size_t iteration = 0; iteration < kIncrementIterations; iteration++) {
+    pthreadpool_parallelize_3d_tile_2d_dynamic_with_uarch(
+        threadpool.get(),
+        reinterpret_cast<pthreadpool_task_3d_tile_2d_with_id_t>(
+            Increment3DTile2DDynamicWithUArch),
+        static_cast<void*>(counters.data()), kDefaultUArchIndex, kMaxUArchIndex,
+        kParallelize3DTile2DRangeI, kParallelize3DTile2DRangeJ,
+        kParallelize3DTile2DRangeK, kParallelize3DTile2DTileJ,
+        kParallelize3DTile2DTileK, /*flags=*/0);
+  }
+
+  for (size_t i = 0; i < kParallelize3DTile2DRangeI; i++) {
+    for (size_t j = 0; j < kParallelize3DTile2DRangeJ; j++) {
+      for (size_t k = 0; k < kParallelize3DTile2DRangeK; k++) {
+        const size_t linear_idx =
+            (i * kParallelize3DTile2DRangeJ + j) * kParallelize3DTile2DRangeK +
+            k;
+        EXPECT_EQ(counters[linear_idx].load(std::memory_order_relaxed),
+                  kIncrementIterations)
+            << "Element (" << i << ", " << j << ", " << k << ") was processed "
+            << counters[linear_idx].load(std::memory_order_relaxed) << " times "
+            << "(expected: " << kIncrementIterations << ")";
+      }
+    }
+  }
+}
+
+TEST(Parallelize3DTile2DDynamicWithUArch,
+     MultiThreadPoolEachItemProcessedMultipleTimes) {
+  std::vector<std::atomic_int> counters(kParallelize3DTile2DRangeI *
+                                        kParallelize3DTile2DRangeJ *
+                                        kParallelize3DTile2DRangeK);
+
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  for (size_t iteration = 0; iteration < kIncrementIterations; iteration++) {
+    pthreadpool_parallelize_3d_tile_2d_dynamic_with_uarch(
+        threadpool.get(),
+        reinterpret_cast<pthreadpool_task_3d_tile_2d_with_id_t>(
+            Increment3DTile2DDynamicWithUArch),
+        static_cast<void*>(counters.data()), kDefaultUArchIndex, kMaxUArchIndex,
+        kParallelize3DTile2DRangeI, kParallelize3DTile2DRangeJ,
+        kParallelize3DTile2DRangeK, kParallelize3DTile2DTileJ,
+        kParallelize3DTile2DTileK, /*flags=*/0);
+  }
+
+  for (size_t i = 0; i < kParallelize3DTile2DRangeI; i++) {
+    for (size_t j = 0; j < kParallelize3DTile2DRangeJ; j++) {
+      for (size_t k = 0; k < kParallelize3DTile2DRangeK; k++) {
+        const size_t linear_idx =
+            (i * kParallelize3DTile2DRangeJ + j) * kParallelize3DTile2DRangeK +
+            k;
+        EXPECT_EQ(counters[linear_idx].load(std::memory_order_relaxed),
+                  kIncrementIterations)
+            << "Element (" << i << ", " << j << ", " << k << ") was processed "
+            << counters[linear_idx].load(std::memory_order_relaxed) << " times "
+            << "(expected: " << kIncrementIterations << ")";
+      }
+    }
+  }
+}
+
+static void IncrementSame3DTile2DDynamicWithUArch(
+    std::atomic_int* num_processed_items, uint32_t, size_t i, size_t start_j,
+    size_t start_k, size_t tile_j, size_t tile_k) {
+  for (size_t j = start_j; j < start_j + tile_j; j++) {
+    for (size_t k = start_k; k < start_k + tile_k; k++) {
+      num_processed_items->fetch_add(1, std::memory_order_relaxed);
+    }
+  }
+}
+
+TEST(Parallelize3DTile2DDynamicWithUArch, MultiThreadPoolHighContention) {
+  std::atomic_int num_processed_items = ATOMIC_VAR_INIT(0);
+
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  pthreadpool_parallelize_3d_tile_2d_dynamic_with_uarch(
+      threadpool.get(),
+      reinterpret_cast<pthreadpool_task_3d_tile_2d_with_id_t>(
+          IncrementSame3DTile2DDynamicWithUArch),
+      static_cast<void*>(&num_processed_items), kDefaultUArchIndex,
+      kMaxUArchIndex, kParallelize3DTile2DRangeI, kParallelize3DTile2DRangeJ,
+      kParallelize3DTile2DRangeK, kParallelize3DTile2DTileJ,
+      kParallelize3DTile2DTileK, /*flags=*/0);
+  EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
+            kParallelize3DTile2DRangeI * kParallelize3DTile2DRangeJ *
+                kParallelize3DTile2DRangeK);
+}
+
+static void WorkImbalance3DTile2DDynamicWithUArch(
+    std::atomic_int* num_processed_items, uint32_t tid, size_t i,
+    size_t start_j, size_t start_k, size_t tile_j, size_t tile_k) {
+  num_processed_items->fetch_add(tile_j * tile_k, std::memory_order_relaxed);
+  if (i == 0 && start_j == 0 && start_k == 0) {
+    /* Sleep for a second. This differs from the non-dynamic `WorkImbalance*`
+     * strategies in that a thread may reserve more elements than fit into a
+     * single work function call. Blocking a single work function call will also
+     * block any potentially remaining elements allocated to that thread. We
+     * therefore just sleep for a second instead.*/
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+  }
+}
+
+TEST(Parallelize3DTile2DDynamicWithUArch, MultiThreadPoolWorkStealing) {
+  std::atomic_int num_processed_items = ATOMIC_VAR_INIT(0);
+
+  auto_pthreadpool_t threadpool(pthreadpool_create(0), pthreadpool_destroy);
+  ASSERT_TRUE(threadpool.get());
+
+  if (pthreadpool_get_threads_count(threadpool.get()) <= 1) {
+    GTEST_SKIP();
+  }
+
+  pthreadpool_parallelize_3d_tile_2d_dynamic_with_uarch(
+      threadpool.get(),
+      reinterpret_cast<pthreadpool_task_3d_tile_2d_with_id_t>(
+          WorkImbalance3DTile2DDynamicWithUArch),
+      static_cast<void*>(&num_processed_items), kDefaultUArchIndex,
+      kMaxUArchIndex, kParallelize3DTile2DRangeI, kParallelize3DTile2DRangeJ,
+      kParallelize3DTile2DRangeK, kParallelize3DTile2DTileJ,
+      kParallelize3DTile2DTileK, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize3DTile2DRangeI * kParallelize3DTile2DRangeJ *
                 kParallelize3DTile2DRangeK);
@@ -5936,7 +8140,7 @@ TEST(Parallelize3DTile2DWithUArch, SingleThreadPoolCompletes) {
       threadpool.get(), ComputeNothing3DTile2DWithUArch, nullptr,
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize3DTile2DRangeI,
       kParallelize3DTile2DRangeJ, kParallelize3DTile2DRangeK,
-      kParallelize3DTile2DTileJ, kParallelize3DTile2DTileK, 0 /* flags */);
+      kParallelize3DTile2DTileJ, kParallelize3DTile2DTileK, /*flags=*/0);
 }
 
 TEST(Parallelize3DTile2DWithUArch, MultiThreadPoolCompletes) {
@@ -5951,7 +8155,7 @@ TEST(Parallelize3DTile2DWithUArch, MultiThreadPoolCompletes) {
       threadpool.get(), ComputeNothing3DTile2DWithUArch, nullptr,
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize3DTile2DRangeI,
       kParallelize3DTile2DRangeJ, kParallelize3DTile2DRangeK,
-      kParallelize3DTile2DTileJ, kParallelize3DTile2DTileK, 0 /* flags */);
+      kParallelize3DTile2DTileJ, kParallelize3DTile2DTileK, /*flags=*/0);
 }
 
 static void CheckUArch3DTile2DWithUArch(void*, uint32_t uarch_index, size_t,
@@ -5969,7 +8173,7 @@ TEST(Parallelize3DTile2DWithUArch, SingleThreadPoolUArchInBounds) {
       threadpool.get(), CheckUArch3DTile2DWithUArch, nullptr,
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize3DTile2DRangeI,
       kParallelize3DTile2DRangeJ, kParallelize3DTile2DRangeK,
-      kParallelize3DTile2DTileJ, kParallelize3DTile2DTileK, 0 /* flags */);
+      kParallelize3DTile2DTileJ, kParallelize3DTile2DTileK, /*flags=*/0);
 }
 
 TEST(Parallelize3DTile2DWithUArch, MultiThreadPoolUArchInBounds) {
@@ -5984,7 +8188,7 @@ TEST(Parallelize3DTile2DWithUArch, MultiThreadPoolUArchInBounds) {
       threadpool.get(), CheckUArch3DTile2DWithUArch, nullptr,
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize3DTile2DRangeI,
       kParallelize3DTile2DRangeJ, kParallelize3DTile2DRangeK,
-      kParallelize3DTile2DTileJ, kParallelize3DTile2DTileK, 0 /* flags */);
+      kParallelize3DTile2DTileJ, kParallelize3DTile2DTileK, /*flags=*/0);
 }
 
 static void CheckBounds3DTile2DWithUArch(void*, uint32_t, size_t i,
@@ -6005,7 +8209,7 @@ TEST(Parallelize3DTile2DWithUArch, SingleThreadPoolAllItemsInBounds) {
       threadpool.get(), CheckBounds3DTile2DWithUArch, nullptr,
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize3DTile2DRangeI,
       kParallelize3DTile2DRangeJ, kParallelize3DTile2DRangeK,
-      kParallelize3DTile2DTileJ, kParallelize3DTile2DTileK, 0 /* flags */);
+      kParallelize3DTile2DTileJ, kParallelize3DTile2DTileK, /*flags=*/0);
 }
 
 TEST(Parallelize3DTile2DWithUArch, MultiThreadPoolAllItemsInBounds) {
@@ -6020,7 +8224,7 @@ TEST(Parallelize3DTile2DWithUArch, MultiThreadPoolAllItemsInBounds) {
       threadpool.get(), CheckBounds3DTile2DWithUArch, nullptr,
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize3DTile2DRangeI,
       kParallelize3DTile2DRangeJ, kParallelize3DTile2DRangeK,
-      kParallelize3DTile2DTileJ, kParallelize3DTile2DTileK, 0 /* flags */);
+      kParallelize3DTile2DTileJ, kParallelize3DTile2DTileK, /*flags=*/0);
 }
 
 static void CheckTiling3DTile2DWithUArch(void*, uint32_t, size_t i,
@@ -6047,7 +8251,7 @@ TEST(Parallelize3DTile2DWithUArch, SingleThreadPoolUniformTiling) {
       threadpool.get(), CheckTiling3DTile2DWithUArch, nullptr,
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize3DTile2DRangeI,
       kParallelize3DTile2DRangeJ, kParallelize3DTile2DRangeK,
-      kParallelize3DTile2DTileJ, kParallelize3DTile2DTileK, 0 /* flags */);
+      kParallelize3DTile2DTileJ, kParallelize3DTile2DTileK, /*flags=*/0);
 }
 
 TEST(Parallelize3DTile2DWithUArch, MultiThreadPoolUniformTiling) {
@@ -6062,7 +8266,7 @@ TEST(Parallelize3DTile2DWithUArch, MultiThreadPoolUniformTiling) {
       threadpool.get(), CheckTiling3DTile2DWithUArch, nullptr,
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize3DTile2DRangeI,
       kParallelize3DTile2DRangeJ, kParallelize3DTile2DRangeK,
-      kParallelize3DTile2DTileJ, kParallelize3DTile2DTileK, 0 /* flags */);
+      kParallelize3DTile2DTileJ, kParallelize3DTile2DTileK, /*flags=*/0);
 }
 
 static void SetTrue3DTile2DWithUArch(std::atomic_bool* processed_indicators,
@@ -6093,7 +8297,7 @@ TEST(Parallelize3DTile2DWithUArch, SingleThreadPoolAllItemsProcessed) {
       static_cast<void*>(indicators.data()), kDefaultUArchIndex, kMaxUArchIndex,
       kParallelize3DTile2DRangeI, kParallelize3DTile2DRangeJ,
       kParallelize3DTile2DRangeK, kParallelize3DTile2DTileJ,
-      kParallelize3DTile2DTileK, 0 /* flags */);
+      kParallelize3DTile2DTileK, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize3DTile2DRangeI; i++) {
     for (size_t j = 0; j < kParallelize3DTile2DRangeJ; j++) {
@@ -6127,7 +8331,7 @@ TEST(Parallelize3DTile2DWithUArch, MultiThreadPoolAllItemsProcessed) {
       static_cast<void*>(indicators.data()), kDefaultUArchIndex, kMaxUArchIndex,
       kParallelize3DTile2DRangeI, kParallelize3DTile2DRangeJ,
       kParallelize3DTile2DRangeK, kParallelize3DTile2DTileJ,
-      kParallelize3DTile2DTileK, 0 /* flags */);
+      kParallelize3DTile2DTileK, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize3DTile2DRangeI; i++) {
     for (size_t j = 0; j < kParallelize3DTile2DRangeJ; j++) {
@@ -6170,7 +8374,7 @@ TEST(Parallelize3DTile2DWithUArch, SingleThreadPoolEachItemProcessedOnce) {
       static_cast<void*>(counters.data()), kDefaultUArchIndex, kMaxUArchIndex,
       kParallelize3DTile2DRangeI, kParallelize3DTile2DRangeJ,
       kParallelize3DTile2DRangeK, kParallelize3DTile2DTileJ,
-      kParallelize3DTile2DTileK, 0 /* flags */);
+      kParallelize3DTile2DTileK, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize3DTile2DRangeI; i++) {
     for (size_t j = 0; j < kParallelize3DTile2DRangeJ; j++) {
@@ -6206,7 +8410,7 @@ TEST(Parallelize3DTile2DWithUArch, MultiThreadPoolEachItemProcessedOnce) {
       static_cast<void*>(counters.data()), kDefaultUArchIndex, kMaxUArchIndex,
       kParallelize3DTile2DRangeI, kParallelize3DTile2DRangeJ,
       kParallelize3DTile2DRangeK, kParallelize3DTile2DTileJ,
-      kParallelize3DTile2DTileK, 0 /* flags */);
+      kParallelize3DTile2DTileK, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize3DTile2DRangeI; i++) {
     for (size_t j = 0; j < kParallelize3DTile2DRangeJ; j++) {
@@ -6240,7 +8444,7 @@ TEST(Parallelize3DTile2DWithUArch,
         static_cast<void*>(counters.data()), kDefaultUArchIndex, kMaxUArchIndex,
         kParallelize3DTile2DRangeI, kParallelize3DTile2DRangeJ,
         kParallelize3DTile2DRangeK, kParallelize3DTile2DTileJ,
-        kParallelize3DTile2DTileK, 0 /* flags */);
+        kParallelize3DTile2DTileK, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize3DTile2DRangeI; i++) {
@@ -6280,7 +8484,7 @@ TEST(Parallelize3DTile2DWithUArch,
         static_cast<void*>(counters.data()), kDefaultUArchIndex, kMaxUArchIndex,
         kParallelize3DTile2DRangeI, kParallelize3DTile2DRangeJ,
         kParallelize3DTile2DRangeK, kParallelize3DTile2DTileJ,
-        kParallelize3DTile2DTileK, 0 /* flags */);
+        kParallelize3DTile2DTileK, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize3DTile2DRangeI; i++) {
@@ -6327,7 +8531,7 @@ TEST(Parallelize3DTile2DWithUArch, MultiThreadPoolHighContention) {
       static_cast<void*>(&num_processed_items), kDefaultUArchIndex,
       kMaxUArchIndex, kParallelize3DTile2DRangeI, kParallelize3DTile2DRangeJ,
       kParallelize3DTile2DRangeK, kParallelize3DTile2DTileJ,
-      kParallelize3DTile2DTileK, 0 /* flags */);
+      kParallelize3DTile2DTileK, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize3DTile2DRangeI * kParallelize3DTile2DRangeJ *
                 kParallelize3DTile2DRangeK);
@@ -6365,7 +8569,7 @@ TEST(Parallelize3DTile2DWithUArch, MultiThreadPoolWorkStealing) {
       static_cast<void*>(&num_processed_items), kDefaultUArchIndex,
       kMaxUArchIndex, kParallelize3DTile2DRangeI, kParallelize3DTile2DRangeJ,
       kParallelize3DTile2DRangeK, kParallelize3DTile2DTileJ,
-      kParallelize3DTile2DTileK, 0 /* flags */);
+      kParallelize3DTile2DTileK, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize3DTile2DRangeI * kParallelize3DTile2DRangeJ *
                 kParallelize3DTile2DRangeK);
@@ -6380,7 +8584,7 @@ TEST(Parallelize4D, SingleThreadPoolCompletes) {
   pthreadpool_parallelize_4d(threadpool.get(), ComputeNothing4D, nullptr,
                              kParallelize4DRangeI, kParallelize4DRangeJ,
                              kParallelize4DRangeK, kParallelize4DRangeL,
-                             0 /* flags */);
+                             /*flags=*/0);
 }
 
 TEST(Parallelize4D, MultiThreadPoolCompletes) {
@@ -6394,7 +8598,7 @@ TEST(Parallelize4D, MultiThreadPoolCompletes) {
   pthreadpool_parallelize_4d(threadpool.get(), ComputeNothing4D, nullptr,
                              kParallelize4DRangeI, kParallelize4DRangeJ,
                              kParallelize4DRangeK, kParallelize4DRangeL,
-                             0 /* flags */);
+                             /*flags=*/0);
 }
 
 static void CheckBounds4D(void*, size_t i, size_t j, size_t k, size_t l) {
@@ -6411,7 +8615,7 @@ TEST(Parallelize4D, SingleThreadPoolAllItemsInBounds) {
   pthreadpool_parallelize_4d(threadpool.get(), CheckBounds4D, nullptr,
                              kParallelize4DRangeI, kParallelize4DRangeJ,
                              kParallelize4DRangeK, kParallelize4DRangeL,
-                             0 /* flags */);
+                             /*flags=*/0);
 }
 
 TEST(Parallelize4D, MultiThreadPoolAllItemsInBounds) {
@@ -6425,7 +8629,7 @@ TEST(Parallelize4D, MultiThreadPoolAllItemsInBounds) {
   pthreadpool_parallelize_4d(threadpool.get(), CheckBounds4D, nullptr,
                              kParallelize4DRangeI, kParallelize4DRangeJ,
                              kParallelize4DRangeK, kParallelize4DRangeL,
-                             0 /* flags */);
+                             /*flags=*/0);
 }
 
 static void SetTrue4D(std::atomic_bool* processed_indicators, size_t i,
@@ -6449,7 +8653,7 @@ TEST(Parallelize4D, SingleThreadPoolAllItemsProcessed) {
       threadpool.get(), reinterpret_cast<pthreadpool_task_4d_t>(SetTrue4D),
       static_cast<void*>(indicators.data()), kParallelize4DRangeI,
       kParallelize4DRangeJ, kParallelize4DRangeK, kParallelize4DRangeL,
-      0 /* flags */);
+      /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize4DRangeI; i++) {
     for (size_t j = 0; j < kParallelize4DRangeJ; j++) {
@@ -6484,7 +8688,7 @@ TEST(Parallelize4D, MultiThreadPoolAllItemsProcessed) {
       threadpool.get(), reinterpret_cast<pthreadpool_task_4d_t>(SetTrue4D),
       static_cast<void*>(indicators.data()), kParallelize4DRangeI,
       kParallelize4DRangeJ, kParallelize4DRangeK, kParallelize4DRangeL,
-      0 /* flags */);
+      /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize4DRangeI; i++) {
     for (size_t j = 0; j < kParallelize4DRangeJ; j++) {
@@ -6524,7 +8728,7 @@ TEST(Parallelize4D, SingleThreadPoolEachItemProcessedOnce) {
       threadpool.get(), reinterpret_cast<pthreadpool_task_4d_t>(Increment4D),
       static_cast<void*>(counters.data()), kParallelize4DRangeI,
       kParallelize4DRangeJ, kParallelize4DRangeK, kParallelize4DRangeL,
-      0 /* flags */);
+      /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize4DRangeI; i++) {
     for (size_t j = 0; j < kParallelize4DRangeJ; j++) {
@@ -6561,7 +8765,7 @@ TEST(Parallelize4D, MultiThreadPoolEachItemProcessedOnce) {
       threadpool.get(), reinterpret_cast<pthreadpool_task_4d_t>(Increment4D),
       static_cast<void*>(counters.data()), kParallelize4DRangeI,
       kParallelize4DRangeJ, kParallelize4DRangeK, kParallelize4DRangeL,
-      0 /* flags */);
+      /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize4DRangeI; i++) {
     for (size_t j = 0; j < kParallelize4DRangeJ; j++) {
@@ -6595,7 +8799,7 @@ TEST(Parallelize4D, SingleThreadPoolEachItemProcessedMultipleTimes) {
         threadpool.get(), reinterpret_cast<pthreadpool_task_4d_t>(Increment4D),
         static_cast<void*>(counters.data()), kParallelize4DRangeI,
         kParallelize4DRangeJ, kParallelize4DRangeK, kParallelize4DRangeL,
-        0 /* flags */);
+        /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize4DRangeI; i++) {
@@ -6636,7 +8840,7 @@ TEST(Parallelize4D, MultiThreadPoolEachItemProcessedMultipleTimes) {
         threadpool.get(), reinterpret_cast<pthreadpool_task_4d_t>(Increment4D),
         static_cast<void*>(counters.data()), kParallelize4DRangeI,
         kParallelize4DRangeJ, kParallelize4DRangeK, kParallelize4DRangeL,
-        0 /* flags */);
+        /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize4DRangeI; i++) {
@@ -6680,7 +8884,7 @@ TEST(Parallelize4D, MultiThreadPoolHighContention) {
       reinterpret_cast<pthreadpool_task_4d_t>(IncrementSame4D),
       static_cast<void*>(&num_processed_items), kParallelize4DRangeI,
       kParallelize4DRangeJ, kParallelize4DRangeK, kParallelize4DRangeL,
-      0 /* flags */);
+      /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize4DRangeI * kParallelize4DRangeJ * kParallelize4DRangeK *
                 kParallelize4DRangeL);
@@ -6714,7 +8918,7 @@ TEST(Parallelize4D, MultiThreadPoolWorkStealing) {
       reinterpret_cast<pthreadpool_task_4d_t>(WorkImbalance4D),
       static_cast<void*>(&num_processed_items), kParallelize4DRangeI,
       kParallelize4DRangeJ, kParallelize4DRangeK, kParallelize4DRangeL,
-      0 /* flags */);
+      /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize4DRangeI * kParallelize4DRangeJ * kParallelize4DRangeK *
                 kParallelize4DRangeL);
@@ -6731,7 +8935,7 @@ TEST(Parallelize4DTile1D, SingleThreadPoolCompletes) {
       threadpool.get(), ComputeNothing4DTile1D, nullptr,
       kParallelize4DTile1DRangeI, kParallelize4DTile1DRangeJ,
       kParallelize4DTile1DRangeK, kParallelize4DTile1DRangeL,
-      kParallelize4DTile1DTileL, 0 /* flags */);
+      kParallelize4DTile1DTileL, /*flags=*/0);
 }
 
 TEST(Parallelize4DTile1D, MultiThreadPoolCompletes) {
@@ -6746,7 +8950,7 @@ TEST(Parallelize4DTile1D, MultiThreadPoolCompletes) {
       threadpool.get(), ComputeNothing4DTile1D, nullptr,
       kParallelize4DTile1DRangeI, kParallelize4DTile1DRangeJ,
       kParallelize4DTile1DRangeK, kParallelize4DTile1DRangeL,
-      kParallelize4DTile1DTileL, 0 /* flags */);
+      kParallelize4DTile1DTileL, /*flags=*/0);
 }
 
 static void CheckBounds4DTile1D(void*, size_t i, size_t j, size_t k,
@@ -6766,7 +8970,7 @@ TEST(Parallelize4DTile1D, SingleThreadPoolAllItemsInBounds) {
       threadpool.get(), CheckBounds4DTile1D, nullptr,
       kParallelize4DTile1DRangeI, kParallelize4DTile1DRangeJ,
       kParallelize4DTile1DRangeK, kParallelize4DTile1DRangeL,
-      kParallelize4DTile1DTileL, 0 /* flags */);
+      kParallelize4DTile1DTileL, /*flags=*/0);
 }
 
 TEST(Parallelize4DTile1D, MultiThreadPoolAllItemsInBounds) {
@@ -6781,7 +8985,7 @@ TEST(Parallelize4DTile1D, MultiThreadPoolAllItemsInBounds) {
       threadpool.get(), CheckBounds4DTile1D, nullptr,
       kParallelize4DTile1DRangeI, kParallelize4DTile1DRangeJ,
       kParallelize4DTile1DRangeK, kParallelize4DTile1DRangeL,
-      kParallelize4DTile1DTileL, 0 /* flags */);
+      kParallelize4DTile1DTileL, /*flags=*/0);
 }
 
 static void CheckTiling4DTile1D(void*, size_t i, size_t j, size_t k,
@@ -6801,7 +9005,7 @@ TEST(Parallelize4DTile1D, SingleThreadPoolUniformTiling) {
       threadpool.get(), CheckTiling4DTile1D, nullptr,
       kParallelize4DTile1DRangeI, kParallelize4DTile1DRangeJ,
       kParallelize4DTile1DRangeK, kParallelize4DTile1DRangeL,
-      kParallelize4DTile1DTileL, 0 /* flags */);
+      kParallelize4DTile1DTileL, /*flags=*/0);
 }
 
 TEST(Parallelize4DTile1D, MultiThreadPoolUniformTiling) {
@@ -6816,7 +9020,7 @@ TEST(Parallelize4DTile1D, MultiThreadPoolUniformTiling) {
       threadpool.get(), CheckTiling4DTile1D, nullptr,
       kParallelize4DTile1DRangeI, kParallelize4DTile1DRangeJ,
       kParallelize4DTile1DRangeK, kParallelize4DTile1DRangeL,
-      kParallelize4DTile1DTileL, 0 /* flags */);
+      kParallelize4DTile1DTileL, /*flags=*/0);
 }
 
 static void SetTrue4DTile1D(std::atomic_bool* processed_indicators, size_t i,
@@ -6844,7 +9048,7 @@ TEST(Parallelize4DTile1D, SingleThreadPoolAllItemsProcessed) {
       reinterpret_cast<pthreadpool_task_4d_tile_1d_t>(SetTrue4DTile1D),
       static_cast<void*>(indicators.data()), kParallelize4DTile1DRangeI,
       kParallelize4DTile1DRangeJ, kParallelize4DTile1DRangeK,
-      kParallelize4DTile1DRangeL, kParallelize4DTile1DTileL, 0 /* flags */);
+      kParallelize4DTile1DRangeL, kParallelize4DTile1DTileL, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize4DTile1DRangeI; i++) {
     for (size_t j = 0; j < kParallelize4DTile1DRangeJ; j++) {
@@ -6881,7 +9085,7 @@ TEST(Parallelize4DTile1D, MultiThreadPoolAllItemsProcessed) {
       reinterpret_cast<pthreadpool_task_4d_tile_1d_t>(SetTrue4DTile1D),
       static_cast<void*>(indicators.data()), kParallelize4DTile1DRangeI,
       kParallelize4DTile1DRangeJ, kParallelize4DTile1DRangeK,
-      kParallelize4DTile1DRangeL, kParallelize4DTile1DTileL, 0 /* flags */);
+      kParallelize4DTile1DRangeL, kParallelize4DTile1DTileL, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize4DTile1DRangeI; i++) {
     for (size_t j = 0; j < kParallelize4DTile1DRangeJ; j++) {
@@ -6927,7 +9131,7 @@ TEST(Parallelize4DTile1D, SingleThreadPoolEachItemProcessedOnce) {
       reinterpret_cast<pthreadpool_task_4d_tile_1d_t>(Increment4DTile1D),
       static_cast<void*>(counters.data()), kParallelize4DTile1DRangeI,
       kParallelize4DTile1DRangeJ, kParallelize4DTile1DRangeK,
-      kParallelize4DTile1DRangeL, kParallelize4DTile1DTileL, 0 /* flags */);
+      kParallelize4DTile1DRangeL, kParallelize4DTile1DTileL, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize4DTile1DRangeI; i++) {
     for (size_t j = 0; j < kParallelize4DTile1DRangeJ; j++) {
@@ -6966,7 +9170,7 @@ TEST(Parallelize4DTile1D, MultiThreadPoolEachItemProcessedOnce) {
       reinterpret_cast<pthreadpool_task_4d_tile_1d_t>(Increment4DTile1D),
       static_cast<void*>(counters.data()), kParallelize4DTile1DRangeI,
       kParallelize4DTile1DRangeJ, kParallelize4DTile1DRangeK,
-      kParallelize4DTile1DRangeL, kParallelize4DTile1DTileL, 0 /* flags */);
+      kParallelize4DTile1DRangeL, kParallelize4DTile1DTileL, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize4DTile1DRangeI; i++) {
     for (size_t j = 0; j < kParallelize4DTile1DRangeJ; j++) {
@@ -7002,7 +9206,7 @@ TEST(Parallelize4DTile1D, SingleThreadPoolEachItemProcessedMultipleTimes) {
         reinterpret_cast<pthreadpool_task_4d_tile_1d_t>(Increment4DTile1D),
         static_cast<void*>(counters.data()), kParallelize4DTile1DRangeI,
         kParallelize4DTile1DRangeJ, kParallelize4DTile1DRangeK,
-        kParallelize4DTile1DRangeL, kParallelize4DTile1DTileL, 0 /* flags */);
+        kParallelize4DTile1DRangeL, kParallelize4DTile1DTileL, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize4DTile1DRangeI; i++) {
@@ -7045,7 +9249,7 @@ TEST(Parallelize4DTile1D, MultiThreadPoolEachItemProcessedMultipleTimes) {
         reinterpret_cast<pthreadpool_task_4d_tile_1d_t>(Increment4DTile1D),
         static_cast<void*>(counters.data()), kParallelize4DTile1DRangeI,
         kParallelize4DTile1DRangeJ, kParallelize4DTile1DRangeK,
-        kParallelize4DTile1DRangeL, kParallelize4DTile1DTileL, 0 /* flags */);
+        kParallelize4DTile1DRangeL, kParallelize4DTile1DTileL, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize4DTile1DRangeI; i++) {
@@ -7093,7 +9297,7 @@ TEST(Parallelize4DTile1D, MultiThreadPoolHighContention) {
       reinterpret_cast<pthreadpool_task_4d_tile_1d_t>(IncrementSame4DTile1D),
       static_cast<void*>(&num_processed_items), kParallelize4DTile1DRangeI,
       kParallelize4DTile1DRangeJ, kParallelize4DTile1DRangeK,
-      kParallelize4DTile1DRangeL, kParallelize4DTile1DTileL, 0 /* flags */);
+      kParallelize4DTile1DRangeL, kParallelize4DTile1DTileL, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize4DTile1DRangeI * kParallelize4DTile1DRangeJ *
                 kParallelize4DTile1DRangeK * kParallelize4DTile1DRangeL);
@@ -7128,7 +9332,7 @@ TEST(Parallelize4DTile1D, MultiThreadPoolWorkStealing) {
       reinterpret_cast<pthreadpool_task_4d_tile_1d_t>(WorkImbalance4DTile1D),
       static_cast<void*>(&num_processed_items), kParallelize4DTile1DRangeI,
       kParallelize4DTile1DRangeJ, kParallelize4DTile1DRangeK,
-      kParallelize4DTile1DRangeL, kParallelize4DTile1DTileL, 0 /* flags */);
+      kParallelize4DTile1DRangeL, kParallelize4DTile1DTileL, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize4DTile1DRangeI * kParallelize4DTile1DRangeJ *
                 kParallelize4DTile1DRangeK * kParallelize4DTile1DRangeL);
@@ -7145,7 +9349,7 @@ TEST(Parallelize4DTile2D, SingleThreadPoolCompletes) {
       threadpool.get(), ComputeNothing4DTile2D, nullptr,
       kParallelize4DTile2DRangeI, kParallelize4DTile2DRangeJ,
       kParallelize4DTile2DRangeK, kParallelize4DTile2DRangeL,
-      kParallelize4DTile2DTileK, kParallelize4DTile2DTileL, 0 /* flags */);
+      kParallelize4DTile2DTileK, kParallelize4DTile2DTileL, /*flags=*/0);
 }
 
 TEST(Parallelize4DTile2D, MultiThreadPoolCompletes) {
@@ -7160,7 +9364,7 @@ TEST(Parallelize4DTile2D, MultiThreadPoolCompletes) {
       threadpool.get(), ComputeNothing4DTile2D, nullptr,
       kParallelize4DTile2DRangeI, kParallelize4DTile2DRangeJ,
       kParallelize4DTile2DRangeK, kParallelize4DTile2DRangeL,
-      kParallelize4DTile2DTileK, kParallelize4DTile2DTileL, 0 /* flags */);
+      kParallelize4DTile2DTileK, kParallelize4DTile2DTileL, /*flags=*/0);
 }
 
 static void CheckBounds4DTile2D(void*, size_t i, size_t j, size_t start_k,
@@ -7181,7 +9385,7 @@ TEST(Parallelize4DTile2D, SingleThreadPoolAllItemsInBounds) {
       threadpool.get(), CheckBounds4DTile2D, nullptr,
       kParallelize4DTile2DRangeI, kParallelize4DTile2DRangeJ,
       kParallelize4DTile2DRangeK, kParallelize4DTile2DRangeL,
-      kParallelize4DTile2DTileK, kParallelize4DTile2DTileL, 0 /* flags */);
+      kParallelize4DTile2DTileK, kParallelize4DTile2DTileL, /*flags=*/0);
 }
 
 TEST(Parallelize4DTile2D, MultiThreadPoolAllItemsInBounds) {
@@ -7196,7 +9400,7 @@ TEST(Parallelize4DTile2D, MultiThreadPoolAllItemsInBounds) {
       threadpool.get(), CheckBounds4DTile2D, nullptr,
       kParallelize4DTile2DRangeI, kParallelize4DTile2DRangeJ,
       kParallelize4DTile2DRangeK, kParallelize4DTile2DRangeL,
-      kParallelize4DTile2DTileK, kParallelize4DTile2DTileL, 0 /* flags */);
+      kParallelize4DTile2DTileK, kParallelize4DTile2DTileL, /*flags=*/0);
 }
 
 static void CheckTiling4DTile2D(void*, size_t i, size_t j, size_t start_k,
@@ -7222,7 +9426,7 @@ TEST(Parallelize4DTile2D, SingleThreadPoolUniformTiling) {
       threadpool.get(), CheckTiling4DTile2D, nullptr,
       kParallelize4DTile2DRangeI, kParallelize4DTile2DRangeJ,
       kParallelize4DTile2DRangeK, kParallelize4DTile2DRangeL,
-      kParallelize4DTile2DTileK, kParallelize4DTile2DTileL, 0 /* flags */);
+      kParallelize4DTile2DTileK, kParallelize4DTile2DTileL, /*flags=*/0);
 }
 
 TEST(Parallelize4DTile2D, MultiThreadPoolUniformTiling) {
@@ -7237,7 +9441,7 @@ TEST(Parallelize4DTile2D, MultiThreadPoolUniformTiling) {
       threadpool.get(), CheckTiling4DTile2D, nullptr,
       kParallelize4DTile2DRangeI, kParallelize4DTile2DRangeJ,
       kParallelize4DTile2DRangeK, kParallelize4DTile2DRangeL,
-      kParallelize4DTile2DTileK, kParallelize4DTile2DTileL, 0 /* flags */);
+      kParallelize4DTile2DTileK, kParallelize4DTile2DTileL, /*flags=*/0);
 }
 
 static void SetTrue4DTile2D(std::atomic_bool* processed_indicators, size_t i,
@@ -7269,7 +9473,7 @@ TEST(Parallelize4DTile2D, SingleThreadPoolAllItemsProcessed) {
       static_cast<void*>(indicators.data()), kParallelize4DTile2DRangeI,
       kParallelize4DTile2DRangeJ, kParallelize4DTile2DRangeK,
       kParallelize4DTile2DRangeL, kParallelize4DTile2DTileK,
-      kParallelize4DTile2DTileL, 0 /* flags */);
+      kParallelize4DTile2DTileL, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize4DTile2DRangeI; i++) {
     for (size_t j = 0; j < kParallelize4DTile2DRangeJ; j++) {
@@ -7307,7 +9511,7 @@ TEST(Parallelize4DTile2D, MultiThreadPoolAllItemsProcessed) {
       static_cast<void*>(indicators.data()), kParallelize4DTile2DRangeI,
       kParallelize4DTile2DRangeJ, kParallelize4DTile2DRangeK,
       kParallelize4DTile2DRangeL, kParallelize4DTile2DTileK,
-      kParallelize4DTile2DTileL, 0 /* flags */);
+      kParallelize4DTile2DTileL, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize4DTile2DRangeI; i++) {
     for (size_t j = 0; j < kParallelize4DTile2DRangeJ; j++) {
@@ -7356,7 +9560,7 @@ TEST(Parallelize4DTile2D, SingleThreadPoolEachItemProcessedOnce) {
       static_cast<void*>(counters.data()), kParallelize4DTile2DRangeI,
       kParallelize4DTile2DRangeJ, kParallelize4DTile2DRangeK,
       kParallelize4DTile2DRangeL, kParallelize4DTile2DTileK,
-      kParallelize4DTile2DTileL, 0 /* flags */);
+      kParallelize4DTile2DTileL, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize4DTile2DRangeI; i++) {
     for (size_t j = 0; j < kParallelize4DTile2DRangeJ; j++) {
@@ -7396,7 +9600,7 @@ TEST(Parallelize4DTile2D, MultiThreadPoolEachItemProcessedOnce) {
       static_cast<void*>(counters.data()), kParallelize4DTile2DRangeI,
       kParallelize4DTile2DRangeJ, kParallelize4DTile2DRangeK,
       kParallelize4DTile2DRangeL, kParallelize4DTile2DTileK,
-      kParallelize4DTile2DTileL, 0 /* flags */);
+      kParallelize4DTile2DTileL, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize4DTile2DRangeI; i++) {
     for (size_t j = 0; j < kParallelize4DTile2DRangeJ; j++) {
@@ -7433,7 +9637,7 @@ TEST(Parallelize4DTile2D, SingleThreadPoolEachItemProcessedMultipleTimes) {
         static_cast<void*>(counters.data()), kParallelize4DTile2DRangeI,
         kParallelize4DTile2DRangeJ, kParallelize4DTile2DRangeK,
         kParallelize4DTile2DRangeL, kParallelize4DTile2DTileK,
-        kParallelize4DTile2DTileL, 0 /* flags */);
+        kParallelize4DTile2DTileL, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize4DTile2DRangeI; i++) {
@@ -7477,7 +9681,7 @@ TEST(Parallelize4DTile2D, MultiThreadPoolEachItemProcessedMultipleTimes) {
         static_cast<void*>(counters.data()), kParallelize4DTile2DRangeI,
         kParallelize4DTile2DRangeJ, kParallelize4DTile2DRangeK,
         kParallelize4DTile2DRangeL, kParallelize4DTile2DTileK,
-        kParallelize4DTile2DTileL, 0 /* flags */);
+        kParallelize4DTile2DTileL, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize4DTile2DRangeI; i++) {
@@ -7529,7 +9733,7 @@ TEST(Parallelize4DTile2D, MultiThreadPoolHighContention) {
       static_cast<void*>(&num_processed_items), kParallelize4DTile2DRangeI,
       kParallelize4DTile2DRangeJ, kParallelize4DTile2DRangeK,
       kParallelize4DTile2DRangeL, kParallelize4DTile2DTileK,
-      kParallelize4DTile2DTileL, 0 /* flags */);
+      kParallelize4DTile2DTileL, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize4DTile2DRangeI * kParallelize4DTile2DRangeJ *
                 kParallelize4DTile2DRangeK * kParallelize4DTile2DRangeL);
@@ -7566,7 +9770,7 @@ TEST(Parallelize4DTile2D, MultiThreadPoolWorkStealing) {
       static_cast<void*>(&num_processed_items), kParallelize4DTile2DRangeI,
       kParallelize4DTile2DRangeJ, kParallelize4DTile2DRangeK,
       kParallelize4DTile2DRangeL, kParallelize4DTile2DTileK,
-      kParallelize4DTile2DTileL, 0 /* flags */);
+      kParallelize4DTile2DTileL, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize4DTile2DRangeI * kParallelize4DTile2DRangeJ *
                 kParallelize4DTile2DRangeK * kParallelize4DTile2DRangeL);
@@ -7584,7 +9788,7 @@ TEST(Parallelize4DTile2DWithUArch, SingleThreadPoolCompletes) {
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize4DTile2DRangeI,
       kParallelize4DTile2DRangeJ, kParallelize4DTile2DRangeK,
       kParallelize4DTile2DRangeL, kParallelize4DTile2DTileK,
-      kParallelize4DTile2DTileL, 0 /* flags */);
+      kParallelize4DTile2DTileL, /*flags=*/0);
 }
 
 TEST(Parallelize4DTile2DWithUArch, MultiThreadPoolCompletes) {
@@ -7600,7 +9804,7 @@ TEST(Parallelize4DTile2DWithUArch, MultiThreadPoolCompletes) {
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize4DTile2DRangeI,
       kParallelize4DTile2DRangeJ, kParallelize4DTile2DRangeK,
       kParallelize4DTile2DRangeL, kParallelize4DTile2DTileK,
-      kParallelize4DTile2DTileL, 0 /* flags */);
+      kParallelize4DTile2DTileL, /*flags=*/0);
 }
 
 static void CheckUArch4DTile2DWithUArch(void*, uint32_t uarch_index, size_t,
@@ -7620,7 +9824,7 @@ TEST(Parallelize4DTile2DWithUArch, SingleThreadPoolUArchInBounds) {
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize4DTile2DRangeI,
       kParallelize4DTile2DRangeJ, kParallelize4DTile2DRangeK,
       kParallelize4DTile2DRangeL, kParallelize4DTile2DTileK,
-      kParallelize4DTile2DTileL, 0 /* flags */);
+      kParallelize4DTile2DTileL, /*flags=*/0);
 }
 
 TEST(Parallelize4DTile2DWithUArch, MultiThreadPoolUArchInBounds) {
@@ -7636,7 +9840,7 @@ TEST(Parallelize4DTile2DWithUArch, MultiThreadPoolUArchInBounds) {
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize4DTile2DRangeI,
       kParallelize4DTile2DRangeJ, kParallelize4DTile2DRangeK,
       kParallelize4DTile2DRangeL, kParallelize4DTile2DTileK,
-      kParallelize4DTile2DTileL, 0 /* flags */);
+      kParallelize4DTile2DTileL, /*flags=*/0);
 }
 
 static void CheckBounds4DTile2DWithUArch(void*, uint32_t, size_t i, size_t j,
@@ -7659,7 +9863,7 @@ TEST(Parallelize4DTile2DWithUArch, SingleThreadPoolAllItemsInBounds) {
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize4DTile2DRangeI,
       kParallelize4DTile2DRangeJ, kParallelize4DTile2DRangeK,
       kParallelize4DTile2DRangeL, kParallelize4DTile2DTileK,
-      kParallelize4DTile2DTileL, 0 /* flags */);
+      kParallelize4DTile2DTileL, /*flags=*/0);
 }
 
 TEST(Parallelize4DTile2DWithUArch, MultiThreadPoolAllItemsInBounds) {
@@ -7675,7 +9879,7 @@ TEST(Parallelize4DTile2DWithUArch, MultiThreadPoolAllItemsInBounds) {
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize4DTile2DRangeI,
       kParallelize4DTile2DRangeJ, kParallelize4DTile2DRangeK,
       kParallelize4DTile2DRangeL, kParallelize4DTile2DTileK,
-      kParallelize4DTile2DTileL, 0 /* flags */);
+      kParallelize4DTile2DTileL, /*flags=*/0);
 }
 
 static void CheckTiling4DTile2DWithUArch(void*, uint32_t, size_t i, size_t j,
@@ -7703,7 +9907,7 @@ TEST(Parallelize4DTile2DWithUArch, SingleThreadPoolUniformTiling) {
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize4DTile2DRangeI,
       kParallelize4DTile2DRangeJ, kParallelize4DTile2DRangeK,
       kParallelize4DTile2DRangeL, kParallelize4DTile2DTileK,
-      kParallelize4DTile2DTileL, 0 /* flags */);
+      kParallelize4DTile2DTileL, /*flags=*/0);
 }
 
 TEST(Parallelize4DTile2DWithUArch, MultiThreadPoolUniformTiling) {
@@ -7719,7 +9923,7 @@ TEST(Parallelize4DTile2DWithUArch, MultiThreadPoolUniformTiling) {
       kDefaultUArchIndex, kMaxUArchIndex, kParallelize4DTile2DRangeI,
       kParallelize4DTile2DRangeJ, kParallelize4DTile2DRangeK,
       kParallelize4DTile2DRangeL, kParallelize4DTile2DTileK,
-      kParallelize4DTile2DTileL, 0 /* flags */);
+      kParallelize4DTile2DTileL, /*flags=*/0);
 }
 
 static void SetTrue4DTile2DWithUArch(std::atomic_bool* processed_indicators,
@@ -7753,7 +9957,7 @@ TEST(Parallelize4DTile2DWithUArch, SingleThreadPoolAllItemsProcessed) {
       static_cast<void*>(indicators.data()), kDefaultUArchIndex, kMaxUArchIndex,
       kParallelize4DTile2DRangeI, kParallelize4DTile2DRangeJ,
       kParallelize4DTile2DRangeK, kParallelize4DTile2DRangeL,
-      kParallelize4DTile2DTileK, kParallelize4DTile2DTileL, 0 /* flags */);
+      kParallelize4DTile2DTileK, kParallelize4DTile2DTileL, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize4DTile2DRangeI; i++) {
     for (size_t j = 0; j < kParallelize4DTile2DRangeJ; j++) {
@@ -7792,7 +9996,7 @@ TEST(Parallelize4DTile2DWithUArch, MultiThreadPoolAllItemsProcessed) {
       static_cast<void*>(indicators.data()), kDefaultUArchIndex, kMaxUArchIndex,
       kParallelize4DTile2DRangeI, kParallelize4DTile2DRangeJ,
       kParallelize4DTile2DRangeK, kParallelize4DTile2DRangeL,
-      kParallelize4DTile2DTileK, kParallelize4DTile2DTileL, 0 /* flags */);
+      kParallelize4DTile2DTileK, kParallelize4DTile2DTileL, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize4DTile2DRangeI; i++) {
     for (size_t j = 0; j < kParallelize4DTile2DRangeJ; j++) {
@@ -7843,7 +10047,7 @@ TEST(Parallelize4DTile2DWithUArch, SingleThreadPoolEachItemProcessedOnce) {
       static_cast<void*>(counters.data()), kDefaultUArchIndex, kMaxUArchIndex,
       kParallelize4DTile2DRangeI, kParallelize4DTile2DRangeJ,
       kParallelize4DTile2DRangeK, kParallelize4DTile2DRangeL,
-      kParallelize4DTile2DTileK, kParallelize4DTile2DTileL, 0 /* flags */);
+      kParallelize4DTile2DTileK, kParallelize4DTile2DTileL, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize4DTile2DRangeI; i++) {
     for (size_t j = 0; j < kParallelize4DTile2DRangeJ; j++) {
@@ -7884,7 +10088,7 @@ TEST(Parallelize4DTile2DWithUArch, MultiThreadPoolEachItemProcessedOnce) {
       static_cast<void*>(counters.data()), kDefaultUArchIndex, kMaxUArchIndex,
       kParallelize4DTile2DRangeI, kParallelize4DTile2DRangeJ,
       kParallelize4DTile2DRangeK, kParallelize4DTile2DRangeL,
-      kParallelize4DTile2DTileK, kParallelize4DTile2DTileL, 0 /* flags */);
+      kParallelize4DTile2DTileK, kParallelize4DTile2DTileL, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize4DTile2DRangeI; i++) {
     for (size_t j = 0; j < kParallelize4DTile2DRangeJ; j++) {
@@ -7923,7 +10127,7 @@ TEST(Parallelize4DTile2DWithUArch,
         static_cast<void*>(counters.data()), kDefaultUArchIndex, kMaxUArchIndex,
         kParallelize4DTile2DRangeI, kParallelize4DTile2DRangeJ,
         kParallelize4DTile2DRangeK, kParallelize4DTile2DRangeL,
-        kParallelize4DTile2DTileK, kParallelize4DTile2DTileL, 0 /* flags */);
+        kParallelize4DTile2DTileK, kParallelize4DTile2DTileL, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize4DTile2DRangeI; i++) {
@@ -7969,7 +10173,7 @@ TEST(Parallelize4DTile2DWithUArch,
         static_cast<void*>(counters.data()), kDefaultUArchIndex, kMaxUArchIndex,
         kParallelize4DTile2DRangeI, kParallelize4DTile2DRangeJ,
         kParallelize4DTile2DRangeK, kParallelize4DTile2DRangeL,
-        kParallelize4DTile2DTileK, kParallelize4DTile2DTileL, 0 /* flags */);
+        kParallelize4DTile2DTileK, kParallelize4DTile2DTileL, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize4DTile2DRangeI; i++) {
@@ -8022,7 +10226,7 @@ TEST(Parallelize4DTile2DWithUArch, MultiThreadPoolHighContention) {
       static_cast<void*>(&num_processed_items), kDefaultUArchIndex,
       kMaxUArchIndex, kParallelize4DTile2DRangeI, kParallelize4DTile2DRangeJ,
       kParallelize4DTile2DRangeK, kParallelize4DTile2DRangeL,
-      kParallelize4DTile2DTileK, kParallelize4DTile2DTileL, 0 /* flags */);
+      kParallelize4DTile2DTileK, kParallelize4DTile2DTileL, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize4DTile2DRangeI * kParallelize4DTile2DRangeJ *
                 kParallelize4DTile2DRangeK * kParallelize4DTile2DRangeL);
@@ -8060,7 +10264,7 @@ TEST(Parallelize4DTile2DWithUArch, MultiThreadPoolWorkStealing) {
       static_cast<void*>(&num_processed_items), kDefaultUArchIndex,
       kMaxUArchIndex, kParallelize4DTile2DRangeI, kParallelize4DTile2DRangeJ,
       kParallelize4DTile2DRangeK, kParallelize4DTile2DRangeL,
-      kParallelize4DTile2DTileK, kParallelize4DTile2DTileL, 0 /* flags */);
+      kParallelize4DTile2DTileK, kParallelize4DTile2DTileL, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize4DTile2DRangeI * kParallelize4DTile2DRangeJ *
                 kParallelize4DTile2DRangeK * kParallelize4DTile2DRangeL);
@@ -8075,7 +10279,7 @@ TEST(Parallelize5D, SingleThreadPoolCompletes) {
   pthreadpool_parallelize_5d(threadpool.get(), ComputeNothing5D, nullptr,
                              kParallelize5DRangeI, kParallelize5DRangeJ,
                              kParallelize5DRangeK, kParallelize5DRangeL,
-                             kParallelize5DRangeM, 0 /* flags */);
+                             kParallelize5DRangeM, /*flags=*/0);
 }
 
 TEST(Parallelize5D, MultiThreadPoolCompletes) {
@@ -8089,7 +10293,7 @@ TEST(Parallelize5D, MultiThreadPoolCompletes) {
   pthreadpool_parallelize_5d(threadpool.get(), ComputeNothing5D, nullptr,
                              kParallelize5DRangeI, kParallelize5DRangeJ,
                              kParallelize5DRangeK, kParallelize5DRangeL,
-                             kParallelize5DRangeM, 0 /* flags */);
+                             kParallelize5DRangeM, /*flags=*/0);
 }
 
 static void CheckBounds5D(void*, size_t i, size_t j, size_t k, size_t l,
@@ -8108,7 +10312,7 @@ TEST(Parallelize5D, SingleThreadPoolAllItemsInBounds) {
   pthreadpool_parallelize_5d(threadpool.get(), CheckBounds5D, nullptr,
                              kParallelize5DRangeI, kParallelize5DRangeJ,
                              kParallelize5DRangeK, kParallelize5DRangeL,
-                             kParallelize5DRangeM, 0 /* flags */);
+                             kParallelize5DRangeM, /*flags=*/0);
 }
 
 TEST(Parallelize5D, MultiThreadPoolAllItemsInBounds) {
@@ -8122,7 +10326,7 @@ TEST(Parallelize5D, MultiThreadPoolAllItemsInBounds) {
   pthreadpool_parallelize_5d(threadpool.get(), CheckBounds5D, nullptr,
                              kParallelize5DRangeI, kParallelize5DRangeJ,
                              kParallelize5DRangeK, kParallelize5DRangeL,
-                             kParallelize5DRangeM, 0 /* flags */);
+                             kParallelize5DRangeM, /*flags=*/0);
 }
 
 static void SetTrue5D(std::atomic_bool* processed_indicators, size_t i,
@@ -8148,7 +10352,7 @@ TEST(Parallelize5D, SingleThreadPoolAllItemsProcessed) {
       threadpool.get(), reinterpret_cast<pthreadpool_task_5d_t>(SetTrue5D),
       static_cast<void*>(indicators.data()), kParallelize5DRangeI,
       kParallelize5DRangeJ, kParallelize5DRangeK, kParallelize5DRangeL,
-      kParallelize5DRangeM, 0 /* flags */);
+      kParallelize5DRangeM, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize5DRangeI; i++) {
     for (size_t j = 0; j < kParallelize5DRangeJ; j++) {
@@ -8187,7 +10391,7 @@ TEST(Parallelize5D, MultiThreadPoolAllItemsProcessed) {
       threadpool.get(), reinterpret_cast<pthreadpool_task_5d_t>(SetTrue5D),
       static_cast<void*>(indicators.data()), kParallelize5DRangeI,
       kParallelize5DRangeJ, kParallelize5DRangeK, kParallelize5DRangeL,
-      kParallelize5DRangeM, 0 /* flags */);
+      kParallelize5DRangeM, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize5DRangeI; i++) {
     for (size_t j = 0; j < kParallelize5DRangeJ; j++) {
@@ -8233,7 +10437,7 @@ TEST(Parallelize5D, SingleThreadPoolEachItemProcessedOnce) {
       threadpool.get(), reinterpret_cast<pthreadpool_task_5d_t>(Increment5D),
       static_cast<void*>(counters.data()), kParallelize5DRangeI,
       kParallelize5DRangeJ, kParallelize5DRangeK, kParallelize5DRangeL,
-      kParallelize5DRangeM, 0 /* flags */);
+      kParallelize5DRangeM, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize5DRangeI; i++) {
     for (size_t j = 0; j < kParallelize5DRangeJ; j++) {
@@ -8274,7 +10478,7 @@ TEST(Parallelize5D, MultiThreadPoolEachItemProcessedOnce) {
       threadpool.get(), reinterpret_cast<pthreadpool_task_5d_t>(Increment5D),
       static_cast<void*>(counters.data()), kParallelize5DRangeI,
       kParallelize5DRangeJ, kParallelize5DRangeK, kParallelize5DRangeL,
-      kParallelize5DRangeM, 0 /* flags */);
+      kParallelize5DRangeM, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize5DRangeI; i++) {
     for (size_t j = 0; j < kParallelize5DRangeJ; j++) {
@@ -8312,7 +10516,7 @@ TEST(Parallelize5D, SingleThreadPoolEachItemProcessedMultipleTimes) {
         threadpool.get(), reinterpret_cast<pthreadpool_task_5d_t>(Increment5D),
         static_cast<void*>(counters.data()), kParallelize5DRangeI,
         kParallelize5DRangeJ, kParallelize5DRangeK, kParallelize5DRangeL,
-        kParallelize5DRangeM, 0 /* flags */);
+        kParallelize5DRangeM, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize5DRangeI; i++) {
@@ -8357,7 +10561,7 @@ TEST(Parallelize5D, MultiThreadPoolEachItemProcessedMultipleTimes) {
         threadpool.get(), reinterpret_cast<pthreadpool_task_5d_t>(Increment5D),
         static_cast<void*>(counters.data()), kParallelize5DRangeI,
         kParallelize5DRangeJ, kParallelize5DRangeK, kParallelize5DRangeL,
-        kParallelize5DRangeM, 0 /* flags */);
+        kParallelize5DRangeM, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize5DRangeI; i++) {
@@ -8405,7 +10609,7 @@ TEST(Parallelize5D, MultiThreadPoolHighContention) {
       reinterpret_cast<pthreadpool_task_5d_t>(IncrementSame5D),
       static_cast<void*>(&num_processed_items), kParallelize5DRangeI,
       kParallelize5DRangeJ, kParallelize5DRangeK, kParallelize5DRangeL,
-      kParallelize5DRangeM, 0 /* flags */);
+      kParallelize5DRangeM, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize5DRangeI * kParallelize5DRangeJ * kParallelize5DRangeK *
                 kParallelize5DRangeL * kParallelize5DRangeM);
@@ -8439,7 +10643,7 @@ TEST(Parallelize5D, MultiThreadPoolWorkStealing) {
       reinterpret_cast<pthreadpool_task_5d_t>(WorkImbalance5D),
       static_cast<void*>(&num_processed_items), kParallelize5DRangeI,
       kParallelize5DRangeJ, kParallelize5DRangeK, kParallelize5DRangeL,
-      kParallelize5DRangeM, 0 /* flags */);
+      kParallelize5DRangeM, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize5DRangeI * kParallelize5DRangeJ * kParallelize5DRangeK *
                 kParallelize5DRangeL * kParallelize5DRangeM);
@@ -8456,7 +10660,7 @@ TEST(Parallelize5DTile1D, SingleThreadPoolCompletes) {
       threadpool.get(), ComputeNothing5DTile1D, nullptr,
       kParallelize5DTile1DRangeI, kParallelize5DTile1DRangeJ,
       kParallelize5DTile1DRangeK, kParallelize5DTile1DRangeL,
-      kParallelize5DTile1DRangeM, kParallelize5DTile1DTileM, 0 /* flags */);
+      kParallelize5DTile1DRangeM, kParallelize5DTile1DTileM, /*flags=*/0);
 }
 
 TEST(Parallelize5DTile1D, MultiThreadPoolCompletes) {
@@ -8471,7 +10675,7 @@ TEST(Parallelize5DTile1D, MultiThreadPoolCompletes) {
       threadpool.get(), ComputeNothing5DTile1D, nullptr,
       kParallelize5DTile1DRangeI, kParallelize5DTile1DRangeJ,
       kParallelize5DTile1DRangeK, kParallelize5DTile1DRangeL,
-      kParallelize5DTile1DRangeM, kParallelize5DTile1DTileM, 0 /* flags */);
+      kParallelize5DTile1DRangeM, kParallelize5DTile1DTileM, /*flags=*/0);
 }
 
 static void CheckBounds5DTile1D(void*, size_t i, size_t j, size_t k, size_t l,
@@ -8492,7 +10696,7 @@ TEST(Parallelize5DTile1D, SingleThreadPoolAllItemsInBounds) {
       threadpool.get(), CheckBounds5DTile1D, nullptr,
       kParallelize5DTile1DRangeI, kParallelize5DTile1DRangeJ,
       kParallelize5DTile1DRangeK, kParallelize5DTile1DRangeL,
-      kParallelize5DTile1DRangeM, kParallelize5DTile1DTileM, 0 /* flags */);
+      kParallelize5DTile1DRangeM, kParallelize5DTile1DTileM, /*flags=*/0);
 }
 
 TEST(Parallelize5DTile1D, MultiThreadPoolAllItemsInBounds) {
@@ -8507,7 +10711,7 @@ TEST(Parallelize5DTile1D, MultiThreadPoolAllItemsInBounds) {
       threadpool.get(), CheckBounds5DTile1D, nullptr,
       kParallelize5DTile1DRangeI, kParallelize5DTile1DRangeJ,
       kParallelize5DTile1DRangeK, kParallelize5DTile1DRangeL,
-      kParallelize5DTile1DRangeM, kParallelize5DTile1DTileM, 0 /* flags */);
+      kParallelize5DTile1DRangeM, kParallelize5DTile1DTileM, /*flags=*/0);
 }
 
 static void CheckTiling5DTile1D(void*, size_t i, size_t j, size_t k, size_t l,
@@ -8527,7 +10731,7 @@ TEST(Parallelize5DTile1D, SingleThreadPoolUniformTiling) {
       threadpool.get(), CheckTiling5DTile1D, nullptr,
       kParallelize5DTile1DRangeI, kParallelize5DTile1DRangeJ,
       kParallelize5DTile1DRangeK, kParallelize5DTile1DRangeL,
-      kParallelize5DTile1DRangeM, kParallelize5DTile1DTileM, 0 /* flags */);
+      kParallelize5DTile1DRangeM, kParallelize5DTile1DTileM, /*flags=*/0);
 }
 
 TEST(Parallelize5DTile1D, MultiThreadPoolUniformTiling) {
@@ -8542,7 +10746,7 @@ TEST(Parallelize5DTile1D, MultiThreadPoolUniformTiling) {
       threadpool.get(), CheckTiling5DTile1D, nullptr,
       kParallelize5DTile1DRangeI, kParallelize5DTile1DRangeJ,
       kParallelize5DTile1DRangeK, kParallelize5DTile1DRangeL,
-      kParallelize5DTile1DRangeM, kParallelize5DTile1DTileM, 0 /* flags */);
+      kParallelize5DTile1DRangeM, kParallelize5DTile1DTileM, /*flags=*/0);
 }
 
 static void SetTrue5DTile1D(std::atomic_bool* processed_indicators, size_t i,
@@ -8575,7 +10779,7 @@ TEST(Parallelize5DTile1D, SingleThreadPoolAllItemsProcessed) {
       static_cast<void*>(indicators.data()), kParallelize5DTile1DRangeI,
       kParallelize5DTile1DRangeJ, kParallelize5DTile1DRangeK,
       kParallelize5DTile1DRangeL, kParallelize5DTile1DRangeM,
-      kParallelize5DTile1DTileM, 0 /* flags */);
+      kParallelize5DTile1DTileM, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize5DTile1DRangeI; i++) {
     for (size_t j = 0; j < kParallelize5DTile1DRangeJ; j++) {
@@ -8618,7 +10822,7 @@ TEST(Parallelize5DTile1D, MultiThreadPoolAllItemsProcessed) {
       static_cast<void*>(indicators.data()), kParallelize5DTile1DRangeI,
       kParallelize5DTile1DRangeJ, kParallelize5DTile1DRangeK,
       kParallelize5DTile1DRangeL, kParallelize5DTile1DRangeM,
-      kParallelize5DTile1DTileM, 0 /* flags */);
+      kParallelize5DTile1DTileM, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize5DTile1DRangeI; i++) {
     for (size_t j = 0; j < kParallelize5DTile1DRangeJ; j++) {
@@ -8672,7 +10876,7 @@ TEST(Parallelize5DTile1D, SingleThreadPoolEachItemProcessedOnce) {
       static_cast<void*>(counters.data()), kParallelize5DTile1DRangeI,
       kParallelize5DTile1DRangeJ, kParallelize5DTile1DRangeK,
       kParallelize5DTile1DRangeL, kParallelize5DTile1DRangeM,
-      kParallelize5DTile1DTileM, 0 /* flags */);
+      kParallelize5DTile1DTileM, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize5DTile1DRangeI; i++) {
     for (size_t j = 0; j < kParallelize5DTile1DRangeJ; j++) {
@@ -8717,7 +10921,7 @@ TEST(Parallelize5DTile1D, MultiThreadPoolEachItemProcessedOnce) {
       static_cast<void*>(counters.data()), kParallelize5DTile1DRangeI,
       kParallelize5DTile1DRangeJ, kParallelize5DTile1DRangeK,
       kParallelize5DTile1DRangeL, kParallelize5DTile1DRangeM,
-      kParallelize5DTile1DTileM, 0 /* flags */);
+      kParallelize5DTile1DTileM, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize5DTile1DRangeI; i++) {
     for (size_t j = 0; j < kParallelize5DTile1DRangeJ; j++) {
@@ -8759,7 +10963,7 @@ TEST(Parallelize5DTile1D, SingleThreadPoolEachItemProcessedMultipleTimes) {
         static_cast<void*>(counters.data()), kParallelize5DTile1DRangeI,
         kParallelize5DTile1DRangeJ, kParallelize5DTile1DRangeK,
         kParallelize5DTile1DRangeL, kParallelize5DTile1DRangeM,
-        kParallelize5DTile1DTileM, 0 /* flags */);
+        kParallelize5DTile1DTileM, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize5DTile1DRangeI; i++) {
@@ -8808,7 +11012,7 @@ TEST(Parallelize5DTile1D, MultiThreadPoolEachItemProcessedMultipleTimes) {
         static_cast<void*>(counters.data()), kParallelize5DTile1DRangeI,
         kParallelize5DTile1DRangeJ, kParallelize5DTile1DRangeK,
         kParallelize5DTile1DRangeL, kParallelize5DTile1DRangeM,
-        kParallelize5DTile1DTileM, 0 /* flags */);
+        kParallelize5DTile1DTileM, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize5DTile1DRangeI; i++) {
@@ -8861,7 +11065,7 @@ TEST(Parallelize5DTile1D, MultiThreadPoolHighContention) {
       static_cast<void*>(&num_processed_items), kParallelize5DTile1DRangeI,
       kParallelize5DTile1DRangeJ, kParallelize5DTile1DRangeK,
       kParallelize5DTile1DRangeL, kParallelize5DTile1DRangeM,
-      kParallelize5DTile1DTileM, 0 /* flags */);
+      kParallelize5DTile1DTileM, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize5DTile1DRangeI * kParallelize5DTile1DRangeJ *
                 kParallelize5DTile1DRangeK * kParallelize5DTile1DRangeL *
@@ -8899,7 +11103,7 @@ TEST(Parallelize5DTile1D, MultiThreadPoolWorkStealing) {
       static_cast<void*>(&num_processed_items), kParallelize5DTile1DRangeI,
       kParallelize5DTile1DRangeJ, kParallelize5DTile1DRangeK,
       kParallelize5DTile1DRangeL, kParallelize5DTile1DRangeM,
-      kParallelize5DTile1DTileM, 0 /* flags */);
+      kParallelize5DTile1DTileM, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize5DTile1DRangeI * kParallelize5DTile1DRangeJ *
                 kParallelize5DTile1DRangeK * kParallelize5DTile1DRangeL *
@@ -8918,7 +11122,7 @@ TEST(Parallelize5DTile2D, SingleThreadPoolCompletes) {
       kParallelize5DTile2DRangeI, kParallelize5DTile2DRangeJ,
       kParallelize5DTile2DRangeK, kParallelize5DTile2DRangeL,
       kParallelize5DTile2DRangeM, kParallelize5DTile2DTileL,
-      kParallelize5DTile2DTileM, 0 /* flags */);
+      kParallelize5DTile2DTileM, /*flags=*/0);
 }
 
 TEST(Parallelize5DTile2D, MultiThreadPoolCompletes) {
@@ -8934,7 +11138,7 @@ TEST(Parallelize5DTile2D, MultiThreadPoolCompletes) {
       kParallelize5DTile2DRangeI, kParallelize5DTile2DRangeJ,
       kParallelize5DTile2DRangeK, kParallelize5DTile2DRangeL,
       kParallelize5DTile2DRangeM, kParallelize5DTile2DTileL,
-      kParallelize5DTile2DTileM, 0 /* flags */);
+      kParallelize5DTile2DTileM, /*flags=*/0);
 }
 
 static void CheckBounds5DTile2D(void*, size_t i, size_t j, size_t k,
@@ -8958,7 +11162,7 @@ TEST(Parallelize5DTile2D, SingleThreadPoolAllItemsInBounds) {
       kParallelize5DTile2DRangeI, kParallelize5DTile2DRangeJ,
       kParallelize5DTile2DRangeK, kParallelize5DTile2DRangeL,
       kParallelize5DTile2DRangeM, kParallelize5DTile2DTileL,
-      kParallelize5DTile2DTileM, 0 /* flags */);
+      kParallelize5DTile2DTileM, /*flags=*/0);
 }
 
 TEST(Parallelize5DTile2D, MultiThreadPoolAllItemsInBounds) {
@@ -8974,7 +11178,7 @@ TEST(Parallelize5DTile2D, MultiThreadPoolAllItemsInBounds) {
       kParallelize5DTile2DRangeI, kParallelize5DTile2DRangeJ,
       kParallelize5DTile2DRangeK, kParallelize5DTile2DRangeL,
       kParallelize5DTile2DRangeM, kParallelize5DTile2DTileL,
-      kParallelize5DTile2DTileM, 0 /* flags */);
+      kParallelize5DTile2DTileM, /*flags=*/0);
 }
 
 static void CheckTiling5DTile2D(void*, size_t i, size_t j, size_t k,
@@ -9002,7 +11206,7 @@ TEST(Parallelize5DTile2D, SingleThreadPoolUniformTiling) {
       kParallelize5DTile2DRangeI, kParallelize5DTile2DRangeJ,
       kParallelize5DTile2DRangeK, kParallelize5DTile2DRangeL,
       kParallelize5DTile2DRangeM, kParallelize5DTile2DTileL,
-      kParallelize5DTile2DTileM, 0 /* flags */);
+      kParallelize5DTile2DTileM, /*flags=*/0);
 }
 
 TEST(Parallelize5DTile2D, MultiThreadPoolUniformTiling) {
@@ -9018,7 +11222,7 @@ TEST(Parallelize5DTile2D, MultiThreadPoolUniformTiling) {
       kParallelize5DTile2DRangeI, kParallelize5DTile2DRangeJ,
       kParallelize5DTile2DRangeK, kParallelize5DTile2DRangeL,
       kParallelize5DTile2DRangeM, kParallelize5DTile2DTileL,
-      kParallelize5DTile2DTileM, 0 /* flags */);
+      kParallelize5DTile2DTileM, /*flags=*/0);
 }
 
 static void SetTrue5DTile2D(std::atomic_bool* processed_indicators, size_t i,
@@ -9053,7 +11257,7 @@ TEST(Parallelize5DTile2D, SingleThreadPoolAllItemsProcessed) {
       static_cast<void*>(indicators.data()), kParallelize5DTile2DRangeI,
       kParallelize5DTile2DRangeJ, kParallelize5DTile2DRangeK,
       kParallelize5DTile2DRangeL, kParallelize5DTile2DRangeM,
-      kParallelize5DTile2DTileL, kParallelize5DTile2DTileM, 0 /* flags */);
+      kParallelize5DTile2DTileL, kParallelize5DTile2DTileM, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize5DTile2DRangeI; i++) {
     for (size_t j = 0; j < kParallelize5DTile2DRangeJ; j++) {
@@ -9096,7 +11300,7 @@ TEST(Parallelize5DTile2D, MultiThreadPoolAllItemsProcessed) {
       static_cast<void*>(indicators.data()), kParallelize5DTile2DRangeI,
       kParallelize5DTile2DRangeJ, kParallelize5DTile2DRangeK,
       kParallelize5DTile2DRangeL, kParallelize5DTile2DRangeM,
-      kParallelize5DTile2DTileL, kParallelize5DTile2DTileM, 0 /* flags */);
+      kParallelize5DTile2DTileL, kParallelize5DTile2DTileM, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize5DTile2DRangeI; i++) {
     for (size_t j = 0; j < kParallelize5DTile2DRangeJ; j++) {
@@ -9152,7 +11356,7 @@ TEST(Parallelize5DTile2D, SingleThreadPoolEachItemProcessedOnce) {
       static_cast<void*>(counters.data()), kParallelize5DTile2DRangeI,
       kParallelize5DTile2DRangeJ, kParallelize5DTile2DRangeK,
       kParallelize5DTile2DRangeL, kParallelize5DTile2DRangeM,
-      kParallelize5DTile2DTileL, kParallelize5DTile2DTileM, 0 /* flags */);
+      kParallelize5DTile2DTileL, kParallelize5DTile2DTileM, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize5DTile2DRangeI; i++) {
     for (size_t j = 0; j < kParallelize5DTile2DRangeJ; j++) {
@@ -9197,7 +11401,7 @@ TEST(Parallelize5DTile2D, MultiThreadPoolEachItemProcessedOnce) {
       static_cast<void*>(counters.data()), kParallelize5DTile2DRangeI,
       kParallelize5DTile2DRangeJ, kParallelize5DTile2DRangeK,
       kParallelize5DTile2DRangeL, kParallelize5DTile2DRangeM,
-      kParallelize5DTile2DTileL, kParallelize5DTile2DTileM, 0 /* flags */);
+      kParallelize5DTile2DTileL, kParallelize5DTile2DTileM, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize5DTile2DRangeI; i++) {
     for (size_t j = 0; j < kParallelize5DTile2DRangeJ; j++) {
@@ -9239,7 +11443,7 @@ TEST(Parallelize5DTile2D, SingleThreadPoolEachItemProcessedMultipleTimes) {
         static_cast<void*>(counters.data()), kParallelize5DTile2DRangeI,
         kParallelize5DTile2DRangeJ, kParallelize5DTile2DRangeK,
         kParallelize5DTile2DRangeL, kParallelize5DTile2DRangeM,
-        kParallelize5DTile2DTileL, kParallelize5DTile2DTileM, 0 /* flags */);
+        kParallelize5DTile2DTileL, kParallelize5DTile2DTileM, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize5DTile2DRangeI; i++) {
@@ -9288,7 +11492,7 @@ TEST(Parallelize5DTile2D, MultiThreadPoolEachItemProcessedMultipleTimes) {
         static_cast<void*>(counters.data()), kParallelize5DTile2DRangeI,
         kParallelize5DTile2DRangeJ, kParallelize5DTile2DRangeK,
         kParallelize5DTile2DRangeL, kParallelize5DTile2DRangeM,
-        kParallelize5DTile2DTileL, kParallelize5DTile2DTileM, 0 /* flags */);
+        kParallelize5DTile2DTileL, kParallelize5DTile2DTileM, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize5DTile2DRangeI; i++) {
@@ -9344,7 +11548,7 @@ TEST(Parallelize5DTile2D, MultiThreadPoolHighContention) {
       static_cast<void*>(&num_processed_items), kParallelize5DTile2DRangeI,
       kParallelize5DTile2DRangeJ, kParallelize5DTile2DRangeK,
       kParallelize5DTile2DRangeL, kParallelize5DTile2DRangeM,
-      kParallelize5DTile2DTileL, kParallelize5DTile2DTileM, 0 /* flags */);
+      kParallelize5DTile2DTileL, kParallelize5DTile2DTileM, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize5DTile2DRangeI * kParallelize5DTile2DRangeJ *
                 kParallelize5DTile2DRangeK * kParallelize5DTile2DRangeL *
@@ -9383,7 +11587,7 @@ TEST(Parallelize5DTile2D, MultiThreadPoolWorkStealing) {
       static_cast<void*>(&num_processed_items), kParallelize5DTile2DRangeI,
       kParallelize5DTile2DRangeJ, kParallelize5DTile2DRangeK,
       kParallelize5DTile2DRangeL, kParallelize5DTile2DRangeM,
-      kParallelize5DTile2DTileL, kParallelize5DTile2DTileM, 0 /* flags */);
+      kParallelize5DTile2DTileL, kParallelize5DTile2DTileM, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize5DTile2DRangeI * kParallelize5DTile2DRangeJ *
                 kParallelize5DTile2DRangeK * kParallelize5DTile2DRangeL *
@@ -9400,7 +11604,7 @@ TEST(Parallelize6D, SingleThreadPoolCompletes) {
   pthreadpool_parallelize_6d(
       threadpool.get(), ComputeNothing6D, nullptr, kParallelize6DRangeI,
       kParallelize6DRangeJ, kParallelize6DRangeK, kParallelize6DRangeL,
-      kParallelize6DRangeM, kParallelize6DRangeN, 0 /* flags */);
+      kParallelize6DRangeM, kParallelize6DRangeN, /*flags=*/0);
 }
 
 TEST(Parallelize6D, MultiThreadPoolCompletes) {
@@ -9414,7 +11618,7 @@ TEST(Parallelize6D, MultiThreadPoolCompletes) {
   pthreadpool_parallelize_6d(
       threadpool.get(), ComputeNothing6D, nullptr, kParallelize6DRangeI,
       kParallelize6DRangeJ, kParallelize6DRangeK, kParallelize6DRangeL,
-      kParallelize6DRangeM, kParallelize6DRangeN, 0 /* flags */);
+      kParallelize6DRangeM, kParallelize6DRangeN, /*flags=*/0);
 }
 
 static void CheckBounds6D(void*, size_t i, size_t j, size_t k, size_t l,
@@ -9434,7 +11638,7 @@ TEST(Parallelize6D, SingleThreadPoolAllItemsInBounds) {
   pthreadpool_parallelize_6d(
       threadpool.get(), CheckBounds6D, nullptr, kParallelize6DRangeI,
       kParallelize6DRangeJ, kParallelize6DRangeK, kParallelize6DRangeL,
-      kParallelize6DRangeM, kParallelize6DRangeN, 0 /* flags */);
+      kParallelize6DRangeM, kParallelize6DRangeN, /*flags=*/0);
 }
 
 TEST(Parallelize6D, MultiThreadPoolAllItemsInBounds) {
@@ -9448,7 +11652,7 @@ TEST(Parallelize6D, MultiThreadPoolAllItemsInBounds) {
   pthreadpool_parallelize_6d(
       threadpool.get(), CheckBounds6D, nullptr, kParallelize6DRangeI,
       kParallelize6DRangeJ, kParallelize6DRangeK, kParallelize6DRangeL,
-      kParallelize6DRangeM, kParallelize6DRangeN, 0 /* flags */);
+      kParallelize6DRangeM, kParallelize6DRangeN, /*flags=*/0);
 }
 
 static void SetTrue6D(std::atomic_bool* processed_indicators, size_t i,
@@ -9476,7 +11680,7 @@ TEST(Parallelize6D, SingleThreadPoolAllItemsProcessed) {
       threadpool.get(), reinterpret_cast<pthreadpool_task_6d_t>(SetTrue6D),
       static_cast<void*>(indicators.data()), kParallelize6DRangeI,
       kParallelize6DRangeJ, kParallelize6DRangeK, kParallelize6DRangeL,
-      kParallelize6DRangeM, kParallelize6DRangeN, 0 /* flags */);
+      kParallelize6DRangeM, kParallelize6DRangeN, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize6DRangeI; i++) {
     for (size_t j = 0; j < kParallelize6DRangeJ; j++) {
@@ -9521,7 +11725,7 @@ TEST(Parallelize6D, MultiThreadPoolAllItemsProcessed) {
       threadpool.get(), reinterpret_cast<pthreadpool_task_6d_t>(SetTrue6D),
       static_cast<void*>(indicators.data()), kParallelize6DRangeI,
       kParallelize6DRangeJ, kParallelize6DRangeK, kParallelize6DRangeL,
-      kParallelize6DRangeM, kParallelize6DRangeN, 0 /* flags */);
+      kParallelize6DRangeM, kParallelize6DRangeN, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize6DRangeI; i++) {
     for (size_t j = 0; j < kParallelize6DRangeJ; j++) {
@@ -9575,7 +11779,7 @@ TEST(Parallelize6D, SingleThreadPoolEachItemProcessedOnce) {
       threadpool.get(), reinterpret_cast<pthreadpool_task_6d_t>(Increment6D),
       static_cast<void*>(counters.data()), kParallelize6DRangeI,
       kParallelize6DRangeJ, kParallelize6DRangeK, kParallelize6DRangeL,
-      kParallelize6DRangeM, kParallelize6DRangeN, 0 /* flags */);
+      kParallelize6DRangeM, kParallelize6DRangeN, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize6DRangeI; i++) {
     for (size_t j = 0; j < kParallelize6DRangeJ; j++) {
@@ -9621,7 +11825,7 @@ TEST(Parallelize6D, MultiThreadPoolEachItemProcessedOnce) {
       threadpool.get(), reinterpret_cast<pthreadpool_task_6d_t>(Increment6D),
       static_cast<void*>(counters.data()), kParallelize6DRangeI,
       kParallelize6DRangeJ, kParallelize6DRangeK, kParallelize6DRangeL,
-      kParallelize6DRangeM, kParallelize6DRangeN, 0 /* flags */);
+      kParallelize6DRangeM, kParallelize6DRangeN, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize6DRangeI; i++) {
     for (size_t j = 0; j < kParallelize6DRangeJ; j++) {
@@ -9664,7 +11868,7 @@ TEST(Parallelize6D, SingleThreadPoolEachItemProcessedMultipleTimes) {
         threadpool.get(), reinterpret_cast<pthreadpool_task_6d_t>(Increment6D),
         static_cast<void*>(counters.data()), kParallelize6DRangeI,
         kParallelize6DRangeJ, kParallelize6DRangeK, kParallelize6DRangeL,
-        kParallelize6DRangeM, kParallelize6DRangeN, 0 /* flags */);
+        kParallelize6DRangeM, kParallelize6DRangeN, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize6DRangeI; i++) {
@@ -9713,7 +11917,7 @@ TEST(Parallelize6D, MultiThreadPoolEachItemProcessedMultipleTimes) {
         threadpool.get(), reinterpret_cast<pthreadpool_task_6d_t>(Increment6D),
         static_cast<void*>(counters.data()), kParallelize6DRangeI,
         kParallelize6DRangeJ, kParallelize6DRangeK, kParallelize6DRangeL,
-        kParallelize6DRangeM, kParallelize6DRangeN, 0 /* flags */);
+        kParallelize6DRangeM, kParallelize6DRangeN, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize6DRangeI; i++) {
@@ -9766,7 +11970,7 @@ TEST(Parallelize6D, MultiThreadPoolHighContention) {
       reinterpret_cast<pthreadpool_task_6d_t>(IncrementSame6D),
       static_cast<void*>(&num_processed_items), kParallelize6DRangeI,
       kParallelize6DRangeJ, kParallelize6DRangeK, kParallelize6DRangeL,
-      kParallelize6DRangeM, kParallelize6DRangeN, 0 /* flags */);
+      kParallelize6DRangeM, kParallelize6DRangeN, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize6DRangeI * kParallelize6DRangeJ * kParallelize6DRangeK *
                 kParallelize6DRangeL * kParallelize6DRangeM *
@@ -9802,7 +12006,7 @@ TEST(Parallelize6D, MultiThreadPoolWorkStealing) {
       reinterpret_cast<pthreadpool_task_6d_t>(WorkImbalance6D),
       static_cast<void*>(&num_processed_items), kParallelize6DRangeI,
       kParallelize6DRangeJ, kParallelize6DRangeK, kParallelize6DRangeL,
-      kParallelize6DRangeM, kParallelize6DRangeN, 0 /* flags */);
+      kParallelize6DRangeM, kParallelize6DRangeN, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize6DRangeI * kParallelize6DRangeJ * kParallelize6DRangeK *
                 kParallelize6DRangeL * kParallelize6DRangeM *
@@ -9821,7 +12025,7 @@ TEST(Parallelize6DTile1D, SingleThreadPoolCompletes) {
       kParallelize6DTile1DRangeI, kParallelize6DTile1DRangeJ,
       kParallelize6DTile1DRangeK, kParallelize6DTile1DRangeL,
       kParallelize6DTile1DRangeM, kParallelize6DTile1DRangeN,
-      kParallelize6DTile1DTileN, 0 /* flags */);
+      kParallelize6DTile1DTileN, /*flags=*/0);
 }
 
 TEST(Parallelize6DTile1D, MultiThreadPoolCompletes) {
@@ -9837,7 +12041,7 @@ TEST(Parallelize6DTile1D, MultiThreadPoolCompletes) {
       kParallelize6DTile1DRangeI, kParallelize6DTile1DRangeJ,
       kParallelize6DTile1DRangeK, kParallelize6DTile1DRangeL,
       kParallelize6DTile1DRangeM, kParallelize6DTile1DRangeN,
-      kParallelize6DTile1DTileN, 0 /* flags */);
+      kParallelize6DTile1DTileN, /*flags=*/0);
 }
 
 static void CheckBounds6DTile1D(void*, size_t i, size_t j, size_t k, size_t l,
@@ -9860,7 +12064,7 @@ TEST(Parallelize6DTile1D, SingleThreadPoolAllItemsInBounds) {
       kParallelize6DTile1DRangeI, kParallelize6DTile1DRangeJ,
       kParallelize6DTile1DRangeK, kParallelize6DTile1DRangeL,
       kParallelize6DTile1DRangeM, kParallelize6DTile1DRangeN,
-      kParallelize6DTile1DTileN, 0 /* flags */);
+      kParallelize6DTile1DTileN, /*flags=*/0);
 }
 
 TEST(Parallelize6DTile1D, MultiThreadPoolAllItemsInBounds) {
@@ -9876,7 +12080,7 @@ TEST(Parallelize6DTile1D, MultiThreadPoolAllItemsInBounds) {
       kParallelize6DTile1DRangeI, kParallelize6DTile1DRangeJ,
       kParallelize6DTile1DRangeK, kParallelize6DTile1DRangeL,
       kParallelize6DTile1DRangeM, kParallelize6DTile1DRangeN,
-      kParallelize6DTile1DTileN, 0 /* flags */);
+      kParallelize6DTile1DTileN, /*flags=*/0);
 }
 
 static void CheckTiling6DTile1D(void*, size_t i, size_t j, size_t k, size_t l,
@@ -9897,7 +12101,7 @@ TEST(Parallelize6DTile1D, SingleThreadPoolUniformTiling) {
       kParallelize6DTile1DRangeI, kParallelize6DTile1DRangeJ,
       kParallelize6DTile1DRangeK, kParallelize6DTile1DRangeL,
       kParallelize6DTile1DRangeM, kParallelize6DTile1DRangeN,
-      kParallelize6DTile1DTileN, 0 /* flags */);
+      kParallelize6DTile1DTileN, /*flags=*/0);
 }
 
 TEST(Parallelize6DTile1D, MultiThreadPoolUniformTiling) {
@@ -9913,7 +12117,7 @@ TEST(Parallelize6DTile1D, MultiThreadPoolUniformTiling) {
       kParallelize6DTile1DRangeI, kParallelize6DTile1DRangeJ,
       kParallelize6DTile1DRangeK, kParallelize6DTile1DRangeL,
       kParallelize6DTile1DRangeM, kParallelize6DTile1DRangeN,
-      kParallelize6DTile1DTileN, 0 /* flags */);
+      kParallelize6DTile1DTileN, /*flags=*/0);
 }
 
 static void SetTrue6DTile1D(std::atomic_bool* processed_indicators, size_t i,
@@ -9948,7 +12152,7 @@ TEST(Parallelize6DTile1D, SingleThreadPoolAllItemsProcessed) {
       static_cast<void*>(indicators.data()), kParallelize6DTile1DRangeI,
       kParallelize6DTile1DRangeJ, kParallelize6DTile1DRangeK,
       kParallelize6DTile1DRangeL, kParallelize6DTile1DRangeM,
-      kParallelize6DTile1DRangeN, kParallelize6DTile1DTileN, 0 /* flags */);
+      kParallelize6DTile1DRangeN, kParallelize6DTile1DTileN, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize6DTile1DRangeI; i++) {
     for (size_t j = 0; j < kParallelize6DTile1DRangeJ; j++) {
@@ -9997,7 +12201,7 @@ TEST(Parallelize6DTile1D, MultiThreadPoolAllItemsProcessed) {
       static_cast<void*>(indicators.data()), kParallelize6DTile1DRangeI,
       kParallelize6DTile1DRangeJ, kParallelize6DTile1DRangeK,
       kParallelize6DTile1DRangeL, kParallelize6DTile1DRangeM,
-      kParallelize6DTile1DRangeN, kParallelize6DTile1DTileN, 0 /* flags */);
+      kParallelize6DTile1DRangeN, kParallelize6DTile1DTileN, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize6DTile1DRangeI; i++) {
     for (size_t j = 0; j < kParallelize6DTile1DRangeJ; j++) {
@@ -10059,7 +12263,7 @@ TEST(Parallelize6DTile1D, SingleThreadPoolEachItemProcessedOnce) {
       static_cast<void*>(counters.data()), kParallelize6DTile1DRangeI,
       kParallelize6DTile1DRangeJ, kParallelize6DTile1DRangeK,
       kParallelize6DTile1DRangeL, kParallelize6DTile1DRangeM,
-      kParallelize6DTile1DRangeN, kParallelize6DTile1DTileN, 0 /* flags */);
+      kParallelize6DTile1DRangeN, kParallelize6DTile1DTileN, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize6DTile1DRangeI; i++) {
     for (size_t j = 0; j < kParallelize6DTile1DRangeJ; j++) {
@@ -10109,7 +12313,7 @@ TEST(Parallelize6DTile1D, MultiThreadPoolEachItemProcessedOnce) {
       static_cast<void*>(counters.data()), kParallelize6DTile1DRangeI,
       kParallelize6DTile1DRangeJ, kParallelize6DTile1DRangeK,
       kParallelize6DTile1DRangeL, kParallelize6DTile1DRangeM,
-      kParallelize6DTile1DRangeN, kParallelize6DTile1DTileN, 0 /* flags */);
+      kParallelize6DTile1DRangeN, kParallelize6DTile1DTileN, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize6DTile1DRangeI; i++) {
     for (size_t j = 0; j < kParallelize6DTile1DRangeJ; j++) {
@@ -10156,7 +12360,7 @@ TEST(Parallelize6DTile1D, SingleThreadPoolEachItemProcessedMultipleTimes) {
         static_cast<void*>(counters.data()), kParallelize6DTile1DRangeI,
         kParallelize6DTile1DRangeJ, kParallelize6DTile1DRangeK,
         kParallelize6DTile1DRangeL, kParallelize6DTile1DRangeM,
-        kParallelize6DTile1DRangeN, kParallelize6DTile1DTileN, 0 /* flags */);
+        kParallelize6DTile1DRangeN, kParallelize6DTile1DTileN, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize6DTile1DRangeI; i++) {
@@ -10210,7 +12414,7 @@ TEST(Parallelize6DTile1D, MultiThreadPoolEachItemProcessedMultipleTimes) {
         static_cast<void*>(counters.data()), kParallelize6DTile1DRangeI,
         kParallelize6DTile1DRangeJ, kParallelize6DTile1DRangeK,
         kParallelize6DTile1DRangeL, kParallelize6DTile1DRangeM,
-        kParallelize6DTile1DRangeN, kParallelize6DTile1DTileN, 0 /* flags */);
+        kParallelize6DTile1DRangeN, kParallelize6DTile1DTileN, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize6DTile1DRangeI; i++) {
@@ -10268,7 +12472,7 @@ TEST(Parallelize6DTile1D, MultiThreadPoolHighContention) {
       static_cast<void*>(&num_processed_items), kParallelize6DTile1DRangeI,
       kParallelize6DTile1DRangeJ, kParallelize6DTile1DRangeK,
       kParallelize6DTile1DRangeL, kParallelize6DTile1DRangeM,
-      kParallelize6DTile1DRangeN, kParallelize6DTile1DTileN, 0 /* flags */);
+      kParallelize6DTile1DRangeN, kParallelize6DTile1DTileN, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize6DTile1DRangeI * kParallelize6DTile1DRangeJ *
                 kParallelize6DTile1DRangeK * kParallelize6DTile1DRangeL *
@@ -10306,7 +12510,7 @@ TEST(Parallelize6DTile1D, MultiThreadPoolWorkStealing) {
       static_cast<void*>(&num_processed_items), kParallelize6DTile1DRangeI,
       kParallelize6DTile1DRangeJ, kParallelize6DTile1DRangeK,
       kParallelize6DTile1DRangeL, kParallelize6DTile1DRangeM,
-      kParallelize6DTile1DRangeN, kParallelize6DTile1DTileN, 0 /* flags */);
+      kParallelize6DTile1DRangeN, kParallelize6DTile1DTileN, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize6DTile1DRangeI * kParallelize6DTile1DRangeJ *
                 kParallelize6DTile1DRangeK * kParallelize6DTile1DRangeL *
@@ -10325,7 +12529,7 @@ TEST(Parallelize6DTile2D, SingleThreadPoolCompletes) {
       kParallelize6DTile2DRangeI, kParallelize6DTile2DRangeJ,
       kParallelize6DTile2DRangeK, kParallelize6DTile2DRangeL,
       kParallelize6DTile2DRangeM, kParallelize6DTile2DRangeN,
-      kParallelize6DTile2DTileM, kParallelize6DTile2DTileN, 0 /* flags */);
+      kParallelize6DTile2DTileM, kParallelize6DTile2DTileN, /*flags=*/0);
 }
 
 TEST(Parallelize6DTile2D, MultiThreadPoolCompletes) {
@@ -10341,7 +12545,7 @@ TEST(Parallelize6DTile2D, MultiThreadPoolCompletes) {
       kParallelize6DTile2DRangeI, kParallelize6DTile2DRangeJ,
       kParallelize6DTile2DRangeK, kParallelize6DTile2DRangeL,
       kParallelize6DTile2DRangeM, kParallelize6DTile2DRangeN,
-      kParallelize6DTile2DTileM, kParallelize6DTile2DTileN, 0 /* flags */);
+      kParallelize6DTile2DTileM, kParallelize6DTile2DTileN, /*flags=*/0);
 }
 
 static void CheckBounds6DTile2D(void*, size_t i, size_t j, size_t k, size_t l,
@@ -10366,7 +12570,7 @@ TEST(Parallelize6DTile2D, SingleThreadPoolAllItemsInBounds) {
       kParallelize6DTile2DRangeI, kParallelize6DTile2DRangeJ,
       kParallelize6DTile2DRangeK, kParallelize6DTile2DRangeL,
       kParallelize6DTile2DRangeM, kParallelize6DTile2DRangeN,
-      kParallelize6DTile2DTileM, kParallelize6DTile2DTileN, 0 /* flags */);
+      kParallelize6DTile2DTileM, kParallelize6DTile2DTileN, /*flags=*/0);
 }
 
 TEST(Parallelize6DTile2D, MultiThreadPoolAllItemsInBounds) {
@@ -10382,7 +12586,7 @@ TEST(Parallelize6DTile2D, MultiThreadPoolAllItemsInBounds) {
       kParallelize6DTile2DRangeI, kParallelize6DTile2DRangeJ,
       kParallelize6DTile2DRangeK, kParallelize6DTile2DRangeL,
       kParallelize6DTile2DRangeM, kParallelize6DTile2DRangeN,
-      kParallelize6DTile2DTileM, kParallelize6DTile2DTileN, 0 /* flags */);
+      kParallelize6DTile2DTileM, kParallelize6DTile2DTileN, /*flags=*/0);
 }
 
 static void CheckTiling6DTile2D(void*, size_t i, size_t j, size_t k, size_t l,
@@ -10410,7 +12614,7 @@ TEST(Parallelize6DTile2D, SingleThreadPoolUniformTiling) {
       kParallelize6DTile2DRangeI, kParallelize6DTile2DRangeJ,
       kParallelize6DTile2DRangeK, kParallelize6DTile2DRangeL,
       kParallelize6DTile2DRangeM, kParallelize6DTile2DRangeN,
-      kParallelize6DTile2DTileM, kParallelize6DTile2DTileN, 0 /* flags */);
+      kParallelize6DTile2DTileM, kParallelize6DTile2DTileN, /*flags=*/0);
 }
 
 TEST(Parallelize6DTile2D, MultiThreadPoolUniformTiling) {
@@ -10426,7 +12630,7 @@ TEST(Parallelize6DTile2D, MultiThreadPoolUniformTiling) {
       kParallelize6DTile2DRangeI, kParallelize6DTile2DRangeJ,
       kParallelize6DTile2DRangeK, kParallelize6DTile2DRangeL,
       kParallelize6DTile2DRangeM, kParallelize6DTile2DRangeN,
-      kParallelize6DTile2DTileM, kParallelize6DTile2DTileN, 0 /* flags */);
+      kParallelize6DTile2DTileM, kParallelize6DTile2DTileN, /*flags=*/0);
 }
 
 static void SetTrue6DTile2D(std::atomic_bool* processed_indicators, size_t i,
@@ -10464,7 +12668,7 @@ TEST(Parallelize6DTile2D, SingleThreadPoolAllItemsProcessed) {
       kParallelize6DTile2DRangeJ, kParallelize6DTile2DRangeK,
       kParallelize6DTile2DRangeL, kParallelize6DTile2DRangeM,
       kParallelize6DTile2DRangeN, kParallelize6DTile2DTileM,
-      kParallelize6DTile2DTileN, 0 /* flags */);
+      kParallelize6DTile2DTileN, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize6DTile2DRangeI; i++) {
     for (size_t j = 0; j < kParallelize6DTile2DRangeJ; j++) {
@@ -10514,7 +12718,7 @@ TEST(Parallelize6DTile2D, MultiThreadPoolAllItemsProcessed) {
       kParallelize6DTile2DRangeJ, kParallelize6DTile2DRangeK,
       kParallelize6DTile2DRangeL, kParallelize6DTile2DRangeM,
       kParallelize6DTile2DRangeN, kParallelize6DTile2DTileM,
-      kParallelize6DTile2DTileN, 0 /* flags */);
+      kParallelize6DTile2DTileN, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize6DTile2DRangeI; i++) {
     for (size_t j = 0; j < kParallelize6DTile2DRangeJ; j++) {
@@ -10579,7 +12783,7 @@ TEST(Parallelize6DTile2D, SingleThreadPoolEachItemProcessedOnce) {
       kParallelize6DTile2DRangeJ, kParallelize6DTile2DRangeK,
       kParallelize6DTile2DRangeL, kParallelize6DTile2DRangeM,
       kParallelize6DTile2DRangeN, kParallelize6DTile2DTileM,
-      kParallelize6DTile2DTileN, 0 /* flags */);
+      kParallelize6DTile2DTileN, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize6DTile2DRangeI; i++) {
     for (size_t j = 0; j < kParallelize6DTile2DRangeJ; j++) {
@@ -10630,7 +12834,7 @@ TEST(Parallelize6DTile2D, MultiThreadPoolEachItemProcessedOnce) {
       kParallelize6DTile2DRangeJ, kParallelize6DTile2DRangeK,
       kParallelize6DTile2DRangeL, kParallelize6DTile2DRangeM,
       kParallelize6DTile2DRangeN, kParallelize6DTile2DTileM,
-      kParallelize6DTile2DTileN, 0 /* flags */);
+      kParallelize6DTile2DTileN, /*flags=*/0);
 
   for (size_t i = 0; i < kParallelize6DTile2DRangeI; i++) {
     for (size_t j = 0; j < kParallelize6DTile2DRangeJ; j++) {
@@ -10678,7 +12882,7 @@ TEST(Parallelize6DTile2D, SingleThreadPoolEachItemProcessedMultipleTimes) {
         kParallelize6DTile2DRangeJ, kParallelize6DTile2DRangeK,
         kParallelize6DTile2DRangeL, kParallelize6DTile2DRangeM,
         kParallelize6DTile2DRangeN, kParallelize6DTile2DTileM,
-        kParallelize6DTile2DTileN, 0 /* flags */);
+        kParallelize6DTile2DTileN, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize6DTile2DRangeI; i++) {
@@ -10733,7 +12937,7 @@ TEST(Parallelize6DTile2D, MultiThreadPoolEachItemProcessedMultipleTimes) {
         kParallelize6DTile2DRangeJ, kParallelize6DTile2DRangeK,
         kParallelize6DTile2DRangeL, kParallelize6DTile2DRangeM,
         kParallelize6DTile2DRangeN, kParallelize6DTile2DTileM,
-        kParallelize6DTile2DTileN, 0 /* flags */);
+        kParallelize6DTile2DTileN, /*flags=*/0);
   }
 
   for (size_t i = 0; i < kParallelize6DTile2DRangeI; i++) {
@@ -10795,7 +12999,7 @@ TEST(Parallelize6DTile2D, MultiThreadPoolHighContention) {
       kParallelize6DTile2DRangeJ, kParallelize6DTile2DRangeK,
       kParallelize6DTile2DRangeL, kParallelize6DTile2DRangeM,
       kParallelize6DTile2DRangeN, kParallelize6DTile2DTileM,
-      kParallelize6DTile2DTileN, 0 /* flags */);
+      kParallelize6DTile2DTileN, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize6DTile2DRangeI * kParallelize6DTile2DRangeJ *
                 kParallelize6DTile2DRangeK * kParallelize6DTile2DRangeL *
@@ -10835,7 +13039,7 @@ TEST(Parallelize6DTile2D, MultiThreadPoolWorkStealing) {
       kParallelize6DTile2DRangeJ, kParallelize6DTile2DRangeK,
       kParallelize6DTile2DRangeL, kParallelize6DTile2DRangeM,
       kParallelize6DTile2DRangeN, kParallelize6DTile2DTileM,
-      kParallelize6DTile2DTileN, 0 /* flags */);
+      kParallelize6DTile2DTileN, /*flags=*/0);
   EXPECT_EQ(num_processed_items.load(std::memory_order_relaxed),
             kParallelize6DTile2DRangeI * kParallelize6DTile2DRangeJ *
                 kParallelize6DTile2DRangeK * kParallelize6DTile2DRangeL *
