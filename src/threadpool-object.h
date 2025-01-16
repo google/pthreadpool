@@ -127,10 +127,6 @@ struct pthreadpool_1d_tile_1d_params {
 
 struct pthreadpool_1d_tile_1d_dynamic_params {
   /**
-   * The number of tiles left to process.
-   */
-  pthreadpool_atomic_size_t num_tiles;
-  /**
    * Copy of the range argument passed to the
    * pthreadpool_parallelize_1d_tile_1d_dynamic function.
    */
@@ -195,10 +191,6 @@ struct pthreadpool_2d_tile_1d_with_uarch_params {
 };
 
 struct pthreadpool_2d_tile_1d_dynamic_params {
-  /**
-   * The number of tiles left to process.
-   */
-  pthreadpool_atomic_size_t num_tiles;
   /**
    * Copy of the range_i argument passed to the
    * pthreadpool_parallelize_2d_tile_1d_dynamic function.
@@ -282,10 +274,6 @@ struct pthreadpool_2d_tile_2d_with_uarch_params {
 
 struct pthreadpool_2d_tile_2d_dynamic_params {
   /**
-   * The number of tiles left to process.
-   */
-  pthreadpool_atomic_size_t num_tiles;
-  /**
    * Copy of the range_i argument passed to the
    * pthreadpool_parallelize_2d_tile_2d_dynamic function.
    */
@@ -308,10 +296,6 @@ struct pthreadpool_2d_tile_2d_dynamic_params {
 };
 
 struct pthreadpool_2d_tile_2d_dynamic_with_uarch_params {
-  /**
-   * The number of tiles left to process.
-   */
-  pthreadpool_atomic_size_t num_tiles;
   /**
    * Copy of the range_i argument passed to the
    * pthreadpool_parallelize_2d_tile_2d_dynamic function.
@@ -485,10 +469,6 @@ struct pthreadpool_3d_tile_2d_with_uarch_params {
 
 struct pthreadpool_3d_tile_2d_dynamic_params {
   /**
-   * The number of tiles left to process.
-   */
-  pthreadpool_atomic_size_t num_tiles;
-  /**
    * Copy of the range_i argument passed to the
    * pthreadpool_parallelize_3d_tile_2d_dynamic function.
    */
@@ -516,10 +496,6 @@ struct pthreadpool_3d_tile_2d_dynamic_params {
 };
 
 struct pthreadpool_3d_tile_2d_dynamic_with_uarch_params {
-  /**
-   * The number of tiles left to process.
-   */
-  pthreadpool_atomic_size_t num_tiles;
   /**
    * Copy of the range_i argument passed to the
    * pthreadpool_parallelize_3d_tile_2d_dynamic function.

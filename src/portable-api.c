@@ -2619,7 +2619,6 @@ void pthreadpool_parallelize_1d_tile_1d_dynamic(
     const struct pthreadpool_1d_tile_1d_dynamic_params params = {
         .range = range,
         .tile = tile,
-        .num_tiles = tile_range,
     };
     pthreadpool_parallelize(threadpool, thread_parallelize_1d_tile_1d_dynamic,
                             &params, sizeof(params), function, context,
@@ -2833,7 +2832,6 @@ void pthreadpool_parallelize_2d_tile_1d_dynamic(
         .range_i = range_i,
         .range_j = range_j,
         .tile_j = tile_j,
-        .num_tiles = tile_range,
     };
     pthreadpool_parallelize(threadpool, thread_parallelize_2d_tile_1d_dynamic,
                             &params, sizeof(params), function, context,
@@ -2980,7 +2978,6 @@ void pthreadpool_parallelize_2d_tile_2d_dynamic(
         .range_j = range_j,
         .tile_i = tile_i,
         .tile_j = tile_j,
-        .num_tiles = tile_range,
     };
     pthreadpool_parallelize(threadpool, thread_parallelize_2d_tile_2d_dynamic,
                             &params, sizeof(params), function, context,
@@ -3031,7 +3028,6 @@ void pthreadpool_parallelize_2d_tile_2d_dynamic_with_uarch(
         .range_j = range_j,
         .tile_i = tile_i,
         .tile_j = tile_j,
-        .num_tiles = tile_range,
         .default_uarch_index = default_uarch_index,
         .max_uarch_index = max_uarch_index,
     };
@@ -3455,7 +3451,6 @@ void pthreadpool_parallelize_3d_tile_2d_dynamic(
         .range_k = range_k,
         .tile_j = tile_j,
         .tile_k = tile_k,
-        .num_tiles = tile_range,
     };
     pthreadpool_parallelize(threadpool, thread_parallelize_3d_tile_2d_dynamic,
                             &params, sizeof(params), function, context,
@@ -3512,7 +3507,6 @@ void pthreadpool_parallelize_3d_tile_2d_dynamic_with_uarch(
         .range_k = range_k,
         .tile_j = tile_j,
         .tile_k = tile_k,
-        .num_tiles = tile_range,
         .default_uarch_index = default_uarch_index,
         .max_uarch_index = max_uarch_index,
     };
