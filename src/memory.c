@@ -49,8 +49,8 @@ PTHREADPOOL_INTERNAL struct pthreadpool* pthreadpool_allocate(
     return NULL;
   }
 #else
-  threadpool = aligned_alloc(PTHREADPOOL_CACHELINE_SIZE, threadpool_size);
-  if (threadpool == NULL) {
+  if (posix_memalign((void**)&threadpool, PTHREADPOOL_CACHELINE_SIZE,
+                     threadpool_size) != 0) {
     return NULL;
   }
 #endif
