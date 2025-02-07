@@ -817,11 +817,11 @@ static void thread_parallelize_2d_tile_2d_dynamic(
       /* Iterate over the chunk and call the task function. */
       size_t tile_index_i = offset / tile_range_j;
       if (tile_range_j == 1) {
-        /* If there is only a single tile in the `k`th (last) dimension, then we
+        /* If there is only a single tile in the `j`th (last) dimension, then we
          * group by the `j`th (second-last) dimeension. */
         const size_t index_i = tile_index_i * tile_i;
         const size_t tile_step_i = min(tile_range_i - tile_index_i, chunk_size);
-        const size_t step_i = min(tile_step_i * tile_j, range_i - index_i);
+        const size_t step_i = min(tile_step_i * tile_i, range_i - index_i);
 
         task(argument, index_i, /*index_j=*/0, step_i, range_j);
 
@@ -919,11 +919,11 @@ static void thread_parallelize_2d_tile_2d_dynamic_with_uarch(
       /* Iterate over the chunk and call the task function. */
       size_t tile_index_i = offset / tile_range_j;
       if (tile_range_j == 1) {
-        /* If there is only a single tile in the `k`th (last) dimension, then we
+        /* If there is only a single tile in the `j`th (last) dimension, then we
          * group by the `j`th (second-last) dimeension. */
         const size_t index_i = tile_index_i * tile_i;
         const size_t tile_step_i = min(tile_range_i - tile_index_i, chunk_size);
-        const size_t step_i = min(tile_step_i * tile_j, range_i - index_i);
+        const size_t step_i = min(tile_step_i * tile_i, range_i - index_i);
 
         task(argument, uarch_index, index_i, /*index_j=*/0, step_i, range_j);
 
