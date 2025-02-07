@@ -27,6 +27,12 @@
 #include "threadpool-common.h"
 #include "threadpool-object.h"
 
+#if defined(__has_builtin)
+#if __has_builtin(__builtin_available)
+#define PTHREADPOOL_BUILTIN_AVAILABLE
+#endif
+#endif
+
 PTHREADPOOL_INTERNAL struct pthreadpool* pthreadpool_allocate(
     size_t threads_count) {
   assert(threads_count >= 1);
@@ -40,20 +46,25 @@ PTHREADPOOL_INTERNAL struct pthreadpool* pthreadpool_allocate(
    * Use (otherwise obsolete) memalign function on Android platform.
    */
   threadpool = memalign(PTHREADPOOL_CACHELINE_SIZE, threadpool_size);
-  if (threadpool == NULL) {
-    return NULL;
-  }
 #elif defined(_WIN32)
   threadpool = _aligned_malloc(threadpool_size, PTHREADPOOL_CACHELINE_SIZE);
-  if (threadpool == NULL) {
-    return NULL;
-  }
-#else
+#elif _POSIX_C_SOURCE >= 200112L
   if (posix_memalign((void**)&threadpool, PTHREADPOOL_CACHELINE_SIZE,
                      threadpool_size) != 0) {
     return NULL;
   }
+#elif defined(PTHREADPOOL_BUILTIN_AVAILABLE)
+  if (__builtin_available(macOS 10.15, iOS 13, *)) {
+    threadpool = aligned_alloc(PTHREADPOOL_CACHELINE_SIZE, threadpool_size);
+  } else {
+    threadpool = malloc(threadpool_size);
+  }
+#else
+  threadpool = aligned_alloc(PTHREADPOOL_CACHELINE_SIZE, threadpool_size);
 #endif
+  if (threadpool == NULL) {
+    return NULL;
+  }
   memset(threadpool, 0, threadpool_size);
   return threadpool;
 }
