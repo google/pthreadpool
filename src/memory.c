@@ -33,6 +33,8 @@
 #endif
 #endif
 
+extern int posix_memalign(void **memptr, size_t alignment, size_t size);
+
 PTHREADPOOL_INTERNAL struct pthreadpool* pthreadpool_allocate(
     size_t threads_count) {
   assert(threads_count >= 1);
@@ -48,7 +50,7 @@ PTHREADPOOL_INTERNAL struct pthreadpool* pthreadpool_allocate(
   threadpool = memalign(PTHREADPOOL_CACHELINE_SIZE, threadpool_size);
 #elif defined(_WIN32)
   threadpool = _aligned_malloc(threadpool_size, PTHREADPOOL_CACHELINE_SIZE);
-#elif _POSIX_C_SOURCE >= 200112L
+#elif _POSIX_C_SOURCE >= 200112L || defined(__hexagon__)
   if (posix_memalign((void**)&threadpool, PTHREADPOOL_CACHELINE_SIZE,
                      threadpool_size) != 0) {
     return NULL;
