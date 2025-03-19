@@ -574,7 +574,6 @@ static void thread_parallelize_2d_tile_1d_dynamic(
   struct pthreadpool_2d_tile_1d_dynamic_params* params =
       &threadpool->params.parallelize_2d_tile_1d_dynamic;
   const size_t num_threads = threadpool->threads_count.value;
-  const size_t range_i = params->range_i;
   const size_t range_j = params->range_j;
   const size_t tile_j = params->tile_j;
   const size_t tile_range_j = divide_round_up(range_j, tile_j);
@@ -1457,7 +1456,6 @@ static void thread_parallelize_3d_tile_2d_dynamic(
   struct pthreadpool_3d_tile_2d_dynamic_params* params =
       &threadpool->params.parallelize_3d_tile_2d_dynamic;
   const size_t num_threads = threadpool->threads_count.value;
-  const size_t range_i = params->range_i;
   const size_t range_j = params->range_j;
   const size_t range_k = params->range_k;
   const size_t tile_j = params->tile_j;
@@ -1573,7 +1571,6 @@ static void thread_parallelize_3d_tile_2d_dynamic_with_uarch(
   struct pthreadpool_3d_tile_2d_dynamic_with_uarch_params* params =
       &threadpool->params.parallelize_3d_tile_2d_dynamic_with_uarch;
   const size_t num_threads = threadpool->threads_count.value;
-  const size_t range_i = params->range_i;
   const size_t range_j = params->range_j;
   const size_t range_k = params->range_k;
   const size_t tile_j = params->tile_j;
@@ -1993,7 +1990,6 @@ static void thread_parallelize_4d_tile_2d_dynamic(
   struct pthreadpool_4d_tile_2d_dynamic_params* params =
       &threadpool->params.parallelize_4d_tile_2d_dynamic;
   const size_t num_threads = threadpool->threads_count.value;
-  const size_t range_i = params->range_i;
   const size_t range_j = params->range_j;
   const size_t range_k = params->range_k;
   const size_t range_l = params->range_l;
@@ -2120,7 +2116,6 @@ static void thread_parallelize_4d_tile_2d_dynamic_with_uarch(
   struct pthreadpool_4d_tile_2d_dynamic_with_uarch_params* params =
       &threadpool->params.parallelize_4d_tile_2d_dynamic_with_uarch;
   const size_t num_threads = threadpool->threads_count.value;
-  const size_t range_i = params->range_i;
   const size_t range_j = params->range_j;
   const size_t range_k = params->range_k;
   const size_t range_l = params->range_l;
