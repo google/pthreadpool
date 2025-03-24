@@ -253,7 +253,7 @@ static void* thread_main(void* arg) {
   };
 }
 
-struct pthreadpool* pthreadpool_create(size_t threads_count) {
+PTHREADPOOL_WEAK struct pthreadpool* pthreadpool_create(size_t threads_count) {
 #if PTHREADPOOL_USE_CPUINFO
   if (!cpuinfo_initialize()) {
     return NULL;
