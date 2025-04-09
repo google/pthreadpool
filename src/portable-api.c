@@ -2769,8 +2769,7 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_1d(struct pthreadpool* threadpool,
     /* No thread pool used: execute task sequentially on the calling thread */
     struct fpu_state saved_fpu_state = {0};
     if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
-      saved_fpu_state = get_fpu_state();
-      disable_fpu_denormals();
+      saved_fpu_state = disable_fpu_denormals();
     }
     for (size_t i = 0; i < range; i++) {
       function(context, i);
@@ -2800,8 +2799,7 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_1d_with_thread(
     /* No thread pool used: execute task sequentially on the calling thread */
     struct fpu_state saved_fpu_state = {0};
     if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
-      saved_fpu_state = get_fpu_state();
-      disable_fpu_denormals();
+      saved_fpu_state = disable_fpu_denormals();
     }
     for (size_t i = 0; i < range; i++) {
       function(context, 0, i);
@@ -2844,8 +2842,7 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_1d_with_uarch(
 
     struct fpu_state saved_fpu_state = {0};
     if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
-      saved_fpu_state = get_fpu_state();
-      disable_fpu_denormals();
+      saved_fpu_state = disable_fpu_denormals();
     }
     for (size_t i = 0; i < range; i++) {
       function(context, uarch_index, i);
@@ -2881,8 +2878,7 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_1d_tile_1d(
     /* No thread pool used: execute task sequentially on the calling thread */
     struct fpu_state saved_fpu_state = {0};
     if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
-      saved_fpu_state = get_fpu_state();
-      disable_fpu_denormals();
+      saved_fpu_state = disable_fpu_denormals();
     }
     for (size_t i = 0; i < range; i += tile) {
       function(context, i, min(range - i, tile));
@@ -2919,8 +2915,7 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_1d_tile_1d_dynamic(
     /* No thread pool used: execute task sequentially on the calling thread */
     struct fpu_state saved_fpu_state = {0};
     if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
-      saved_fpu_state = get_fpu_state();
-      disable_fpu_denormals();
+      saved_fpu_state = disable_fpu_denormals();
     }
     function(context, 0, range);
     if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
@@ -2950,8 +2945,7 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_2d(pthreadpool_t threadpool,
     /* No thread pool used: execute task sequentially on the calling thread */
     struct fpu_state saved_fpu_state = {0};
     if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
-      saved_fpu_state = get_fpu_state();
-      disable_fpu_denormals();
+      saved_fpu_state = disable_fpu_denormals();
     }
     for (size_t i = 0; i < range_i; i++) {
       for (size_t j = 0; j < range_j; j++) {
@@ -2988,8 +2982,7 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_2d_with_thread(
     /* No thread pool used: execute task sequentially on the calling thread */
     struct fpu_state saved_fpu_state = {0};
     if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
-      saved_fpu_state = get_fpu_state();
-      disable_fpu_denormals();
+      saved_fpu_state = disable_fpu_denormals();
     }
     for (size_t i = 0; i < range_i; i++) {
       for (size_t j = 0; j < range_j; j++) {
@@ -3029,8 +3022,7 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_2d_tile_1d(
     /* No thread pool used: execute task sequentially on the calling thread */
     struct fpu_state saved_fpu_state = {0};
     if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
-      saved_fpu_state = get_fpu_state();
-      disable_fpu_denormals();
+      saved_fpu_state = disable_fpu_denormals();
     }
     for (size_t i = 0; i < range_i; i++) {
       for (size_t j = 0; j < range_j; j += tile_j) {
@@ -3083,8 +3075,7 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_2d_tile_1d_with_uarch(
 
     struct fpu_state saved_fpu_state = {0};
     if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
-      saved_fpu_state = get_fpu_state();
-      disable_fpu_denormals();
+      saved_fpu_state = disable_fpu_denormals();
     }
     for (size_t i = 0; i < range_i; i++) {
       for (size_t j = 0; j < range_j; j += tile_j) {
@@ -3128,8 +3119,7 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_2d_tile_1d_dynamic(
     /* No thread pool used: execute task sequentially on the calling thread */
     struct fpu_state saved_fpu_state = {0};
     if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
-      saved_fpu_state = get_fpu_state();
-      disable_fpu_denormals();
+      saved_fpu_state = disable_fpu_denormals();
     }
     for (size_t index_i = 0; index_i < range_i; index_i++) {
       function(context, index_i, /*index_j=*/0, range_j);
@@ -3173,8 +3163,7 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_2d_tile_1d_with_uarch_with_thread(
 
     struct fpu_state saved_fpu_state = {0};
     if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
-      saved_fpu_state = get_fpu_state();
-      disable_fpu_denormals();
+      saved_fpu_state = disable_fpu_denormals();
     }
     for (size_t i = 0; i < range_i; i++) {
       for (size_t j = 0; j < range_j; j += tile_j) {
@@ -3220,8 +3209,7 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_2d_tile_2d(
     /* No thread pool used: execute task sequentially on the calling thread */
     struct fpu_state saved_fpu_state = {0};
     if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
-      saved_fpu_state = get_fpu_state();
-      disable_fpu_denormals();
+      saved_fpu_state = disable_fpu_denormals();
     }
     for (size_t i = 0; i < range_i; i += tile_i) {
       for (size_t j = 0; j < range_j; j += tile_j) {
@@ -3266,8 +3254,7 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_2d_tile_2d_dynamic(
     /* No thread pool used: execute task sequentially on the calling thread */
     struct fpu_state saved_fpu_state = {0};
     if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
-      saved_fpu_state = get_fpu_state();
-      disable_fpu_denormals();
+      saved_fpu_state = disable_fpu_denormals();
     }
     if (range_j <= tile_j) {
       function(context, /*index_i=*/0, /*index_j=*/0, range_i, range_j);
@@ -3315,8 +3302,7 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_2d_tile_2d_dynamic_with_uarch(
 
     struct fpu_state saved_fpu_state = {0};
     if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
-      saved_fpu_state = get_fpu_state();
-      disable_fpu_denormals();
+      saved_fpu_state = disable_fpu_denormals();
     }
     if (range_j <= tile_j) {
       function(context, uarch_index, /*index_i=*/0, /*index_j=*/0, range_i,
@@ -3370,8 +3356,7 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_2d_tile_2d_with_uarch(
 
     struct fpu_state saved_fpu_state = {0};
     if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
-      saved_fpu_state = get_fpu_state();
-      disable_fpu_denormals();
+      saved_fpu_state = disable_fpu_denormals();
     }
     for (size_t i = 0; i < range_i; i += tile_i) {
       for (size_t j = 0; j < range_j; j += tile_j) {
@@ -3422,8 +3407,7 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_3d(pthreadpool_t threadpool,
     /* No thread pool used: execute task sequentially on the calling thread */
     struct fpu_state saved_fpu_state = {0};
     if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
-      saved_fpu_state = get_fpu_state();
-      disable_fpu_denormals();
+      saved_fpu_state = disable_fpu_denormals();
     }
     for (size_t i = 0; i < range_i; i++) {
       for (size_t j = 0; j < range_j; j++) {
@@ -3464,8 +3448,7 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_3d_tile_1d(
     /* No thread pool used: execute task sequentially on the calling thread */
     struct fpu_state saved_fpu_state = {0};
     if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
-      saved_fpu_state = get_fpu_state();
-      disable_fpu_denormals();
+      saved_fpu_state = disable_fpu_denormals();
     }
     for (size_t i = 0; i < range_i; i++) {
       for (size_t j = 0; j < range_j; j++) {
@@ -3512,8 +3495,7 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_3d_tile_1d_with_thread(
     /* No thread pool used: execute task sequentially on the calling thread */
     struct fpu_state saved_fpu_state = {0};
     if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
-      saved_fpu_state = get_fpu_state();
-      disable_fpu_denormals();
+      saved_fpu_state = disable_fpu_denormals();
     }
     for (size_t i = 0; i < range_i; i++) {
       for (size_t j = 0; j < range_j; j++) {
@@ -3571,8 +3553,7 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_3d_tile_1d_with_uarch(
 
     struct fpu_state saved_fpu_state = {0};
     if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
-      saved_fpu_state = get_fpu_state();
-      disable_fpu_denormals();
+      saved_fpu_state = disable_fpu_denormals();
     }
     for (size_t i = 0; i < range_i; i++) {
       for (size_t j = 0; j < range_j; j++) {
@@ -3632,8 +3613,7 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_3d_tile_1d_with_uarch_with_thread(
 
     struct fpu_state saved_fpu_state = {0};
     if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
-      saved_fpu_state = get_fpu_state();
-      disable_fpu_denormals();
+      saved_fpu_state = disable_fpu_denormals();
     }
     for (size_t i = 0; i < range_i; i++) {
       for (size_t j = 0; j < range_j; j++) {
@@ -3682,8 +3662,7 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_3d_tile_2d(
     /* No thread pool used: execute task sequentially on the calling thread */
     struct fpu_state saved_fpu_state = {0};
     if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
-      saved_fpu_state = get_fpu_state();
-      disable_fpu_denormals();
+      saved_fpu_state = disable_fpu_denormals();
     }
     for (size_t i = 0; i < range_i; i++) {
       for (size_t j = 0; j < range_j; j += tile_j) {
@@ -3731,8 +3710,7 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_3d_tile_2d_dynamic(
     /* No thread pool used: execute task sequentially on the calling thread */
     struct fpu_state saved_fpu_state = {0};
     if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
-      saved_fpu_state = get_fpu_state();
-      disable_fpu_denormals();
+      saved_fpu_state = disable_fpu_denormals();
     }
     if (range_k <= tile_k) {
       for (size_t index_i = 0; index_i < range_i; index_i++) {
@@ -3787,8 +3765,7 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_3d_tile_2d_dynamic_with_uarch(
 
     struct fpu_state saved_fpu_state = {0};
     if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
-      saved_fpu_state = get_fpu_state();
-      disable_fpu_denormals();
+      saved_fpu_state = disable_fpu_denormals();
     }
     if (range_k <= tile_k) {
       for (size_t index_i = 0; index_i < range_i; index_i++) {
@@ -3847,8 +3824,7 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_3d_tile_2d_with_uarch(
 
     struct fpu_state saved_fpu_state = {0};
     if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
-      saved_fpu_state = get_fpu_state();
-      disable_fpu_denormals();
+      saved_fpu_state = disable_fpu_denormals();
     }
     for (size_t i = 0; i < range_i; i++) {
       for (size_t j = 0; j < range_j; j += tile_j) {
@@ -3903,8 +3879,7 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_4d(pthreadpool_t threadpool,
     /* No thread pool used: execute task sequentially on the calling thread */
     struct fpu_state saved_fpu_state = {0};
     if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
-      saved_fpu_state = get_fpu_state();
-      disable_fpu_denormals();
+      saved_fpu_state = disable_fpu_denormals();
     }
     for (size_t i = 0; i < range_i; i++) {
       for (size_t j = 0; j < range_j; j++) {
@@ -3950,8 +3925,7 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_4d_tile_1d(
     /* No thread pool used: execute task sequentially on the calling thread */
     struct fpu_state saved_fpu_state = {0};
     if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
-      saved_fpu_state = get_fpu_state();
-      disable_fpu_denormals();
+      saved_fpu_state = disable_fpu_denormals();
     }
     for (size_t i = 0; i < range_i; i++) {
       for (size_t j = 0; j < range_j; j++) {
@@ -4002,8 +3976,7 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_4d_tile_2d(
     /* No thread pool used: execute task sequentially on the calling thread */
     struct fpu_state saved_fpu_state = {0};
     if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
-      saved_fpu_state = get_fpu_state();
-      disable_fpu_denormals();
+      saved_fpu_state = disable_fpu_denormals();
     }
     for (size_t i = 0; i < range_i; i++) {
       for (size_t j = 0; j < range_j; j++) {
@@ -4068,8 +4041,7 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_4d_tile_2d_with_uarch(
 
     struct fpu_state saved_fpu_state = {0};
     if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
-      saved_fpu_state = get_fpu_state();
-      disable_fpu_denormals();
+      saved_fpu_state = disable_fpu_denormals();
     }
     for (size_t i = 0; i < range_i; i++) {
       for (size_t j = 0; j < range_j; j++) {
@@ -4125,8 +4097,7 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_4d_tile_2d_dynamic(
     /* No thread pool used: execute task sequentially on the calling thread */
     struct fpu_state saved_fpu_state = {0};
     if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
-      saved_fpu_state = get_fpu_state();
-      disable_fpu_denormals();
+      saved_fpu_state = disable_fpu_denormals();
     }
     if (range_l <= tile_l) {
       for (size_t index_i = 0; index_i < range_i; index_i++) {
@@ -4187,8 +4158,7 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_4d_tile_2d_dynamic_with_uarch(
 
     struct fpu_state saved_fpu_state = {0};
     if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
-      saved_fpu_state = get_fpu_state();
-      disable_fpu_denormals();
+      saved_fpu_state = disable_fpu_denormals();
     }
     if (range_l <= tile_l) {
       for (size_t index_i = 0; index_i < range_i; index_i++) {
@@ -4243,8 +4213,7 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_5d(pthreadpool_t threadpool,
     /* No thread pool used: execute task sequentially on the calling thread */
     struct fpu_state saved_fpu_state = {0};
     if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
-      saved_fpu_state = get_fpu_state();
-      disable_fpu_denormals();
+      saved_fpu_state = disable_fpu_denormals();
     }
     for (size_t i = 0; i < range_i; i++) {
       for (size_t j = 0; j < range_j; j++) {
@@ -4293,8 +4262,7 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_5d_tile_1d(
     /* No thread pool used: execute task sequentially on the calling thread */
     struct fpu_state saved_fpu_state = {0};
     if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
-      saved_fpu_state = get_fpu_state();
-      disable_fpu_denormals();
+      saved_fpu_state = disable_fpu_denormals();
     }
     for (size_t i = 0; i < range_i; i++) {
       for (size_t j = 0; j < range_j; j++) {
@@ -4350,8 +4318,7 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_5d_tile_2d(
     /* No thread pool used: execute task sequentially on the calling thread */
     struct fpu_state saved_fpu_state = {0};
     if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
-      saved_fpu_state = get_fpu_state();
-      disable_fpu_denormals();
+      saved_fpu_state = disable_fpu_denormals();
     }
     for (size_t i = 0; i < range_i; i++) {
       for (size_t j = 0; j < range_j; j++) {
@@ -4408,8 +4375,7 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_6d(
     /* No thread pool used: execute task sequentially on the calling thread */
     struct fpu_state saved_fpu_state = {0};
     if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
-      saved_fpu_state = get_fpu_state();
-      disable_fpu_denormals();
+      saved_fpu_state = disable_fpu_denormals();
     }
     for (size_t i = 0; i < range_i; i++) {
       for (size_t j = 0; j < range_j; j++) {
@@ -4463,8 +4429,7 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_6d_tile_1d(
     /* No thread pool used: execute task sequentially on the calling thread */
     struct fpu_state saved_fpu_state = {0};
     if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
-      saved_fpu_state = get_fpu_state();
-      disable_fpu_denormals();
+      saved_fpu_state = disable_fpu_denormals();
     }
     for (size_t i = 0; i < range_i; i++) {
       for (size_t j = 0; j < range_j; j++) {
@@ -4523,8 +4488,7 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_6d_tile_2d(
     /* No thread pool used: execute task sequentially on the calling thread */
     struct fpu_state saved_fpu_state = {0};
     if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
-      saved_fpu_state = get_fpu_state();
-      disable_fpu_denormals();
+      saved_fpu_state = disable_fpu_denormals();
     }
     for (size_t i = 0; i < range_i; i++) {
       for (size_t j = 0; j < range_j; j++) {

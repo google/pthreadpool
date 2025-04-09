@@ -122,8 +122,7 @@ static DWORD WINAPI thread_main(LPVOID arg) {
             (thread_function_t)pthreadpool_load_relaxed_void_p(
                 &threadpool->thread_function);
         if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
-          saved_fpu_state = get_fpu_state();
-          disable_fpu_denormals();
+          saved_fpu_state = disable_fpu_denormals();
         }
 
         thread_function(threadpool, thread);
@@ -296,8 +295,7 @@ PTHREADPOOL_INTERNAL void pthreadpool_parallelize(
   /* Save and modify FPU denormals control, if needed */
   struct fpu_state saved_fpu_state = {0};
   if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
-    saved_fpu_state = get_fpu_state();
-    disable_fpu_denormals();
+    saved_fpu_state = disable_fpu_denormals();
   }
 
   /* Do computations as worker #0 */
