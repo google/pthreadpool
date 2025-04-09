@@ -26,6 +26,7 @@
 #include <pthreadpool.h>
 
 /* Internal library headers */
+#include <fxdiv.h>
 #include "threadpool-atomics.h"
 #include "threadpool-object.h"
 #include "threadpool-utils.h"
@@ -41,8 +42,7 @@ static void thread_main(void* arg, size_t thread_index) {
 
   struct fpu_state saved_fpu_state = {0};
   if (flags & PTHREADPOOL_FLAG_DISABLE_DENORMALS) {
-    saved_fpu_state = get_fpu_state();
-    disable_fpu_denormals();
+    saved_fpu_state = disable_fpu_denormals();
   }
 
   thread_function(threadpool, thread);
