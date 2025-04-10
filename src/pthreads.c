@@ -439,7 +439,7 @@ PTHREADPOOL_INTERNAL void pthreadpool_parallelize(
   pthread_mutex_unlock(&threadpool->execution_mutex);
 }
 
-void pthreadpool_destroy(struct pthreadpool* threadpool) {
+PTHREADPOOL_WEAK void pthreadpool_destroy(struct pthreadpool* threadpool) {
   if (threadpool != NULL) {
     const size_t threads_count = threadpool->threads_count.value;
     if (threads_count > 1) {
