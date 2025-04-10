@@ -65,7 +65,8 @@ static size_t get_chunk(pthreadpool_atomic_size_t* num_tiles,
   return min(chunk_size, curr_num_tiles);
 }
 
-size_t pthreadpool_get_threads_count(struct pthreadpool* threadpool) {
+PTHREADPOOL_WEAK size_t
+pthreadpool_get_threads_count(struct pthreadpool* threadpool) {
   if (threadpool == NULL) {
     return 1;
   }
