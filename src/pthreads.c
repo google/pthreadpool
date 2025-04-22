@@ -323,6 +323,8 @@ PTHREADPOOL_WEAK struct pthreadpool* pthreadpool_create(size_t threads_count) {
   return threadpool;
 }
 
+PTHREADPOOL_PRIVATE_IMPL(pthreadpool_create)
+
 PTHREADPOOL_INTERNAL void pthreadpool_parallelize(
     struct pthreadpool* threadpool, thread_function_t thread_function,
     const void* params, size_t params_size, void* task, void* context,
@@ -505,3 +507,5 @@ PTHREADPOOL_WEAK void pthreadpool_destroy(struct pthreadpool* threadpool) {
     pthreadpool_deallocate(threadpool);
   }
 }
+
+PTHREADPOOL_PRIVATE_IMPL(pthreadpool_destroy)
