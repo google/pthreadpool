@@ -39,7 +39,8 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_1d_fastpath(
       (pthreadpool_task_1d_t)pthreadpool_load_relaxed_void_p(&threadpool->task);
   void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
 
-  const size_t threads_count = threadpool->threads_count.value;
+  const size_t threads_count =
+      pthreadpool_load_relaxed_size_t(&threadpool->num_threads_to_use);
   const size_t range_threshold = -threads_count;
 
   /* Process thread's own range of items */
@@ -77,7 +78,8 @@ pthreadpool_thread_parallelize_1d_with_thread_fastpath(
           &threadpool->task);
   void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
 
-  const size_t threads_count = threadpool->threads_count.value;
+  const size_t threads_count =
+      pthreadpool_load_relaxed_size_t(&threadpool->num_threads_to_use);
   const size_t range_threshold = -threads_count;
 
   /* Process thread's own range of items */
@@ -126,7 +128,8 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_1d_with_uarch_fastpath(
   }
 #endif
 
-  const size_t threads_count = threadpool->threads_count.value;
+  const size_t threads_count =
+      pthreadpool_load_relaxed_size_t(&threadpool->num_threads_to_use);
   const size_t range_threshold = -threads_count;
 
   /* Process thread's own range of items */
@@ -163,7 +166,8 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_1d_tile_1d_fastpath(
           &threadpool->task);
   void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
 
-  const size_t threads_count = threadpool->threads_count.value;
+  const size_t threads_count =
+      pthreadpool_load_relaxed_size_t(&threadpool->num_threads_to_use);
   const size_t range_threshold = -threads_count;
 
   /* Process thread's own range of items */
@@ -206,7 +210,8 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_2d_fastpath(
       (pthreadpool_task_2d_t)pthreadpool_load_relaxed_void_p(&threadpool->task);
   void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
 
-  const size_t threads_count = threadpool->threads_count.value;
+  const size_t threads_count =
+      pthreadpool_load_relaxed_size_t(&threadpool->num_threads_to_use);
   const size_t range_threshold = -threads_count;
 
   /* Process thread's own range of items */
@@ -258,7 +263,8 @@ pthreadpool_thread_parallelize_2d_with_thread_fastpath(
           &threadpool->task);
   void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
 
-  const size_t threads_count = threadpool->threads_count.value;
+  const size_t threads_count =
+      pthreadpool_load_relaxed_size_t(&threadpool->num_threads_to_use);
   const size_t range_threshold = -threads_count;
 
   /* Process thread's own range of items */
@@ -309,7 +315,8 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_2d_tile_1d_fastpath(
           &threadpool->task);
   void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
 
-  const size_t threads_count = threadpool->threads_count.value;
+  const size_t threads_count =
+      pthreadpool_load_relaxed_size_t(&threadpool->num_threads_to_use);
   const size_t range_threshold = -threads_count;
 
   /* Process thread's own range of items */
@@ -378,7 +385,8 @@ pthreadpool_thread_parallelize_2d_tile_1d_with_uarch_fastpath(
   }
 #endif
 
-  const size_t threads_count = threadpool->threads_count.value;
+  const size_t threads_count =
+      pthreadpool_load_relaxed_size_t(&threadpool->num_threads_to_use);
   const size_t range_threshold = -threads_count;
 
   /* Process thread's own range of items */
@@ -449,7 +457,8 @@ pthreadpool_thread_parallelize_2d_tile_1d_with_uarch_with_thread_fastpath(
   }
 #endif
 
-  const size_t threads_count = threadpool->threads_count.value;
+  const size_t threads_count =
+      pthreadpool_load_relaxed_size_t(&threadpool->num_threads_to_use);
   const size_t range_threshold = -threads_count;
 
   /* Process thread's own range of items */
@@ -508,7 +517,8 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_2d_tile_2d_fastpath(
           &threadpool->task);
   void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
 
-  const size_t threads_count = threadpool->threads_count.value;
+  const size_t threads_count =
+      pthreadpool_load_relaxed_size_t(&threadpool->num_threads_to_use);
   const size_t range_threshold = -threads_count;
 
   /* Process thread's own range of items */
@@ -581,7 +591,8 @@ pthreadpool_thread_parallelize_2d_tile_2d_with_uarch_fastpath(
   }
 #endif
 
-  const size_t threads_count = threadpool->threads_count.value;
+  const size_t threads_count =
+      pthreadpool_load_relaxed_size_t(&threadpool->num_threads_to_use);
   const size_t range_threshold = -threads_count;
 
   /* Process thread's own range of items */
@@ -644,7 +655,8 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_3d_fastpath(
       (pthreadpool_task_3d_t)pthreadpool_load_relaxed_void_p(&threadpool->task);
   void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
 
-  const size_t threads_count = threadpool->threads_count.value;
+  const size_t threads_count =
+      pthreadpool_load_relaxed_size_t(&threadpool->num_threads_to_use);
   const size_t range_threshold = -threads_count;
 
   /* Process thread's own range of items */
@@ -706,7 +718,8 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_3d_tile_1d_fastpath(
           &threadpool->task);
   void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
 
-  const size_t threads_count = threadpool->threads_count.value;
+  const size_t threads_count =
+      pthreadpool_load_relaxed_size_t(&threadpool->num_threads_to_use);
   const size_t range_threshold = -threads_count;
 
   /* Process thread's own range of items */
@@ -773,7 +786,8 @@ pthreadpool_thread_parallelize_3d_tile_1d_with_thread_fastpath(
           pthreadpool_load_relaxed_void_p(&threadpool->task);
   void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
 
-  const size_t threads_count = threadpool->threads_count.value;
+  const size_t threads_count =
+      pthreadpool_load_relaxed_size_t(&threadpool->num_threads_to_use);
   const size_t range_threshold = -threads_count;
 
   /* Process thread's own range of items */
@@ -853,7 +867,8 @@ pthreadpool_thread_parallelize_3d_tile_1d_with_uarch_fastpath(
   }
 #endif
 
-  const size_t threads_count = threadpool->threads_count.value;
+  const size_t threads_count =
+      pthreadpool_load_relaxed_size_t(&threadpool->num_threads_to_use);
   const size_t range_threshold = -threads_count;
 
   /* Process thread's own range of items */
@@ -934,7 +949,8 @@ pthreadpool_thread_parallelize_3d_tile_1d_with_uarch_with_thread_fastpath(
   }
 #endif
 
-  const size_t threads_count = threadpool->threads_count.value;
+  const size_t threads_count =
+      pthreadpool_load_relaxed_size_t(&threadpool->num_threads_to_use);
   const size_t range_threshold = -threads_count;
 
   /* Process thread's own range of items */
@@ -1003,7 +1019,8 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_3d_tile_2d_fastpath(
           &threadpool->task);
   void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
 
-  const size_t threads_count = threadpool->threads_count.value;
+  const size_t threads_count =
+      pthreadpool_load_relaxed_size_t(&threadpool->num_threads_to_use);
   const size_t range_threshold = -threads_count;
 
   /* Process thread's own range of items */
@@ -1087,7 +1104,8 @@ pthreadpool_thread_parallelize_3d_tile_2d_with_uarch_fastpath(
   }
 #endif
 
-  const size_t threads_count = threadpool->threads_count.value;
+  const size_t threads_count =
+      pthreadpool_load_relaxed_size_t(&threadpool->num_threads_to_use);
   const size_t range_threshold = -threads_count;
 
   /* Process thread's own range of items */
@@ -1161,7 +1179,8 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_4d_fastpath(
       (pthreadpool_task_4d_t)pthreadpool_load_relaxed_void_p(&threadpool->task);
   void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
 
-  const size_t threads_count = threadpool->threads_count.value;
+  const size_t threads_count =
+      pthreadpool_load_relaxed_size_t(&threadpool->num_threads_to_use);
   const size_t range_threshold = -threads_count;
 
   /* Process thread's own range of items */
@@ -1234,7 +1253,8 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_4d_tile_1d_fastpath(
           &threadpool->task);
   void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
 
-  const size_t threads_count = threadpool->threads_count.value;
+  const size_t threads_count =
+      pthreadpool_load_relaxed_size_t(&threadpool->num_threads_to_use);
   const size_t range_threshold = -threads_count;
 
   /* Process thread's own range of items */
@@ -1311,7 +1331,8 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_4d_tile_2d_fastpath(
           &threadpool->task);
   void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
 
-  const size_t threads_count = threadpool->threads_count.value;
+  const size_t threads_count =
+      pthreadpool_load_relaxed_size_t(&threadpool->num_threads_to_use);
   const size_t range_threshold = -threads_count;
 
   /* Process thread's own range of items */
@@ -1405,7 +1426,8 @@ pthreadpool_thread_parallelize_4d_tile_2d_with_uarch_fastpath(
   }
 #endif
 
-  const size_t threads_count = threadpool->threads_count.value;
+  const size_t threads_count =
+      pthreadpool_load_relaxed_size_t(&threadpool->num_threads_to_use);
   const size_t range_threshold = -threads_count;
 
   /* Process thread's own range of items */
@@ -1490,7 +1512,8 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_5d_fastpath(
       (pthreadpool_task_5d_t)pthreadpool_load_relaxed_void_p(&threadpool->task);
   void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
 
-  const size_t threads_count = threadpool->threads_count.value;
+  const size_t threads_count =
+      pthreadpool_load_relaxed_size_t(&threadpool->num_threads_to_use);
   const size_t range_threshold = -threads_count;
 
   /* Process thread's own range of items */
@@ -1573,7 +1596,8 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_5d_tile_1d_fastpath(
           &threadpool->task);
   void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
 
-  const size_t threads_count = threadpool->threads_count.value;
+  const size_t threads_count =
+      pthreadpool_load_relaxed_size_t(&threadpool->num_threads_to_use);
   const size_t range_threshold = -threads_count;
 
   /* Process thread's own range of items */
@@ -1661,7 +1685,8 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_5d_tile_2d_fastpath(
           &threadpool->task);
   void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
 
-  const size_t threads_count = threadpool->threads_count.value;
+  const size_t threads_count =
+      pthreadpool_load_relaxed_size_t(&threadpool->num_threads_to_use);
   const size_t range_threshold = -threads_count;
 
   /* Process thread's own range of items */
@@ -1752,7 +1777,8 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_6d_fastpath(
       (pthreadpool_task_6d_t)pthreadpool_load_relaxed_void_p(&threadpool->task);
   void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
 
-  const size_t threads_count = threadpool->threads_count.value;
+  const size_t threads_count =
+      pthreadpool_load_relaxed_size_t(&threadpool->num_threads_to_use);
   const size_t range_threshold = -threads_count;
 
   /* Process thread's own range of items */
@@ -1846,7 +1872,8 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_6d_tile_1d_fastpath(
           &threadpool->task);
   void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
 
-  const size_t threads_count = threadpool->threads_count.value;
+  const size_t threads_count =
+      pthreadpool_load_relaxed_size_t(&threadpool->num_threads_to_use);
   const size_t range_threshold = -threads_count;
 
   /* Process thread's own range of items */
@@ -1944,7 +1971,8 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_6d_tile_2d_fastpath(
           &threadpool->task);
   void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
 
-  const size_t threads_count = threadpool->threads_count.value;
+  const size_t threads_count =
+      pthreadpool_load_relaxed_size_t(&threadpool->num_threads_to_use);
   const size_t range_threshold = -threads_count;
 
   /* Process thread's own range of items */
