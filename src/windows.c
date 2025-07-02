@@ -16,6 +16,7 @@
 
 /* Configuration header */
 #include <fxdiv.h>
+
 #include "threadpool-common.h"
 
 /* Windows headers */
@@ -31,6 +32,8 @@
 #include "threadpool-atomics.h"
 #include "threadpool-object.h"
 #include "threadpool-utils.h"
+
+thread_local size_t max_num_threads = UINT_MAX;
 
 static void checkin_worker_thread(struct pthreadpool* threadpool,
                                   uint32_t event_index) {
@@ -67,10 +70,10 @@ static void wait_worker_threads(struct pthreadpool* threadpool,
   assert(pthreadpool_load_relaxed_size_t(&threadpool->active_threads) == 0);
 }
 
-static uint32_t wait_for_new_command(struct pthreadpool* threadpool,
+static uint32_t wait_for_new_command(struct thread_info* thread,
                                      uint32_t last_command,
                                      uint32_t last_flags) {
-  uint32_t command = pthreadpool_load_acquire_uint32_t(&threadpool->command);
+  uint32_t command = pthreadpool_load_acquire_uint32_t(&thread->command);
   if (command != last_command) {
     return command;
   }
@@ -80,7 +83,7 @@ static uint32_t wait_for_new_command(struct pthreadpool* threadpool,
     for (uint32_t i = 0; i < PTHREADPOOL_SPIN_WAIT_ITERATIONS; i++) {
       pthreadpool_yield(i);
 
-      command = pthreadpool_load_acquire_uint32_t(&threadpool->command);
+      command = pthreadpool_load_acquire_uint32_t(&thread->command);
       if (command != last_command) {
         return command;
       }
@@ -90,10 +93,10 @@ static uint32_t wait_for_new_command(struct pthreadpool* threadpool,
   /* Spin-wait disabled or timed out, fall back to event wait */
   const uint32_t event_index = (last_command >> 31);
   const DWORD wait_status =
-      WaitForSingleObject(threadpool->command_event[event_index], INFINITE);
+      WaitForSingleObject(thread->command_event[event_index], INFINITE);
   assert(wait_status == WAIT_OBJECT_0);
 
-  command = pthreadpool_load_relaxed_uint32_t(&threadpool->command);
+  command = pthreadpool_load_relaxed_uint32_t(&thread->command);
   assert(command != last_command);
   return command;
 }
@@ -110,7 +113,7 @@ static DWORD WINAPI thread_main(LPVOID arg) {
 
   /* Monitor new commands and act accordingly */
   for (;;) {
-    uint32_t command = wait_for_new_command(threadpool, last_command, flags);
+    uint32_t command = wait_for_new_command(thread, last_command, flags);
     pthreadpool_fence_acquire();
 
     flags = pthreadpool_load_relaxed_uint32_t(&threadpool->flags);
@@ -142,6 +145,9 @@ static DWORD WINAPI thread_main(LPVOID arg) {
     /* Notify the master thread that we finished processing */
     const uint32_t event_index = command >> 31;
     checkin_worker_thread(threadpool, event_index);
+    const uint32_t completion_event_index =
+        pthreadpool_load_relaxed_uint32_t(&threadpool->completion_event_index);
+    checkin_worker_thread(threadpool, completion_event_index);
     /* Update last command */
     last_command = command;
   };
@@ -161,6 +167,8 @@ struct pthreadpool* pthreadpool_create(size_t threads_count) {
     return NULL;
   }
   threadpool->threads_count = fxdiv_init_size_t(threads_count);
+  pthreadpool_store_relaxed_size_t(&threadpool->num_threads_to_use,
+                                   threads_count);
   for (size_t tid = 0; tid < threads_count; tid++) {
     threadpool->threads[tid].thread_number = tid;
     threadpool->threads[tid].threadpool = threadpool;
@@ -176,13 +184,11 @@ struct pthreadpool* pthreadpool_create(size_t threads_count) {
       threadpool->completion_event[i] = CreateEventW(
           NULL /* event attributes */, TRUE /* manual-reset event: yes */,
           FALSE /* initial state: non-signaled */, NULL /* name */);
-      threadpool->command_event[i] = CreateEventW(
-          NULL /* event attributes */, TRUE /* manual-reset event: yes */,
-          FALSE /* initial state: non-signaled */, NULL /* name */);
     }
 
     pthreadpool_store_relaxed_size_t(&threadpool->active_threads,
                                      threads_count - 1 /* caller thread */);
+    pthreadpool_store_relaxed_size_t(&threadpool->completion_event_index, 0);
 
     /* Caller thread serves as worker #0. Thus, we create system threads
      * starting with worker #1. */
@@ -191,6 +197,11 @@ struct pthreadpool* pthreadpool_create(size_t threads_count) {
           NULL /* thread attributes */, 0 /* stack size: default */,
           &thread_main, &threadpool->threads[tid], 0 /* creation flags */,
           NULL /* thread id */);
+      for (size_t i = 0; i < 2; i++) {
+        threadpool->threads[tid].command_event[i] = CreateEventW(
+            NULL /* event attributes */, TRUE /* manual-reset event: yes */,
+            FALSE /* initial state: nonsignaled */, NULL /* name */);
+      }
     }
 
     /* Wait until all threads initialize */
@@ -198,6 +209,12 @@ struct pthreadpool* pthreadpool_create(size_t threads_count) {
   }
   return threadpool;
 }
+
+void pthreadpool_set_num_threads_to_use(size_t num_threads) {
+  max_num_threads = num_threads;
+}
+
+size_t pthreadpool_get_num_threads_to_use() { return max_num_threads; }
 
 PTHREADPOOL_INTERNAL void pthreadpool_parallelize(
     struct pthreadpool* threadpool, thread_function_t thread_function,
@@ -221,8 +238,14 @@ PTHREADPOOL_INTERNAL void pthreadpool_parallelize(
   pthreadpool_store_relaxed_uint32_t(&threadpool->flags, flags);
 
   const struct fxdiv_divisor_size_t threads_count = threadpool->threads_count;
-  pthreadpool_store_relaxed_size_t(&threadpool->active_threads,
-                                   threads_count.value - 1 /* caller thread */);
+  size_t max_threads_to_use = pthreadpool_get_num_threads_to_use();
+  const struct fxdiv_divisor_size_t num_threads_to_use =
+      fxdiv_init_size_t(min(threads_count.value, max_threads_to_use));
+  pthreadpool_store_relaxed_size_t(
+      &threadpool->active_threads,
+      num_threads_to_use.value - 1 /* caller thread */);
+  pthreadpool_store_relaxed_size_t(&threadpool->num_threads_to_use,
+                                   num_threads_to_use.value);
 
   if (params_size != 0) {
     CopyMemory(&threadpool->params, params, params_size);
@@ -231,9 +254,9 @@ PTHREADPOOL_INTERNAL void pthreadpool_parallelize(
 
   /* Spread the work between threads */
   const struct fxdiv_result_size_t range_params =
-      fxdiv_divide_size_t(linear_range, threads_count);
+      fxdiv_divide_size_t(linear_range, num_threads_to_use);
   size_t range_start = 0;
-  for (size_t tid = 0; tid < threads_count.value; tid++) {
+  for (size_t tid = 0; tid < num_threads_to_use.value; tid++) {
     struct thread_info* thread = &threadpool->threads[tid];
     const size_t range_length =
         range_params.quotient + (size_t)(tid < range_params.remainder);
@@ -246,52 +269,62 @@ PTHREADPOOL_INTERNAL void pthreadpool_parallelize(
     range_start = range_end;
   }
 
-  /*
-   * Update the threadpool command.
-   * Imporantly, do it after initializing command parameters (range, task,
-   * argument, flags)
-   * ~(threadpool->command | THREADPOOL_COMMAND_MASK) flips the bits not in
-   * command mask to ensure the unmasked command is different then the last
-   * command, because worker threads monitor for change in the unmasked command.
-   */
-  const uint32_t old_command =
-      pthreadpool_load_relaxed_uint32_t(&threadpool->command);
-  const uint32_t new_command =
-      ~(old_command | THREADPOOL_COMMAND_MASK) | threadpool_command_parallelize;
+  uint32_t completion_event_index =
+      pthreadpool_load_relaxed_uint32_t(&threadpool->completion_event_index);
+  completion_event_index = completion_event_index ^ 1;
+  pthreadpool_store_relaxed_size_t(&threadpool->completion_event_index,
+                                   completion_event_index);
 
-  /*
-   * Reset the command event for the next command.
-   * It is important to reset the event before writing out the new command,
-   * because as soon as the worker threads observe the new command, they may
-   * process it and switch to waiting on the next command event.
-   *
-   * Note: the event is different from the command event signalled in this
-   * update.
-   */
-  const uint32_t event_index = (old_command >> 31);
-  BOOL reset_event_status =
-      ResetEvent(threadpool->command_event[event_index ^ 1]);
-  assert(reset_event_status != FALSE);
+  for (size_t tid = 1; tid < num_threads_to_use.value; tid++) {
+    /*
+     * Update the threadpool command.
+     * Importantly, do it after initializing command parameters (range, task,
+     * argument, flags)
+     * ~(threadpool->command | THREADPOOL_COMMAND_MASK) flips the bits not in
+     * command mask to ensure the unmasked command is different then the last
+     * command, because worker threads monitor for change in the unmasked
+     * command.
+     */
+    const uint32_t old_command =
+        pthreadpool_load_relaxed_uint32_t(&threadpool->threads[tid].command);
+    const uint32_t new_command = ~(old_command | THREADPOOL_COMMAND_MASK) |
+                                 threadpool_command_parallelize;
 
-  /*
-   * Store the command with release semantics to guarantee that if a worker
-   * thread observes the new command value, it also observes the updated command
-   * parameters.
-   *
-   * Note: release semantics is necessary, because the workers might be waiting
-   * in a spin-loop rather than on the event object.
-   */
-  pthreadpool_store_release_uint32_t(&threadpool->command, new_command);
+    /*
+     * Reset the command event for the next command.
+     * It is important to reset the event before writing out the new command,
+     * because as soon as the worker threads observe the new command, they may
+     * process it and switch to waiting on the next command event.
+     *
+     * Note: the event is different from the command event signalled in this
+     * update.
+     */
+    const uint32_t event_index = (old_command >> 31);
+    BOOL reset_event_status =
+        ResetEvent(threadpool->threads[tid].command_event[event_index ^ 1]);
+    assert(reset_event_status != FALSE);
 
-  /*
-   * Signal the event to wake up the threads.
-   * Event in use must be switched after every submitted command to avoid race
-   * conditions. Choose the event based on the high bit of the command, which is
-   * flipped on every update.
-   */
-  const BOOL set_event_status =
-      SetEvent(threadpool->command_event[event_index]);
-  assert(set_event_status != FALSE);
+    /*
+     * Store the command with release semantics to guarantee that if a worker
+     * thread observes the new command value, it also observes the updated
+     * command parameters.
+     *
+     * Note: release semantics is necessary, because the workers might be
+     * waiting in a spin-loop rather than on the event object.
+     */
+    pthreadpool_store_release_uint32_t(&threadpool->threads[tid].command,
+                                       new_command);
+
+    /*
+     * Signal the event to wake up the threads.
+     * Event in use must be switched after every submitted command to avoid race
+     * conditions. Choose the event based on the high bit of the command, which
+     * is flipped on every update.
+     */
+    const BOOL set_event_status =
+        SetEvent(threadpool->threads[tid].command_event[event_index]);
+    assert(set_event_status != FALSE);
+  }
 
   /* Save and modify FPU denormals control, if needed */
   struct fpu_state saved_fpu_state = {0};
@@ -312,13 +345,14 @@ PTHREADPOOL_INTERNAL void pthreadpool_parallelize(
    * Wait until the threads finish computation
    * Use the complementary event because it corresponds to the new command.
    */
-  wait_worker_threads(threadpool, event_index ^ 1);
+  wait_worker_threads(threadpool, completion_event_index);
 
   /*
    * Reset the completion event for the next command.
    * Note: the event is different from the one used for waiting in this update.
    */
-  reset_event_status = ResetEvent(threadpool->completion_event[event_index]);
+  BOOL reset_event_status =
+      ResetEvent(threadpool->completion_event[completion_event_index ^ 1]);
   assert(reset_event_status != FALSE);
 
   /* Make changes by other threads visible to this thread */
@@ -336,26 +370,28 @@ void pthreadpool_destroy(struct pthreadpool* threadpool) {
       pthreadpool_store_relaxed_size_t(&threadpool->active_threads,
                                        threads_count - 1 /* caller thread */);
 
-      /*
-       * Store the command with release semantics to guarantee that if a worker
-       * thread observes the new command value, it also observes the updated
-       * active_threads values.
-       */
-      const uint32_t old_command =
-          pthreadpool_load_relaxed_uint32_t(&threadpool->command);
-      pthreadpool_store_release_uint32_t(&threadpool->command,
-                                         threadpool_command_shutdown);
+      for (size_t tid = 1; tid < threads_count; tid++) {
+        /*
+         * Store the command with release semantics to guarantee that if a
+         * worker thread observes the new command value, it also observes the
+         * updated active_threads values.
+         */
+        const uint32_t old_command = pthreadpool_load_relaxed_uint32_t(
+            &threadpool->threads[tid].command);
+        pthreadpool_store_release_uint32_t(&threadpool->threads[tid].command,
+                                           threadpool_command_shutdown);
 
-      /*
-       * Signal the event to wake up the threads.
-       * Event in use must be switched after every submitted command to avoid
-       * race conditions. Choose the event based on the high bit of the command,
-       * which is flipped on every update.
-       */
-      const uint32_t event_index = (old_command >> 31);
-      const BOOL set_event_status =
-          SetEvent(threadpool->command_event[event_index]);
-      assert(set_event_status != FALSE);
+        /*
+         * Signal the event to wake up the threads.
+         * Event in use must be switched after every submitted command to avoid
+         * race conditions. Choose the event based on the high bit of the
+         * command, which is flipped on every update.
+         */
+        const uint32_t event_index = (old_command >> 31);
+        const BOOL set_event_status =
+            SetEvent(threadpool->threads[tid].command_event[event_index]);
+        assert(set_event_status != FALSE);
+      }
 
       /* Wait until all threads return */
       for (size_t tid = 1; tid < threads_count; tid++) {
@@ -368,6 +404,13 @@ void pthreadpool_destroy(struct pthreadpool* threadpool) {
           const BOOL close_status = CloseHandle(thread_handle);
           assert(close_status != FALSE);
         }
+        for (size_t i = 0; i < 2; i++) {
+          if (threadpool->threads[tid].command_event[i] != NULL) {
+            const BOOL close_status =
+                CloseHandle(threadpool->threads[tid].command_event[i]);
+            assert(close_status != FALSE);
+          }
+        }
       }
 
       /* Release resources */
@@ -376,10 +419,6 @@ void pthreadpool_destroy(struct pthreadpool* threadpool) {
         assert(close_status != FALSE);
       }
       for (size_t i = 0; i < 2; i++) {
-        if (threadpool->command_event[i] != NULL) {
-          const BOOL close_status = CloseHandle(threadpool->command_event[i]);
-          assert(close_status != FALSE);
-        }
         if (threadpool->completion_event[i] != NULL) {
           const BOOL close_status =
               CloseHandle(threadpool->completion_event[i]);
