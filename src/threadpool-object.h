@@ -11,6 +11,7 @@
 #define __PTHREADPOOL_SRC_THREADPOOL_OBJECT_H_
 
 /* Standard C headers */
+#include <stdatomic.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -48,6 +49,14 @@ enum threadpool_command {
   threadpool_command_init,
   threadpool_command_parallelize,
   threadpool_command_shutdown,
+};
+
+enum threadpool_state {
+  threadpool_state_idle = 0,
+  threadpool_state_running,
+  threadpool_state_wrapping_up,
+  threadpool_state_done,
+  threadpool_state_finalized,
 };
 
 struct PTHREADPOOL_CACHELINE_ALIGNED thread_info {
@@ -1229,6 +1238,49 @@ struct PTHREADPOOL_CACHELINE_ALIGNED pthreadpool {
    */
   HANDLE command_event[2];
 #endif
+  /**
+   * A spin lock that controls access to the `threadpool_state`.
+   *
+   * Note that `pthreadpool_spin_lock_t` is aligned to the presumed cache line
+   * size, but the following fields (`state`, `job_id`, `num_active_threads`,
+   * and `max_active_threads`) are not such that they occumpy the same cache
+   * line as `state_spin_lock`, intentinoally causing "false sharing", which is
+   * desired in this particular case.
+   */
+  pthreadpool_spin_lock_t state_spin_lock;
+  /**
+   * The current `threadpool_state`.
+   */
+  atomic_uint_fast32_t state;
+  /**
+   * The ID of the job currently being run.
+   */
+  atomic_uint_fast32_t job_id;
+  /**
+   * The current number of threads running on the current job.
+   *
+   * This value is used to make sure that no more than @a max_active_threads are
+   * working on a parallel job at the same time, as well as to track when all
+   * threads working on a job have completed.
+   */
+  atomic_uint_fast32_t num_active_threads;
+  /**
+   * The maximum number of threads to allow on to the current job.
+   */
+  atomic_uint_fast32_t max_active_threads;
+  /**
+   * The maximum number of threads to allow overall.
+   */
+  atomic_uint_fast32_t max_num_threads;
+  /**
+   * Pointer to a `pthreadpool_scheduler` that will handle the creation of
+   * parallel threas for this threadpool.
+   */
+  struct pthreadpool_scheduler* scheduler;
+  /**
+   * The number of jobs that are currently in flight..
+   */
+  pthreadpool_atomic_uint32_t num_pending_jobs;
   /**
    * FXdiv divisor for the number of threads in the thread pool.
    * This struct never change after pthreadpool_create.

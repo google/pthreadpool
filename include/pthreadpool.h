@@ -141,6 +141,16 @@ typedef void (*pthreadpool_task_3d_tile_1d_dynamic_with_id_with_thread_t)(
 extern "C" {
 #endif
 
+/// An abstract interface of a parallel task scheduler.
+struct pthreadpool_scheduler {
+  /// Get the number of tasks that can be executed concurrently.
+  int (*num_threads)(struct pthreadpool_scheduler*);
+
+  /// Schedule `task` to be called, with `context` as its argument.
+  void (*schedule)(struct pthreadpool_scheduler*, void* context,
+                   void (*task)(void* context));
+};
+
 /**
  * Create a thread pool with the specified number of threads.
  *
@@ -152,6 +162,31 @@ extern "C" {
  *    successful, or NULL pointer if the call failed.
  */
 pthreadpool_t pthreadpool_create(size_t threads_count);
+
+/**
+ * Create a thread pool with a given scheduler and a maximum specified number of
+ * threads.
+ *
+ * For each call to a `pthreadpool_parallelize_*` function, the minimum of @a
+ * max_num_threads and @a scheduler->num_threads(scheduler) calls to @a
+ * scheduler->schedule(scheduler,...) will be executed, potentially lasting for
+ * the entire duration of the `pthreadpool_parallelize_*` call.
+ *
+ * @param scheduler       A pointer to a @a pthreadpool_scheduler object that
+ *                        will be used to determine the number of extra threads
+ *                        (plus the calling thread), and provide the threads
+ *                        itself, for each call to a `pthreadpool_parallelize_*`
+ *                        function.
+ * @param max_num_thread  The maximum number of threads in the thread pool.
+ *                        A value of 0 has special interpretation: it creates a
+ *                        thread pool with as many threads as there are logical
+ *                        processors in the system.
+ *
+ * @returns  A pointer to an opaque thread pool object if the call is
+ *    successful, or NULL pointer if the call failed.
+ */
+pthreadpool_t pthreadpool_create_v2(struct pthreadpool_scheduler* scheduler,
+                                    size_t max_num_threads);
 
 /**
  * Query the number of threads in a thread pool.
@@ -2342,6 +2377,36 @@ void call_wrapper_6d_tile_2d(void* functor, size_t i, size_t j, size_t k,
 } /* namespace */
 } /* namespace detail */
 } /* namespace libpthreadpool */
+
+/**
+ * Drop-in wrapper for the @a pthreadpool_scheduler.
+ */
+class PthreadpoolScheduler : public pthreadpool_scheduler {
+ public:
+  using TaskFunction = void (*)(void*);
+
+  PthreadpoolScheduler() {
+    num_threads = num_threads_impl;
+    schedule = schedule_impl;
+  }
+  virtual ~PthreadpoolScheduler() = default;
+
+  /**
+   * Override these methods.
+   */
+  virtual int NumThreads() = 0;
+  virtual void Schedule(void* context, TaskFunction task) = 0;
+
+ private:
+  static int num_threads_impl(struct pthreadpool_scheduler* sched) {
+    return static_cast<PthreadpoolScheduler*>(sched)->NumThreads();
+  }
+
+  static void schedule_impl(struct pthreadpool_scheduler* sched, void* context,
+                            TaskFunction task) {
+    static_cast<PthreadpoolScheduler*>(sched)->Schedule(context, task);
+  }
+};
 
 /**
  * Process items on a 1D grid.

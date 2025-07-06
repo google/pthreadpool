@@ -54,6 +54,8 @@ typedef atomic_uint_fast32_t PTHREADPOOL_CACHELINE_ALIGNED
 typedef atomic_size_t PTHREADPOOL_CACHELINE_ALIGNED pthreadpool_atomic_size_t;
 typedef atomic_uintptr_t PTHREADPOOL_CACHELINE_ALIGNED
     pthreadpool_atomic_void_p;
+typedef atomic_uint_fast32_t PTHREADPOOL_CACHELINE_ALIGNED
+    pthreadpool_spin_lock_t;
 
 static inline uint32_t pthreadpool_load_relaxed_uint32_t(
     pthreadpool_atomic_uint32_t* address) {
@@ -110,6 +112,11 @@ static inline size_t pthreadpool_decrement_fetch_relaxed_size_t(
   return atomic_fetch_sub_explicit(address, 1, memory_order_relaxed) - 1;
 }
 
+static inline uint32_t pthreadpool_decrement_fetch_relaxed_uint32_t(
+    pthreadpool_atomic_uint32_t* address) {
+  return atomic_fetch_sub_explicit(address, 1, memory_order_relaxed) - 1;
+}
+
 static inline size_t pthreadpool_decrement_n_fetch_relaxed_size_t(
     pthreadpool_atomic_size_t* address, size_t n) {
   return atomic_fetch_sub_explicit(address, n, memory_order_relaxed) - n;
@@ -148,12 +155,36 @@ static inline size_t pthreadpool_fetch_add_relaxed_size_t(
   return atomic_fetch_add_explicit(address, value, memory_order_relaxed);
 }
 
+static inline uint32_t pthreadpool_exchange_relaxed_uint32_t(
+    pthreadpool_atomic_uint32_t* address, uint32_t value) {
+  return atomic_exchange_explicit(address, value, memory_order_relaxed);
+}
+
+static inline bool pthreadpool_compare_exchange_relaxed_size_t(
+    pthreadpool_atomic_size_t* address, size_t* expected_value,
+    size_t new_value) {
+  return atomic_compare_exchange_weak_explicit(address, expected_value,
+                                               new_value, memory_order_relaxed,
+                                               memory_order_relaxed);
+}
+
 static inline void pthreadpool_fence_acquire() {
   atomic_thread_fence(memory_order_acquire);
 }
 
 static inline void pthreadpool_fence_release() {
   atomic_thread_fence(memory_order_release);
+}
+
+static inline void pthreadpool_spin_lock_acquire(
+    pthreadpool_spin_lock_t* address) {
+  while (atomic_exchange_explicit(address, 1, memory_order_acquire) != 0) {
+  }
+}
+
+static inline void pthreadpool_spin_lock_release(
+    pthreadpool_spin_lock_t* address) {
+  atomic_exchange_explicit(address, 0, memory_order_release);
 }
 
 static inline void pthreadpool_yield(uint32_t step) {
