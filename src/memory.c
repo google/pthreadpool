@@ -68,17 +68,13 @@ PTHREADPOOL_INTERNAL struct pthreadpool* pthreadpool_allocate(
     return NULL;
   }
   memset(threadpool, 0, threadpool_size);
+  threadpool->num_thread_info = threads_count;
   return threadpool;
 }
 
 PTHREADPOOL_INTERNAL void pthreadpool_deallocate(
     struct pthreadpool* threadpool) {
   assert(threadpool != NULL);
-
-  const size_t threadpool_size =
-      sizeof(struct pthreadpool) +
-      threadpool->threads_count.value * sizeof(struct thread_info);
-  memset(threadpool, 0, threadpool_size);
 
 #ifdef _WIN32
   _aligned_free(threadpool);
