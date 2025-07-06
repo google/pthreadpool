@@ -30,7 +30,17 @@ struct pthreadpool* pthreadpool_create(size_t threads_count) {
   return NULL;
 }
 
+struct pthreadpool* pthreadpool_create_v2(struct pthreadpool_executor* exec,
+                                          size_t max_threads_count) {
+  return NULL;
+}
+
 size_t pthreadpool_get_threads_count(struct pthreadpool* threadpool) {
+  return 1;
+}
+
+size_t pthreadpool_set_threads_count(struct pthreadpool* threadpool,
+                                     size_t num_threads) {
   return 1;
 }
 
