@@ -11,6 +11,7 @@
 #define __PTHREADPOOL_SRC_THREADPOOL_OBJECT_H_
 
 /* Standard C headers */
+#include <stdatomic.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -48,6 +49,13 @@ enum threadpool_command {
   threadpool_command_init,
   threadpool_command_parallelize,
   threadpool_command_shutdown,
+};
+
+enum threadpool_state {
+  threadpool_state_idle = 0,
+  threadpool_state_running,
+  threadpool_state_wrapping_up,
+  threadpool_state_done,
 };
 
 struct PTHREADPOOL_CACHELINE_ALIGNED thread_info {
@@ -1083,46 +1091,7 @@ struct pthreadpool_6d_tile_2d_params {
   struct fxdiv_divisor_size_t tile_range_n;
 };
 
-struct PTHREADPOOL_CACHELINE_ALIGNED pthreadpool {
-#if !PTHREADPOOL_USE_GCD
-  /**
-   * The number of threads that are processing an operation.
-   */
-  pthreadpool_atomic_size_t active_threads;
-#endif
-#if PTHREADPOOL_USE_FUTEX
-  /**
-   * Indicates if there are active threads.
-   * Only two values are possible:
-   * - has_active_threads == 0 if active_threads == 0
-   * - has_active_threads == 1 if active_threads != 0
-   */
-  pthreadpool_atomic_uint32_t has_active_threads;
-#endif
-#if !PTHREADPOOL_USE_GCD
-  /**
-   * The last command submitted to the thread pool.
-   */
-  pthreadpool_atomic_uint32_t command;
-#endif
-  /**
-   * The entry point function to call for each thread in the thread pool for
-   * parallelization tasks.
-   */
-  pthreadpool_atomic_void_p thread_function;
-  /**
-   * The function to call for each item.
-   */
-  pthreadpool_atomic_void_p task;
-  /**
-   * The first argument to the item processing function.
-   */
-  pthreadpool_atomic_void_p argument;
-  /**
-   * Additional parallelization parameters.
-   * These parameters are specific for each thread_function.
-   */
-  union {
+union pthreadpool_params {
     struct pthreadpool_1d_with_uarch_params parallelize_1d_with_uarch;
     struct pthreadpool_1d_tile_1d_params parallelize_1d_tile_1d;
     struct pthreadpool_1d_tile_1d_dynamic_params parallelize_1d_tile_1d_dynamic;
@@ -1168,7 +1137,48 @@ struct PTHREADPOOL_CACHELINE_ALIGNED pthreadpool {
     struct pthreadpool_6d_params parallelize_6d;
     struct pthreadpool_6d_tile_1d_params parallelize_6d_tile_1d;
     struct pthreadpool_6d_tile_2d_params parallelize_6d_tile_2d;
-  } params;
+};
+
+struct PTHREADPOOL_CACHELINE_ALIGNED pthreadpool {
+#if !PTHREADPOOL_USE_GCD
+  /**
+   * The number of threads that are processing an operation.
+   */
+  pthreadpool_atomic_size_t active_threads;
+#endif
+#if PTHREADPOOL_USE_FUTEX
+  /**
+   * Indicates if there are active threads.
+   * Only two values are possible:
+   * - has_active_threads == 0 if active_threads == 0
+   * - has_active_threads == 1 if active_threads != 0
+   */
+  pthreadpool_atomic_uint32_t has_active_threads;
+#endif
+#if !PTHREADPOOL_USE_GCD
+  /**
+   * The last command submitted to the thread pool.
+   */
+  pthreadpool_atomic_uint32_t command;
+#endif
+  /**
+   * The entry point function to call for each thread in the thread pool for
+   * parallelization tasks.
+   */
+  pthreadpool_atomic_void_p thread_function;
+  /**
+   * The function to call for each item.
+   */
+  pthreadpool_atomic_void_p task;
+  /**
+   * The first argument to the item processing function.
+   */
+  pthreadpool_atomic_void_p argument;
+  /**
+   * Additional parallelization parameters.
+   * These parameters are specific for each thread_function.
+   */
+  union pthreadpool_params params;
   /**
    * Copy of the flags passed to a parallelization function.
    */
@@ -1205,13 +1215,14 @@ struct PTHREADPOOL_CACHELINE_ALIGNED pthreadpool {
    */
   pthread_cond_t completion_condvar;
   /**
-   * Guards access to the @a command variable.
+   * Guards access to the @a state_condvar variable. Acces to the state itself
+   * is guarded by the @a state_spin_lock.
    */
-  pthread_mutex_t command_mutex;
+  pthread_mutex_t state_mutex;
   /**
-   * Condition variable to wait for change of the @a command variable.
+   * Condition variable to wait on a change of @a state.
    */
-  pthread_cond_t command_condvar;
+  pthread_cond_t state_condvar;
 #endif
 #if PTHREADPOOL_USE_EVENT
   /**
@@ -1230,10 +1241,51 @@ struct PTHREADPOOL_CACHELINE_ALIGNED pthreadpool {
   HANDLE command_event[2];
 #endif
   /**
+   * A spin lock that controls access to the `threadpool_state`.
+   */
+  pthreadpool_spin_lock_t state_spin_lock;
+  /**
+   * The current `threadpool_state`.
+   */
+  pthreadpool_atomic_uint32_t state;
+  /**
+   * The ID of the job currently being run.
+   */
+  pthreadpool_atomic_uint32_t job_id;
+  /**
+   * The current number of threads running on the current job.
+   *
+   * This value is used to make sure that no more than @a max_active_threads are
+   * working on a parallel job at the same time, as well as to track when all
+   * threads working on a job have completed.
+   */
+  pthreadpool_atomic_uint32_t num_active_threads;
+  /**
+   * The maximum number of threads to allow on to the current job.
+   */
+  atomic_uint_fast32_t max_active_threads;
+  /**
+   * The maximum number of threads to allow overall.
+   */
+  atomic_uint_fast32_t max_num_threads;
+  /**
+   * Pointer to a `pthreadpool_executor` that will handle the creation of
+   * parallel threas for this threadpool.
+   */
+  struct pthreadpool_executor* executor;
+  /**
+   * The number of jobs that are currently in flight.
+   */
+  pthreadpool_atomic_uint32_t num_recruited_threads;
+  /**
    * FXdiv divisor for the number of threads in the thread pool.
    * This struct never change after pthreadpool_create.
    */
   struct fxdiv_divisor_size_t threads_count;
+  /**
+   * The number of thread_info structs that were originally allocated.
+   */
+  size_t num_thread_info;
   /**
    * Thread information structures that immediately follow this structure.
    */

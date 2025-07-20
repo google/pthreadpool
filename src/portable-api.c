@@ -69,8 +69,9 @@ PTHREADPOOL_WEAK size_t
 pthreadpool_get_threads_count(struct pthreadpool* threadpool) {
   if (threadpool == NULL) {
     return 1;
+  } else if (threadpool->executor) {
+    return threadpool->max_active_threads;
   }
-
   return threadpool->threads_count.value;
 }
 

@@ -30,9 +30,21 @@ struct pthreadpool* pthreadpool_create(size_t threads_count) {
   return NULL;
 }
 
+struct pthreadpool* pthreadpool_create_v2(struct pthreadpool_executor* exec,
+                                          size_t max_threads_count) {
+  return NULL;
+}
+
 size_t pthreadpool_get_threads_count(struct pthreadpool* threadpool) {
   return 1;
 }
+
+size_t pthreadpool_set_threads_count(struct pthreadpool* threadpool,
+                                     size_t num_threads) {
+  return 1;
+}
+
+void pthreadpool_release_all_threads(struct pthreadpool* threadpool) {}
 
 PTHREADPOOL_WEAK void pthreadpool_parallelize_1d(struct pthreadpool* threadpool,
                                                  pthreadpool_task_1d_t function,
