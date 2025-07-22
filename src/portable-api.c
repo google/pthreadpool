@@ -65,8 +65,8 @@ static size_t get_chunk(pthreadpool_atomic_size_t* num_tiles,
   return min(chunk_size, curr_num_tiles);
 }
 
-PTHREADPOOL_WEAK size_t
-pthreadpool_get_threads_count(struct pthreadpool* threadpool) {
+PTHREADPOOL_IMPL(size_t, pthreadpool_get_threads_count)(
+    struct pthreadpool* threadpool) {
   if (threadpool == NULL) {
     return 1;
   }
@@ -74,7 +74,7 @@ pthreadpool_get_threads_count(struct pthreadpool* threadpool) {
   return threadpool->threads_count.value;
 }
 
-PTHREADPOOL_PRIVATE_IMPL(pthreadpool_get_threads_count)
+PTHREADPOOL_WEAK_ALIAS(pthreadpool_get_threads_count)
 
 static void thread_parallelize_1d(struct pthreadpool* threadpool,
                                   struct thread_info* thread) {
@@ -3389,10 +3389,11 @@ static void thread_parallelize_6d_tile_2d(struct pthreadpool* threadpool,
   pthreadpool_fence_release();
 }
 
-PTHREADPOOL_WEAK void pthreadpool_parallelize_1d(struct pthreadpool* threadpool,
-                                                 pthreadpool_task_1d_t function,
-                                                 void* context, size_t range,
-                                                 uint32_t flags) {
+PTHREADPOOL_IMPL(void,
+                 pthreadpool_parallelize_1d)(struct pthreadpool* threadpool,
+                                             pthreadpool_task_1d_t function,
+                                             void* context, size_t range,
+                                             uint32_t flags) {
   size_t threads_count;
   if (threadpool == NULL ||
       (threads_count = threadpool->threads_count.value) <= 1 || range <= 1) {
@@ -3421,9 +3422,9 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_1d(struct pthreadpool* threadpool,
   }
 }
 
-PTHREADPOOL_PRIVATE_IMPL(pthreadpool_parallelize_1d)
+PTHREADPOOL_WEAK_ALIAS(pthreadpool_parallelize_1d)
 
-PTHREADPOOL_WEAK void pthreadpool_parallelize_1d_with_thread(
+PTHREADPOOL_IMPL(void, pthreadpool_parallelize_1d_with_thread)(
     struct pthreadpool* threadpool, pthreadpool_task_1d_with_thread_t function,
     void* context, size_t range, uint32_t flags) {
   size_t threads_count;
@@ -3456,9 +3457,9 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_1d_with_thread(
   }
 }
 
-PTHREADPOOL_PRIVATE_IMPL(pthreadpool_parallelize_1d_with_thread)
+PTHREADPOOL_WEAK_ALIAS(pthreadpool_parallelize_1d_with_thread)
 
-PTHREADPOOL_WEAK void pthreadpool_parallelize_1d_with_uarch(
+PTHREADPOOL_IMPL(void, pthreadpool_parallelize_1d_with_uarch)(
     pthreadpool_t threadpool, pthreadpool_task_1d_with_id_t function,
     void* context, uint32_t default_uarch_index, uint32_t max_uarch_index,
     size_t range, uint32_t flags) {
@@ -3506,9 +3507,9 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_1d_with_uarch(
   }
 }
 
-PTHREADPOOL_PRIVATE_IMPL(pthreadpool_parallelize_1d_with_uarch)
+PTHREADPOOL_WEAK_ALIAS(pthreadpool_parallelize_1d_with_uarch)
 
-PTHREADPOOL_WEAK void pthreadpool_parallelize_1d_tile_1d(
+PTHREADPOOL_IMPL(void, pthreadpool_parallelize_1d_tile_1d)(
     pthreadpool_t threadpool, pthreadpool_task_1d_tile_1d_t function,
     void* context, size_t range, size_t tile, uint32_t flags) {
   size_t threads_count;
@@ -3546,9 +3547,9 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_1d_tile_1d(
   }
 }
 
-PTHREADPOOL_PRIVATE_IMPL(pthreadpool_parallelize_1d_tile_1d)
+PTHREADPOOL_WEAK_ALIAS(pthreadpool_parallelize_1d_tile_1d)
 
-PTHREADPOOL_WEAK void pthreadpool_parallelize_1d_tile_1d_dynamic(
+PTHREADPOOL_IMPL(void, pthreadpool_parallelize_1d_tile_1d_dynamic)(
     pthreadpool_t threadpool, pthreadpool_task_1d_tile_1d_dynamic_t function,
     void* context, size_t range, size_t tile, uint32_t flags) {
   size_t threads_count;
@@ -3576,9 +3577,9 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_1d_tile_1d_dynamic(
   }
 }
 
-PTHREADPOOL_PRIVATE_IMPL(pthreadpool_parallelize_1d_tile_1d_dynamic)
+PTHREADPOOL_WEAK_ALIAS(pthreadpool_parallelize_1d_tile_1d_dynamic)
 
-PTHREADPOOL_WEAK void pthreadpool_parallelize_1d_tile_1d_dynamic_with_thread(
+PTHREADPOOL_IMPL(void, pthreadpool_parallelize_1d_tile_1d_dynamic_with_thread)(
     pthreadpool_t threadpool,
     pthreadpool_task_1d_tile_1d_dynamic_with_id_t function, void* context,
     size_t range, size_t tile, uint32_t flags) {
@@ -3607,10 +3608,10 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_1d_tile_1d_dynamic_with_thread(
   }
 }
 
-PTHREADPOOL_PRIVATE_IMPL(pthreadpool_parallelize_1d_tile_1d_dynamic_with_thread)
+PTHREADPOOL_WEAK_ALIAS(pthreadpool_parallelize_1d_tile_1d_dynamic_with_thread)
 
-PTHREADPOOL_WEAK void
-pthreadpool_parallelize_1d_tile_1d_dynamic_with_uarch_with_thread(
+PTHREADPOOL_IMPL(
+    void, pthreadpool_parallelize_1d_tile_1d_dynamic_with_uarch_with_thread)(
     pthreadpool_t threadpool,
     pthreadpool_task_1d_tile_1d_dynamic_with_id_with_thread_t function,
     void* context, uint32_t default_uarch_index, uint32_t max_uarch_index,
@@ -3652,14 +3653,14 @@ pthreadpool_parallelize_1d_tile_1d_dynamic_with_uarch_with_thread(
   }
 }
 
-PTHREADPOOL_PRIVATE_IMPL(
+PTHREADPOOL_WEAK_ALIAS(
     pthreadpool_parallelize_1d_tile_1d_dynamic_with_uarch_with_thread)
 
-PTHREADPOOL_WEAK void pthreadpool_parallelize_2d(pthreadpool_t threadpool,
-                                                 pthreadpool_task_2d_t function,
-                                                 void* context, size_t range_i,
-                                                 size_t range_j,
-                                                 uint32_t flags) {
+PTHREADPOOL_IMPL(void,
+                 pthreadpool_parallelize_2d)(pthreadpool_t threadpool,
+                                             pthreadpool_task_2d_t function,
+                                             void* context, size_t range_i,
+                                             size_t range_j, uint32_t flags) {
   size_t threads_count;
   if (threadpool == NULL ||
       (threads_count = threadpool->threads_count.value) <= 1 ||
@@ -3695,9 +3696,9 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_2d(pthreadpool_t threadpool,
   }
 }
 
-PTHREADPOOL_PRIVATE_IMPL(pthreadpool_parallelize_2d)
+PTHREADPOOL_WEAK_ALIAS(pthreadpool_parallelize_2d)
 
-PTHREADPOOL_WEAK void pthreadpool_parallelize_2d_with_thread(
+PTHREADPOOL_IMPL(void, pthreadpool_parallelize_2d_with_thread)(
     pthreadpool_t threadpool, pthreadpool_task_2d_with_thread_t function,
     void* context, size_t range_i, size_t range_j, uint32_t flags) {
   size_t threads_count;
@@ -3737,9 +3738,9 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_2d_with_thread(
   }
 }
 
-PTHREADPOOL_PRIVATE_IMPL(pthreadpool_parallelize_2d_with_thread)
+PTHREADPOOL_WEAK_ALIAS(pthreadpool_parallelize_2d_with_thread)
 
-PTHREADPOOL_WEAK void pthreadpool_parallelize_2d_tile_1d(
+PTHREADPOOL_IMPL(void, pthreadpool_parallelize_2d_tile_1d)(
     pthreadpool_t threadpool, pthreadpool_task_2d_tile_1d_t function,
     void* context, size_t range_i, size_t range_j, size_t tile_j,
     uint32_t flags) {
@@ -3783,9 +3784,9 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_2d_tile_1d(
   }
 }
 
-PTHREADPOOL_PRIVATE_IMPL(pthreadpool_parallelize_2d_tile_1d)
+PTHREADPOOL_WEAK_ALIAS(pthreadpool_parallelize_2d_tile_1d)
 
-PTHREADPOOL_WEAK void pthreadpool_parallelize_2d_tile_1d_with_uarch(
+PTHREADPOOL_IMPL(void, pthreadpool_parallelize_2d_tile_1d_with_uarch)(
     pthreadpool_t threadpool, pthreadpool_task_2d_tile_1d_with_id_t function,
     void* context, uint32_t default_uarch_index, uint32_t max_uarch_index,
     size_t range_i, size_t range_j, size_t tile_j, uint32_t flags) {
@@ -3842,9 +3843,10 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_2d_tile_1d_with_uarch(
   }
 }
 
-PTHREADPOOL_PRIVATE_IMPL(pthreadpool_parallelize_2d_tile_1d_with_uarch)
+PTHREADPOOL_WEAK_ALIAS(pthreadpool_parallelize_2d_tile_1d_with_uarch)
 
-PTHREADPOOL_WEAK void pthreadpool_parallelize_2d_tile_1d_with_uarch_with_thread(
+PTHREADPOOL_IMPL(void,
+                 pthreadpool_parallelize_2d_tile_1d_with_uarch_with_thread)(
     pthreadpool_t threadpool,
     pthreadpool_task_2d_tile_1d_with_id_with_thread_t function, void* context,
     uint32_t default_uarch_index, uint32_t max_uarch_index, size_t range_i,
@@ -3902,10 +3904,10 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_2d_tile_1d_with_uarch_with_thread(
   }
 }
 
-PTHREADPOOL_PRIVATE_IMPL(
+PTHREADPOOL_WEAK_ALIAS(
     pthreadpool_parallelize_2d_tile_1d_with_uarch_with_thread)
 
-PTHREADPOOL_WEAK void pthreadpool_parallelize_2d_tile_1d_dynamic(
+PTHREADPOOL_IMPL(void, pthreadpool_parallelize_2d_tile_1d_dynamic)(
     pthreadpool_t threadpool, pthreadpool_task_2d_tile_1d_dynamic_t function,
     void* context, size_t range_i, size_t range_j, size_t tile_j,
     uint32_t flags) {
@@ -3937,9 +3939,9 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_2d_tile_1d_dynamic(
   }
 }
 
-PTHREADPOOL_PRIVATE_IMPL(pthreadpool_parallelize_2d_tile_1d_dynamic)
+PTHREADPOOL_WEAK_ALIAS(pthreadpool_parallelize_2d_tile_1d_dynamic)
 
-PTHREADPOOL_WEAK void pthreadpool_parallelize_2d_tile_1d_dynamic_with_thread(
+PTHREADPOOL_IMPL(void, pthreadpool_parallelize_2d_tile_1d_dynamic_with_thread)(
     pthreadpool_t threadpool,
     pthreadpool_task_2d_tile_1d_dynamic_with_id_t function, void* context,
     size_t range_i, size_t range_j, size_t tile_j, uint32_t flags) {
@@ -3971,10 +3973,10 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_2d_tile_1d_dynamic_with_thread(
   }
 }
 
-PTHREADPOOL_PRIVATE_IMPL(pthreadpool_parallelize_2d_tile_1d_dynamic_with_thread)
+PTHREADPOOL_WEAK_ALIAS(pthreadpool_parallelize_2d_tile_1d_dynamic_with_thread)
 
-PTHREADPOOL_WEAK void
-pthreadpool_parallelize_2d_tile_1d_dynamic_with_uarch_with_thread(
+PTHREADPOOL_IMPL(
+    void, pthreadpool_parallelize_2d_tile_1d_dynamic_with_uarch_with_thread)(
     pthreadpool_t threadpool,
     pthreadpool_task_2d_tile_1d_dynamic_with_id_with_thread_t function,
     void* context, uint32_t default_uarch_index, uint32_t max_uarch_index,
@@ -4020,10 +4022,10 @@ pthreadpool_parallelize_2d_tile_1d_dynamic_with_uarch_with_thread(
   }
 }
 
-PTHREADPOOL_PRIVATE_IMPL(
+PTHREADPOOL_WEAK_ALIAS(
     pthreadpool_parallelize_2d_tile_1d_dynamic_with_uarch_with_thread)
 
-PTHREADPOOL_WEAK void pthreadpool_parallelize_2d_tile_2d(
+PTHREADPOOL_IMPL(void, pthreadpool_parallelize_2d_tile_2d)(
     pthreadpool_t threadpool, pthreadpool_task_2d_tile_2d_t function,
     void* context, size_t range_i, size_t range_j, size_t tile_i, size_t tile_j,
     uint32_t flags) {
@@ -4071,9 +4073,9 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_2d_tile_2d(
   }
 }
 
-PTHREADPOOL_PRIVATE_IMPL(pthreadpool_parallelize_2d_tile_2d)
+PTHREADPOOL_WEAK_ALIAS(pthreadpool_parallelize_2d_tile_2d)
 
-PTHREADPOOL_WEAK void pthreadpool_parallelize_2d_tile_2d_dynamic(
+PTHREADPOOL_IMPL(void, pthreadpool_parallelize_2d_tile_2d_dynamic)(
     pthreadpool_t threadpool, pthreadpool_task_2d_tile_2d_dynamic_t function,
     void* context, size_t range_i, size_t range_j, size_t tile_i, size_t tile_j,
     uint32_t flags) {
@@ -4112,9 +4114,9 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_2d_tile_2d_dynamic(
   }
 }
 
-PTHREADPOOL_PRIVATE_IMPL(pthreadpool_parallelize_2d_tile_2d_dynamic)
+PTHREADPOOL_WEAK_ALIAS(pthreadpool_parallelize_2d_tile_2d_dynamic)
 
-PTHREADPOOL_WEAK void pthreadpool_parallelize_2d_tile_2d_dynamic_with_uarch(
+PTHREADPOOL_IMPL(void, pthreadpool_parallelize_2d_tile_2d_dynamic_with_uarch)(
     pthreadpool_t threadpool,
     pthreadpool_task_2d_tile_2d_dynamic_with_id_t function, void* context,
     uint32_t default_uarch_index, uint32_t max_uarch_index, size_t range_i,
@@ -4166,9 +4168,9 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_2d_tile_2d_dynamic_with_uarch(
   }
 }
 
-PTHREADPOOL_PRIVATE_IMPL(pthreadpool_parallelize_2d_tile_2d_dynamic_with_uarch)
+PTHREADPOOL_WEAK_ALIAS(pthreadpool_parallelize_2d_tile_2d_dynamic_with_uarch)
 
-PTHREADPOOL_WEAK void pthreadpool_parallelize_2d_tile_2d_dynamic_with_thread(
+PTHREADPOOL_IMPL(void, pthreadpool_parallelize_2d_tile_2d_dynamic_with_thread)(
     pthreadpool_t threadpool,
     pthreadpool_task_2d_tile_2d_dynamic_with_id_t function, void* context,
     size_t range_i, size_t range_j, size_t tile_i, size_t tile_j,
@@ -4209,9 +4211,9 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_2d_tile_2d_dynamic_with_thread(
   }
 }
 
-PTHREADPOOL_PRIVATE_IMPL(pthreadpool_parallelize_2d_tile_2d_dynamic_with_thread)
+PTHREADPOOL_WEAK_ALIAS(pthreadpool_parallelize_2d_tile_2d_dynamic_with_thread)
 
-PTHREADPOOL_WEAK void pthreadpool_parallelize_2d_tile_2d_with_uarch(
+PTHREADPOOL_IMPL(void, pthreadpool_parallelize_2d_tile_2d_with_uarch)(
     pthreadpool_t threadpool, pthreadpool_task_2d_tile_2d_with_id_t function,
     void* context, uint32_t default_uarch_index, uint32_t max_uarch_index,
     size_t range_i, size_t range_j, size_t tile_i, size_t tile_j,
@@ -4273,13 +4275,11 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_2d_tile_2d_with_uarch(
   }
 }
 
-PTHREADPOOL_PRIVATE_IMPL(pthreadpool_parallelize_2d_tile_2d_with_uarch)
+PTHREADPOOL_WEAK_ALIAS(pthreadpool_parallelize_2d_tile_2d_with_uarch)
 
-PTHREADPOOL_WEAK void pthreadpool_parallelize_3d(pthreadpool_t threadpool,
-                                                 pthreadpool_task_3d_t function,
-                                                 void* context, size_t range_i,
-                                                 size_t range_j, size_t range_k,
-                                                 uint32_t flags) {
+PTHREADPOOL_IMPL(void, pthreadpool_parallelize_3d)(
+    pthreadpool_t threadpool, pthreadpool_task_3d_t function, void* context,
+    size_t range_i, size_t range_j, size_t range_k, uint32_t flags) {
   size_t threads_count;
   if (threadpool == NULL ||
       (threads_count = threadpool->threads_count.value) <= 1 ||
@@ -4318,9 +4318,9 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_3d(pthreadpool_t threadpool,
   }
 }
 
-PTHREADPOOL_PRIVATE_IMPL(pthreadpool_parallelize_3d)
+PTHREADPOOL_WEAK_ALIAS(pthreadpool_parallelize_3d)
 
-PTHREADPOOL_WEAK void pthreadpool_parallelize_3d_tile_1d(
+PTHREADPOOL_IMPL(void, pthreadpool_parallelize_3d_tile_1d)(
     pthreadpool_t threadpool, pthreadpool_task_3d_tile_1d_t function,
     void* context, size_t range_i, size_t range_j, size_t range_k,
     size_t tile_k, uint32_t flags) {
@@ -4367,9 +4367,9 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_3d_tile_1d(
   }
 }
 
-PTHREADPOOL_PRIVATE_IMPL(pthreadpool_parallelize_3d_tile_1d)
+PTHREADPOOL_WEAK_ALIAS(pthreadpool_parallelize_3d_tile_1d)
 
-PTHREADPOOL_WEAK void pthreadpool_parallelize_3d_tile_1d_with_thread(
+PTHREADPOOL_IMPL(void, pthreadpool_parallelize_3d_tile_1d_with_thread)(
     pthreadpool_t threadpool,
     pthreadpool_task_3d_tile_1d_with_thread_t function, void* context,
     size_t range_i, size_t range_j, size_t range_k, size_t tile_k,
@@ -4418,9 +4418,9 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_3d_tile_1d_with_thread(
   }
 }
 
-PTHREADPOOL_PRIVATE_IMPL(pthreadpool_parallelize_3d_tile_1d_with_thread)
+PTHREADPOOL_WEAK_ALIAS(pthreadpool_parallelize_3d_tile_1d_with_thread)
 
-PTHREADPOOL_WEAK void pthreadpool_parallelize_3d_tile_1d_with_uarch(
+PTHREADPOOL_IMPL(void, pthreadpool_parallelize_3d_tile_1d_with_uarch)(
     pthreadpool_t threadpool, pthreadpool_task_3d_tile_1d_with_id_t function,
     void* context, uint32_t default_uarch_index, uint32_t max_uarch_index,
     size_t range_i, size_t range_j, size_t range_k, size_t tile_k,
@@ -4481,9 +4481,10 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_3d_tile_1d_with_uarch(
   }
 }
 
-PTHREADPOOL_PRIVATE_IMPL(pthreadpool_parallelize_3d_tile_1d_with_uarch)
+PTHREADPOOL_WEAK_ALIAS(pthreadpool_parallelize_3d_tile_1d_with_uarch)
 
-PTHREADPOOL_WEAK void pthreadpool_parallelize_3d_tile_1d_with_uarch_with_thread(
+PTHREADPOOL_IMPL(void,
+                 pthreadpool_parallelize_3d_tile_1d_with_uarch_with_thread)(
     pthreadpool_t threadpool,
     pthreadpool_task_3d_tile_1d_with_id_with_thread_t function, void* context,
     uint32_t default_uarch_index, uint32_t max_uarch_index, size_t range_i,
@@ -4544,9 +4545,9 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_3d_tile_1d_with_uarch_with_thread(
   }
 }
 
-PTHREADPOOL_PRIVATE_IMPL(pthreadpool_parallelize_3d_tile_1d_with_uarch_with_thread)
+PTHREADPOOL_WEAK_ALIAS(pthreadpool_parallelize_3d_tile_1d_with_uarch_with_thread)
 
-PTHREADPOOL_WEAK void pthreadpool_parallelize_3d_tile_1d_dynamic_with_thread(
+PTHREADPOOL_IMPL(void, pthreadpool_parallelize_3d_tile_1d_dynamic_with_thread)(
     pthreadpool_t threadpool,
     pthreadpool_task_3d_tile_1d_dynamic_with_id_t function, void* context,
     size_t range_i, size_t range_j, size_t range_k, size_t tile_k,
@@ -4583,10 +4584,10 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_3d_tile_1d_dynamic_with_thread(
   }
 }
 
-PTHREADPOOL_PRIVATE_IMPL(pthreadpool_parallelize_3d_tile_1d_dynamic_with_thread)
+PTHREADPOOL_WEAK_ALIAS(pthreadpool_parallelize_3d_tile_1d_dynamic_with_thread)
 
-PTHREADPOOL_WEAK void
-pthreadpool_parallelize_3d_tile_1d_dynamic_with_uarch_with_thread(
+PTHREADPOOL_IMPL(
+    void, pthreadpool_parallelize_3d_tile_1d_dynamic_with_uarch_with_thread)(
     pthreadpool_t threadpool,
     pthreadpool_task_3d_tile_1d_dynamic_with_id_with_thread_t function,
     void* context, uint32_t default_uarch_index, uint32_t max_uarch_index,
@@ -4636,10 +4637,10 @@ pthreadpool_parallelize_3d_tile_1d_dynamic_with_uarch_with_thread(
   }
 }
 
-PTHREADPOOL_PRIVATE_IMPL(
+PTHREADPOOL_WEAK_ALIAS(
     pthreadpool_parallelize_3d_tile_1d_dynamic_with_uarch_with_thread)
 
-PTHREADPOOL_WEAK void pthreadpool_parallelize_3d_tile_2d(
+PTHREADPOOL_IMPL(void, pthreadpool_parallelize_3d_tile_2d)(
     pthreadpool_t threadpool, pthreadpool_task_3d_tile_2d_t function,
     void* context, size_t range_i, size_t range_j, size_t range_k,
     size_t tile_j, size_t tile_k, uint32_t flags) {
@@ -4690,9 +4691,9 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_3d_tile_2d(
   }
 }
 
-PTHREADPOOL_PRIVATE_IMPL(pthreadpool_parallelize_3d_tile_2d)
+PTHREADPOOL_WEAK_ALIAS(pthreadpool_parallelize_3d_tile_2d)
 
-PTHREADPOOL_WEAK void pthreadpool_parallelize_3d_tile_2d_dynamic(
+PTHREADPOOL_IMPL(void, pthreadpool_parallelize_3d_tile_2d_dynamic)(
     pthreadpool_t threadpool, pthreadpool_task_3d_tile_2d_dynamic_t function,
     void* context, size_t range_i, size_t range_j, size_t range_k,
     size_t tile_j, size_t tile_k, uint32_t flags) {
@@ -4737,9 +4738,9 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_3d_tile_2d_dynamic(
   }
 }
 
-PTHREADPOOL_PRIVATE_IMPL(pthreadpool_parallelize_3d_tile_2d_dynamic)
+PTHREADPOOL_WEAK_ALIAS(pthreadpool_parallelize_3d_tile_2d_dynamic)
 
-PTHREADPOOL_WEAK void pthreadpool_parallelize_3d_tile_2d_dynamic_with_uarch(
+PTHREADPOOL_IMPL(void, pthreadpool_parallelize_3d_tile_2d_dynamic_with_uarch)(
     pthreadpool_t threadpool,
     pthreadpool_task_3d_tile_2d_dynamic_with_id_t function, void* context,
     uint32_t default_uarch_index, uint32_t max_uarch_index, size_t range_i,
@@ -4797,9 +4798,9 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_3d_tile_2d_dynamic_with_uarch(
   }
 }
 
-PTHREADPOOL_PRIVATE_IMPL(pthreadpool_parallelize_3d_tile_2d_dynamic_with_uarch)
+PTHREADPOOL_WEAK_ALIAS(pthreadpool_parallelize_3d_tile_2d_dynamic_with_uarch)
 
-PTHREADPOOL_WEAK void pthreadpool_parallelize_3d_tile_2d_dynamic_with_thread(
+PTHREADPOOL_IMPL(void, pthreadpool_parallelize_3d_tile_2d_dynamic_with_thread)(
     pthreadpool_t threadpool,
     pthreadpool_task_3d_tile_2d_dynamic_with_id_t function, void* context,
     size_t range_i, size_t range_j, size_t range_k, size_t tile_j,
@@ -4845,9 +4846,9 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_3d_tile_2d_dynamic_with_thread(
   }
 }
 
-PTHREADPOOL_PRIVATE_IMPL(pthreadpool_parallelize_3d_tile_2d_dynamic_with_thread)
+PTHREADPOOL_WEAK_ALIAS(pthreadpool_parallelize_3d_tile_2d_dynamic_with_thread)
 
-PTHREADPOOL_WEAK void pthreadpool_parallelize_3d_tile_2d_with_uarch(
+PTHREADPOOL_IMPL(void, pthreadpool_parallelize_3d_tile_2d_with_uarch)(
     pthreadpool_t threadpool, pthreadpool_task_3d_tile_2d_with_id_t function,
     void* context, uint32_t default_uarch_index, uint32_t max_uarch_index,
     size_t range_i, size_t range_j, size_t range_k, size_t tile_j,
@@ -4912,14 +4913,14 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_3d_tile_2d_with_uarch(
   }
 }
 
-PTHREADPOOL_PRIVATE_IMPL(pthreadpool_parallelize_3d_tile_2d_with_uarch)
+PTHREADPOOL_WEAK_ALIAS(pthreadpool_parallelize_3d_tile_2d_with_uarch)
 
-PTHREADPOOL_WEAK void pthreadpool_parallelize_4d(pthreadpool_t threadpool,
-                                                 pthreadpool_task_4d_t function,
-                                                 void* context, size_t range_i,
-                                                 size_t range_j, size_t range_k,
-                                                 size_t range_l,
-                                                 uint32_t flags) {
+PTHREADPOOL_IMPL(void,
+                 pthreadpool_parallelize_4d)(pthreadpool_t threadpool,
+                                             pthreadpool_task_4d_t function,
+                                             void* context, size_t range_i,
+                                             size_t range_j, size_t range_k,
+                                             size_t range_l, uint32_t flags) {
   size_t threads_count;
   if (threadpool == NULL ||
       (threads_count = threadpool->threads_count.value) <= 1 ||
@@ -4963,9 +4964,9 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_4d(pthreadpool_t threadpool,
   }
 }
 
-PTHREADPOOL_PRIVATE_IMPL(pthreadpool_parallelize_4d)
+PTHREADPOOL_WEAK_ALIAS(pthreadpool_parallelize_4d)
 
-PTHREADPOOL_WEAK void pthreadpool_parallelize_4d_tile_1d(
+PTHREADPOOL_IMPL(void, pthreadpool_parallelize_4d_tile_1d)(
     pthreadpool_t threadpool, pthreadpool_task_4d_tile_1d_t function,
     void* context, size_t range_i, size_t range_j, size_t range_k,
     size_t range_l, size_t tile_l, uint32_t flags) {
@@ -5017,9 +5018,9 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_4d_tile_1d(
   }
 }
 
-PTHREADPOOL_PRIVATE_IMPL(pthreadpool_parallelize_4d_tile_1d)
+PTHREADPOOL_WEAK_ALIAS(pthreadpool_parallelize_4d_tile_1d)
 
-PTHREADPOOL_WEAK void pthreadpool_parallelize_4d_tile_2d(
+PTHREADPOOL_IMPL(void, pthreadpool_parallelize_4d_tile_2d)(
     pthreadpool_t threadpool, pthreadpool_task_4d_tile_2d_t function,
     void* context, size_t range_i, size_t range_j, size_t range_k,
     size_t range_l, size_t tile_k, size_t tile_l, uint32_t flags) {
@@ -5074,9 +5075,9 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_4d_tile_2d(
   }
 }
 
-PTHREADPOOL_PRIVATE_IMPL(pthreadpool_parallelize_4d_tile_2d)
+PTHREADPOOL_WEAK_ALIAS(pthreadpool_parallelize_4d_tile_2d)
 
-PTHREADPOOL_WEAK void pthreadpool_parallelize_4d_tile_2d_with_uarch(
+PTHREADPOOL_IMPL(void, pthreadpool_parallelize_4d_tile_2d_with_uarch)(
     pthreadpool_t threadpool, pthreadpool_task_4d_tile_2d_with_id_t function,
     void* context, uint32_t default_uarch_index, uint32_t max_uarch_index,
     size_t range_i, size_t range_j, size_t range_k, size_t range_l,
@@ -5145,9 +5146,9 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_4d_tile_2d_with_uarch(
   }
 }
 
-PTHREADPOOL_PRIVATE_IMPL(pthreadpool_parallelize_4d_tile_2d_with_uarch)
+PTHREADPOOL_WEAK_ALIAS(pthreadpool_parallelize_4d_tile_2d_with_uarch)
 
-PTHREADPOOL_WEAK void pthreadpool_parallelize_4d_tile_2d_dynamic(
+PTHREADPOOL_IMPL(void, pthreadpool_parallelize_4d_tile_2d_dynamic)(
     pthreadpool_t threadpool, pthreadpool_task_4d_tile_2d_dynamic_t function,
     void* context, size_t range_i, size_t range_j, size_t range_k,
     size_t range_l, size_t tile_k, size_t tile_l, uint32_t flags) {
@@ -5198,9 +5199,9 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_4d_tile_2d_dynamic(
   }
 }
 
-PTHREADPOOL_PRIVATE_IMPL(pthreadpool_parallelize_4d_tile_2d_dynamic)
+PTHREADPOOL_WEAK_ALIAS(pthreadpool_parallelize_4d_tile_2d_dynamic)
 
-PTHREADPOOL_WEAK void pthreadpool_parallelize_4d_tile_2d_dynamic_with_uarch(
+PTHREADPOOL_IMPL(void, pthreadpool_parallelize_4d_tile_2d_dynamic_with_uarch)(
     pthreadpool_t threadpool,
     pthreadpool_task_4d_tile_2d_dynamic_with_id_t function, void* context,
     uint32_t default_uarch_index, uint32_t max_uarch_index, size_t range_i,
@@ -5264,14 +5265,12 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_4d_tile_2d_dynamic_with_uarch(
   }
 }
 
-PTHREADPOOL_PRIVATE_IMPL(pthreadpool_parallelize_4d_tile_2d_dynamic_with_uarch)
+PTHREADPOOL_WEAK_ALIAS(pthreadpool_parallelize_4d_tile_2d_dynamic_with_uarch)
 
-PTHREADPOOL_WEAK void pthreadpool_parallelize_5d(pthreadpool_t threadpool,
-                                                 pthreadpool_task_5d_t function,
-                                                 void* context, size_t range_i,
-                                                 size_t range_j, size_t range_k,
-                                                 size_t range_l, size_t range_m,
-                                                 uint32_t flags) {
+PTHREADPOOL_IMPL(void, pthreadpool_parallelize_5d)(
+    pthreadpool_t threadpool, pthreadpool_task_5d_t function, void* context,
+    size_t range_i, size_t range_j, size_t range_k, size_t range_l,
+    size_t range_m, uint32_t flags) {
   size_t threads_count;
   if (threadpool == NULL ||
       (threads_count = threadpool->threads_count.value) <= 1 ||
@@ -5318,9 +5317,9 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_5d(pthreadpool_t threadpool,
   }
 }
 
-PTHREADPOOL_PRIVATE_IMPL(pthreadpool_parallelize_5d)
+PTHREADPOOL_WEAK_ALIAS(pthreadpool_parallelize_5d)
 
-PTHREADPOOL_WEAK void pthreadpool_parallelize_5d_tile_1d(
+PTHREADPOOL_IMPL(void, pthreadpool_parallelize_5d_tile_1d)(
     pthreadpool_t threadpool, pthreadpool_task_5d_tile_1d_t function,
     void* context, size_t range_i, size_t range_j, size_t range_k,
     size_t range_l, size_t range_m, size_t tile_m, uint32_t flags) {
@@ -5375,9 +5374,9 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_5d_tile_1d(
   }
 }
 
-PTHREADPOOL_PRIVATE_IMPL(pthreadpool_parallelize_5d_tile_1d)
+PTHREADPOOL_WEAK_ALIAS(pthreadpool_parallelize_5d_tile_1d)
 
-PTHREADPOOL_WEAK void pthreadpool_parallelize_5d_tile_2d(
+PTHREADPOOL_IMPL(void, pthreadpool_parallelize_5d_tile_2d)(
     pthreadpool_t threadpool, pthreadpool_task_5d_tile_2d_t function,
     void* context, size_t range_i, size_t range_j, size_t range_k,
     size_t range_l, size_t range_m, size_t tile_l, size_t tile_m,
@@ -5437,9 +5436,9 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_5d_tile_2d(
   }
 }
 
-PTHREADPOOL_PRIVATE_IMPL(pthreadpool_parallelize_5d_tile_2d)
+PTHREADPOOL_WEAK_ALIAS(pthreadpool_parallelize_5d_tile_2d)
 
-PTHREADPOOL_WEAK void pthreadpool_parallelize_6d(
+PTHREADPOOL_IMPL(void, pthreadpool_parallelize_6d)(
     pthreadpool_t threadpool, pthreadpool_task_6d_t function, void* context,
     size_t range_i, size_t range_j, size_t range_k, size_t range_l,
     size_t range_m, size_t range_n, uint32_t flags) {
@@ -5492,9 +5491,9 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_6d(
   }
 }
 
-PTHREADPOOL_PRIVATE_IMPL(pthreadpool_parallelize_6d)
+PTHREADPOOL_WEAK_ALIAS(pthreadpool_parallelize_6d)
 
-PTHREADPOOL_WEAK void pthreadpool_parallelize_6d_tile_1d(
+PTHREADPOOL_IMPL(void, pthreadpool_parallelize_6d_tile_1d)(
     pthreadpool_t threadpool, pthreadpool_task_6d_tile_1d_t function,
     void* context, size_t range_i, size_t range_j, size_t range_k,
     size_t range_l, size_t range_m, size_t range_n, size_t tile_n,
@@ -5554,9 +5553,9 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_6d_tile_1d(
   }
 }
 
-PTHREADPOOL_PRIVATE_IMPL(pthreadpool_parallelize_6d_tile_1d)
+PTHREADPOOL_WEAK_ALIAS(pthreadpool_parallelize_6d_tile_1d)
 
-PTHREADPOOL_WEAK void pthreadpool_parallelize_6d_tile_2d(
+PTHREADPOOL_IMPL(void, pthreadpool_parallelize_6d_tile_2d)(
     pthreadpool_t threadpool, pthreadpool_task_6d_tile_2d_t function,
     void* context, size_t range_i, size_t range_j, size_t range_k,
     size_t range_l, size_t range_m, size_t range_n, size_t tile_m,
@@ -5621,4 +5620,4 @@ PTHREADPOOL_WEAK void pthreadpool_parallelize_6d_tile_2d(
   }
 }
 
-PTHREADPOOL_PRIVATE_IMPL(pthreadpool_parallelize_6d_tile_2d)
+PTHREADPOOL_WEAK_ALIAS(pthreadpool_parallelize_6d_tile_2d)
