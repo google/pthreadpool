@@ -148,7 +148,7 @@ extern "C" {
  *    A value of 0 has special interpretation: it creates a thread pool with as
  *    many threads as there are logical processors in the system.
  *
- * @returns  A pointer to an opaque thread pool object if the call is
+ * @return  A pointer to an opaque thread pool object if the call is
  *    successful, or NULL pointer if the call failed.
  */
 pthreadpool_t pthreadpool_create(size_t threads_count);
@@ -158,9 +158,26 @@ pthreadpool_t pthreadpool_create(size_t threads_count);
  *
  * @param  threadpool  the thread pool to query.
  *
- * @returns  The number of threads in the thread pool.
+ * @return  The number of threads in the thread pool.
  */
 size_t pthreadpool_get_threads_count(pthreadpool_t threadpool);
+
+/**
+ * Try to set the number of threads in a thread pool.
+ *
+ * The number of threads can be at most the number of threads with which the @a
+ * threadpool was created. Trying to set a larger value will set and return the
+ * maximum possible value.
+ *
+ * @param  threadpool   The thread pool to query.
+ * @param  num_threads  The desired number of threads. A value of 0 sets the
+ *                      number of threads to the maximum available, i.e. the
+ *                      value used when the @a threadpool was created.
+ *
+ * @return  The updated number of threads in the thread pool.
+ */
+size_t pthreadpool_set_threads_count(pthreadpool_t threadpool,
+                                     size_t num_threads);
 
 /**
  * Process items on a 1D grid.

@@ -34,6 +34,11 @@ size_t pthreadpool_get_threads_count(struct pthreadpool* threadpool) {
   return 1;
 }
 
+size_t pthreadpool_set_threads_count(struct pthreadpool* threadpool,
+                                     size_t num_threads) {
+  return 1;
+}
+
 void PTHREADPOOL_IMPL(pthreadpool_parallelize_1d)(struct pthreadpool* threadpool,
                                                  pthreadpool_task_1d_t function,
                                                  void* context, size_t range,

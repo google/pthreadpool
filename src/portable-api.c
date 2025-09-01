@@ -70,7 +70,6 @@ size_t PTHREADPOOL_IMPL(pthreadpool_get_threads_count)(
   if (threadpool == NULL) {
     return 1;
   }
-
   return threadpool->threads_count.value;
 }
 
