@@ -14165,8 +14165,8 @@ TEST(Parallelize6DTile2D, MultiThreadPoolWorkStealing) {
                 kParallelize6DTile2DRangeM * kParallelize6DTile2DRangeN);
 }
 
-static void CheckThreadID(void* num_threads, size_t thread_id, size_t) {
-  EXPECT_LT(thread_id, *(size_t*)num_threads);
+static void CheckThreadID(size_t num_threads, size_t thread_id, size_t) {
+  EXPECT_LT(thread_id, num_threads);
 }
 
 TEST(SetNumThreads, ValidRange) {
@@ -14190,9 +14190,10 @@ TEST(SetNumThreads, ValidRange) {
               num_threads);
     ASSERT_EQ(pthreadpool_get_threads_count(threadpool.get()), num_threads);
 
-    pthreadpool_parallelize_1d_with_thread(threadpool.get(), CheckThreadID,
-                                           (void*)&num_threads,
-                                           kParallelize1DRange, /*flags=*/0);
+    pthreadpool_parallelize_1d_with_thread(
+        threadpool.get(),
+        reinterpret_cast<pthreadpool_task_1d_with_thread_t>(CheckThreadID),
+        (void*)num_threads, kParallelize1DRange, /*flags=*/0);
   }
 }
 
@@ -14217,9 +14218,10 @@ TEST(SetNumThreads, Maximum) {
               num_threads);
     ASSERT_EQ(pthreadpool_get_threads_count(threadpool.get()), num_threads);
 
-    pthreadpool_parallelize_1d_with_thread(threadpool.get(), CheckThreadID,
-                                           (void*)&num_threads,
-                                           kParallelize1DRange, /*flags=*/0);
+    pthreadpool_parallelize_1d_with_thread(
+        threadpool.get(),
+        reinterpret_cast<pthreadpool_task_1d_with_thread_t>(CheckThreadID),
+        (void*)num_threads, kParallelize1DRange, /*flags=*/0);
 
     // Set the maximum of threads (kNumMultiThreads).
     ASSERT_EQ(pthreadpool_set_threads_count(threadpool.get(), 0),
@@ -14227,9 +14229,10 @@ TEST(SetNumThreads, Maximum) {
     ASSERT_EQ(pthreadpool_get_threads_count(threadpool.get()),
               kNumMultiThreads);
 
-    pthreadpool_parallelize_1d_with_thread(threadpool.get(), CheckThreadID,
-                                           (void*)&kNumMultiThreads,
-                                           kParallelize1DRange, /*flags=*/0);
+    pthreadpool_parallelize_1d_with_thread(
+        threadpool.get(),
+        reinterpret_cast<pthreadpool_task_1d_with_thread_t>(CheckThreadID),
+        (void*)kNumMultiThreads, kParallelize1DRange, /*flags=*/0);
   }
 }
 
@@ -14255,9 +14258,10 @@ TEST(SetNumThreads, TooHigh) {
     ASSERT_EQ(pthreadpool_get_threads_count(threadpool.get()),
               kNumMultiThreads);
 
-    pthreadpool_parallelize_1d_with_thread(threadpool.get(), CheckThreadID,
-                                           (void*)&kNumMultiThreads,
-                                           kParallelize1DRange, /*flags=*/0);
+    pthreadpool_parallelize_1d_with_thread(
+        threadpool.get(),
+        reinterpret_cast<pthreadpool_task_1d_with_thread_t>(CheckThreadID),
+        (void*)num_threads, kParallelize1DRange, /*flags=*/0);
   }
 }
 

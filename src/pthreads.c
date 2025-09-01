@@ -620,12 +620,12 @@ PTHREADPOOL_INTERNAL void pthreadpool_parallelize(
 void pthreadpool_release_all_threads(struct pthreadpool* threadpool) {
   if (threadpool != NULL) {
     // Set the state to "done".
-    uint32_t prev_num_active_threads = pthreadpool_exchange_release_int32_t(
+    assert(threadpool->num_active_threads == 0);
+    pthreadpool_store_sequentially_consistent_int32_t(
         &threadpool->num_active_threads, PTHREADPOOL_NUM_ACTIVE_THREADS_DONE);
-    assert(prev_num_active_threads == 0);
     pthreadpool_log_debug(
-        "main thread switching num_active_threads from %i to %i.",
-        prev_num_active_threads, PTHREADPOOL_NUM_ACTIVE_THREADS_DONE);
+        "main thread switching num_active_threads from %i to %i.", 0,
+        PTHREADPOOL_NUM_ACTIVE_THREADS_DONE);
 
     /* Wake up any thread waiting on a change of state. */
     signal_num_active_threads(threadpool, 0);
