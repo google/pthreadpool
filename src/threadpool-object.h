@@ -1246,6 +1246,13 @@ struct PTHREADPOOL_CACHELINE_ALIGNED pthreadpool {
   pthread_cond_t num_active_threads_condvar;
 #endif
 
+#if PTHREADPOOL_USE_FUTEX
+  /**
+   * Number of threads currently futex-waiting on @a num_active_threads.
+   */
+  pthreadpool_atomic_uint32_t num_waiting_threads;
+#endif  // PTHREADPOOL_USE_FUTEX
+
 #if PTHREADPOOL_USE_CONDVAR || PTHREADPOOL_USE_FUTEX
   /**
    * The ID of the job currently being run.
@@ -1260,11 +1267,6 @@ struct PTHREADPOOL_CACHELINE_ALIGNED pthreadpool {
    * threads working on a job have completed.
    */
   pthreadpool_atomic_int32_t num_active_threads;
-
-  /**
-   * Number of threads currently futex-waiting on @a num_active_threads.
-   */
-  pthreadpool_atomic_uint32_t num_waiting_threads;
 
   /**
    * Boolean value that indicates whether @a num_active_threads has become zero.

@@ -150,7 +150,7 @@ static void wait_on_num_recruited_threads(pthreadpool_t threadpool,
 
 #if !PTHREADPOOL_USE_FUTEX
   if (num_recruited_threads != expected_num_threads) {
-    pthread_mutex_lock(&threadpool->num_active_threads_mutex);
+    pthread_mutex_lock(&threadpool->completion_mutex);
 #endif  // !PTHREADPOOL_USE_FUTEX
 
     for (size_t iter = 0; num_recruited_threads != expected_num_threads;
@@ -164,8 +164,8 @@ static void wait_on_num_recruited_threads(pthreadpool_t threadpool,
 #if PTHREADPOOL_USE_FUTEX
         futex_wait(&threadpool->num_recruited_threads, num_recruited_threads);
 #else
-      pthread_cond_wait(&threadpool->num_active_threads_condvar,
-                        &threadpool->num_active_threads_mutex);
+        pthread_cond_wait(&threadpool->completion_condvar,
+                          &threadpool->completion_mutex);
 #endif  // PTHREADPOOL_USE_FUTEX
       }
       num_recruited_threads =
@@ -173,12 +173,13 @@ static void wait_on_num_recruited_threads(pthreadpool_t threadpool,
     }
 
 #if !PTHREADPOOL_USE_FUTEX
-    pthread_mutex_unlock(&threadpool->num_active_threads_mutex);
+    pthread_mutex_unlock(&threadpool->completion_mutex);
   }
 #endif  // !PTHREADPOOL_USE_FUTEX
 }
 
-static int32_t wait_on_num_active_threads(pthreadpool_t threadpool) {
+static int32_t wait_on_num_active_threads(pthreadpool_t threadpool,
+                                          uint32_t thread_id) {
   int32_t curr_active_threads =
       pthreadpool_load_acquire_int32_t(&threadpool->num_active_threads);
 
@@ -192,6 +193,7 @@ static int32_t wait_on_num_active_threads(pthreadpool_t threadpool) {
       if (iter < PTHREADPOOL_SPIN_WAIT_ITERATIONS) {
         pthreadpool_yield(iter);
       } else {
+#if PTHREADPOOL_USE_FUTEX
         // First increase the `num_waiting_threads` counter and re-check
         // `num_active_threads` thereafter to avoid slipping past calls to
         // `signal_num_active_threads`.
@@ -202,18 +204,20 @@ static int32_t wait_on_num_active_threads(pthreadpool_t threadpool) {
           // Use futex/condition signaling.
           pthreadpool_log_debug(
               "thread %u waiting on change in num active threads (curr=%i)...",
-              thread_id, num_threads);
-#if PTHREADPOOL_USE_FUTEX
+              thread_id, curr_active_threads);
           futex_wait(
               (pthreadpool_atomic_uint32_t*)&threadpool->num_active_threads,
               curr_active_threads);
-#else
-          pthread_cond_wait(&threadpool->num_active_threads_condvar,
-                            &threadpool->num_active_threads_mutex);
-#endif  // PTHREADPOOL_USE_FUTEX
         }
         pthreadpool_decrement_fetch_acquire_release_uint32_t(
             &threadpool->num_waiting_threads);
+#else
+        pthreadpool_log_debug(
+            "thread %u waiting on change in num active threads (curr=%i)...",
+            thread_id, curr_active_threads);
+        pthread_cond_wait(&threadpool->num_active_threads_condvar,
+                          &threadpool->num_active_threads_mutex);
+#endif  // PTHREADPOOL_USE_FUTEX
       }
 
       curr_active_threads =
@@ -243,15 +247,13 @@ static void wait_on_work_is_done(pthreadpool_t threadpool) {
         pthreadpool_yield(iter);
       } else {
         // Use futex/condition signaling.
-        pthreadpool_log_debug(
-            "thread %u waiting on change in num active threads (curr=%i)...",
-            thread_id, num_threads);
+        pthreadpool_log_debug("thread waiting on work_is_done...");
 #if PTHREADPOOL_USE_FUTEX
         futex_wait((pthreadpool_atomic_uint32_t*)&threadpool->work_is_done,
                    work_is_done);
 #else
-      pthread_cond_wait(&threadpool->completion_condvar,
-                        &threadpool->completion_mutex);
+        pthread_cond_wait(&threadpool->completion_condvar,
+                          &threadpool->completion_mutex);
 #endif  // PTHREADPOOL_USE_FUTEX
       }
 
@@ -269,9 +271,9 @@ static void signal_num_recruited_threads(pthreadpool_t threadpool) {
 #if PTHREADPOOL_USE_FUTEX
   futex_wake_all(&threadpool->num_recruited_threads);
 #else
-  pthread_mutex_lock(&threadpool->num_active_threads_mutex);
-  pthread_cond_signal(&threadpool->num_active_threads_condvar);
-  pthread_mutex_unlock(&threadpool->num_active_threads_mutex);
+  pthread_mutex_lock(&threadpool->completion_mutex);
+  pthread_cond_signal(&threadpool->completion_condvar);
+  pthread_mutex_unlock(&threadpool->completion_mutex);
 #endif  // PTHREADPOOL_USE_FUTEX
 }
 
@@ -285,7 +287,7 @@ static void signal_num_active_threads(pthreadpool_t threadpool,
   }
 #else
   pthread_mutex_lock(&threadpool->num_active_threads_mutex);
-  pthread_cond_signal(&threadpool->num_active_threads_condvar);
+  pthread_cond_broadcast(&threadpool->num_active_threads_condvar);
   pthread_mutex_unlock(&threadpool->num_active_threads_mutex);
 #endif  // PTHREADPOOL_USE_FUTEX
 }
@@ -305,7 +307,7 @@ static void signal_work_is_done(pthreadpool_t threadpool) {
 
 static void run_thread_function(struct pthreadpool* threadpool,
                                 uint32_t thread_id) {
-  pthreadpool_log_debug("thread %u working on job %lu.", thread_id,
+  pthreadpool_log_debug("thread %u working on job %u.", thread_id,
                         threadpool->job_id);
 
   // Save the current FPU state, if requested.
@@ -326,7 +328,7 @@ static void run_thread_function(struct pthreadpool* threadpool,
     set_fpu_state(saved_fpu_state);
   }
 
-  pthreadpool_log_debug("thread %u done working on job %lu.", thread_id,
+  pthreadpool_log_debug("thread %u done working on job %u.", thread_id,
                         threadpool->job_id);
 }
 
@@ -343,7 +345,7 @@ static uint32_t thread_wrap_up(struct pthreadpool* threadpool,
   bool first_past_the_post = false;
   while (curr_active_threads > 0 &&
          !(first_past_the_post =
-               pthreadpool_compare_exchange_sequentially_consistent_int32_t(
+               pthreadpool_compare_exchange_acquire_release_int32_t(
                    &threadpool->num_active_threads, &curr_active_threads,
                    -(curr_active_threads - 1)))) {
   }
@@ -379,7 +381,6 @@ static void* thread_main(void* arg) {
       (struct pthreadpool*)((uintptr_t)thread -
                             thread_id * sizeof(struct thread_info) -
                             offsetof(struct pthreadpool, threads));
-  const size_t max_num_threads = threadpool->max_num_threads;
   uint32_t last_job_id = 0;
 
   // Get the current threadpool state.
@@ -391,12 +392,12 @@ static void* thread_main(void* arg) {
     if (curr_active_threads <= 0) {
       // If the state is `idle` or `wrapping_up`, wait for a state change to
       // "running".
-      curr_active_threads = wait_on_num_active_threads(threadpool);
+      curr_active_threads = wait_on_num_active_threads(threadpool, thread_id);
 
     } else {
       // If the threadpool is currently running a job, try to join in on the
       // current job, unless there are too many threads already on it.
-      uint32_t max_active_threads = pthreadpool_load_acquire_size_t(
+      const int32_t max_active_threads = pthreadpool_load_relaxed_size_t(
           (pthreadpool_atomic_size_t*)&threadpool->threads_count.value);
 
       // Try to join in on the work.
@@ -413,9 +414,6 @@ static void* thread_main(void* arg) {
         got_work = pthreadpool_compare_exchange_acquire_release_int32_t(
             &threadpool->num_active_threads, &curr_active_threads,
             new_num_active_threads);
-
-        max_active_threads = pthreadpool_load_acquire_size_t(
-            (pthreadpool_atomic_size_t*)&threadpool->threads_count.value);
       }
 
       // Did we get a foot in?
@@ -430,19 +428,13 @@ static void* thread_main(void* arg) {
         }
 
         // Do the needful.
-        const uint32_t curr_thread_id = (max_active_threads < max_num_threads)
-                             ? curr_active_threads
-                             : thread_id;
-        if (curr_thread_id < max_active_threads) {
-          run_thread_function(threadpool, curr_thread_id);
-        }
+        run_thread_function(threadpool,
+                            (max_active_threads < threadpool->max_num_threads)
+                                ? curr_active_threads
+                                : thread_id);
 
         // Ring the bell on the way out.
         curr_active_threads = thread_wrap_up(threadpool, thread_id);
-      } else {
-        // Otherwise, update the current state.
-        curr_active_threads =
-            pthreadpool_load_acquire_int32_t(&threadpool->num_active_threads);
       }
     }
   }
