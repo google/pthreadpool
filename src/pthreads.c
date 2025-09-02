@@ -164,8 +164,8 @@ static void wait_on_num_recruited_threads(pthreadpool_t threadpool,
 #if PTHREADPOOL_USE_FUTEX
         futex_wait(&threadpool->num_recruited_threads, num_recruited_threads);
 #else
-        pthread_cond_wait(&threadpool->completion_condvar,
-                          &threadpool->completion_mutex);
+      pthread_cond_wait(&threadpool->completion_condvar,
+                        &threadpool->completion_mutex);
 #endif  // PTHREADPOOL_USE_FUTEX
       }
       num_recruited_threads =
@@ -252,8 +252,8 @@ static void wait_on_work_is_done(pthreadpool_t threadpool) {
         futex_wait((pthreadpool_atomic_uint32_t*)&threadpool->work_is_done,
                    work_is_done);
 #else
-        pthread_cond_wait(&threadpool->completion_condvar,
-                          &threadpool->completion_mutex);
+      pthread_cond_wait(&threadpool->completion_condvar,
+                        &threadpool->completion_mutex);
 #endif  // PTHREADPOOL_USE_FUTEX
       }
 
@@ -496,7 +496,7 @@ static size_t get_num_cpus() {
 #endif
 }
 
-struct pthreadpool* PTHREADPOOL_IMPL(pthreadpool_create)(size_t num_threads) {
+struct pthreadpool* pthreadpool_create(size_t num_threads) {
 #if PTHREADPOOL_USE_CPUINFO
   if (!cpuinfo_initialize()) {
     return NULL;
@@ -543,8 +543,6 @@ struct pthreadpool* PTHREADPOOL_IMPL(pthreadpool_create)(size_t num_threads) {
 
   return threadpool;
 }
-
-PTHREADPOOL_WEAK_ALIAS(pthreadpool_create)
 
 PTHREADPOOL_INTERNAL void pthreadpool_parallelize(
     struct pthreadpool* threadpool, thread_function_t thread_function,
@@ -653,7 +651,7 @@ void pthreadpool_release_all_threads(struct pthreadpool* threadpool) {
   }
 }
 
-void PTHREADPOOL_IMPL(pthreadpool_destroy)(struct pthreadpool* threadpool) {
+void pthreadpool_destroy(struct pthreadpool* threadpool) {
   if (threadpool != NULL) {
     /* Tell all threads to stop. */
     pthreadpool_release_all_threads(threadpool);
@@ -680,5 +678,3 @@ void PTHREADPOOL_IMPL(pthreadpool_destroy)(struct pthreadpool* threadpool) {
     pthreadpool_deallocate(threadpool);
   }
 }
-
-PTHREADPOOL_WEAK_ALIAS(pthreadpool_destroy)
