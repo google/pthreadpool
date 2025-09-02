@@ -585,8 +585,9 @@ PTHREADPOOL_INTERNAL void pthreadpool_parallelize(
   }
 
   // How many threads should we parallelize over?
-  const uint32_t num_threads = pthreadpool_load_acquire_size_t(
-          (pthreadpool_atomic_size_t*)&threadpool->threads_count.value);
+  const uint32_t prev_num_threads = threadpool->threads_count.value;
+  const uint32_t num_threads = min(linear_range, prev_num_threads);
+  threadpool->threads_count = fxdiv_init_size_t(num_threads);
 
   pthreadpool_log_debug("main thread starting job %u with %u threads.",
                         (uint32_t)threadpool->job_id, num_threads);
@@ -630,6 +631,9 @@ PTHREADPOOL_INTERNAL void pthreadpool_parallelize(
 
   /* Make changes by other threads visible to this thread. */
   pthreadpool_fence_acquire();
+
+  /* Re-set the number of threads in case it was reduced for this task. */
+  threadpool->threads_count = fxdiv_init_size_t(prev_num_threads);
 
   /* Unprotect the global threadpool structures now that we're done. */
   pthread_mutex_unlock(&threadpool->execution_mutex);
