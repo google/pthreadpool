@@ -218,6 +218,14 @@ static inline bool pthreadpool_compare_exchange_acquire_release_int32_t(
                                                memory_order_acquire);
 }
 
+static inline bool pthreadpool_compare_exchange_sequentially_consistent_int32_t(
+    pthreadpool_atomic_int32_t* address, int_least32_t* expected_value,
+    int32_t new_value) {
+  return atomic_compare_exchange_weak_explicit(address, expected_value,
+                                               new_value, memory_order_seq_cst,
+                                               memory_order_seq_cst);
+}
+
 static inline void pthreadpool_fence_acquire() {
   atomic_thread_fence(memory_order_acquire);
 }

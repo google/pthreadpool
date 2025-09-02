@@ -129,7 +129,14 @@ size_t pthreadpool_set_threads_count(struct pthreadpool* threadpool,
     num_threads = max(num_threads, 1);
     num_threads = min(num_threads, threadpool->max_num_threads);
   }
-  threadpool->threads_count = fxdiv_init_size_t(num_threads);
+
+  // Check whether this is really a change.
+  if (num_threads != threadpool->threads_count.value) {
+    threadpool->threads_count = fxdiv_init_size_t(num_threads);
+    pthreadpool_store_release_size_t(
+        (pthreadpool_atomic_size_t*)&threadpool->threads_count.value,
+        num_threads);
+  }
 
   pthread_mutex_unlock(&threadpool->execution_mutex);
 
@@ -336,7 +343,7 @@ static uint32_t thread_wrap_up(struct pthreadpool* threadpool,
   bool first_past_the_post = false;
   while (curr_active_threads > 0 &&
          !(first_past_the_post =
-               pthreadpool_compare_exchange_acquire_release_int32_t(
+               pthreadpool_compare_exchange_sequentially_consistent_int32_t(
                    &threadpool->num_active_threads, &curr_active_threads,
                    -(curr_active_threads - 1)))) {
   }
@@ -372,6 +379,7 @@ static void* thread_main(void* arg) {
       (struct pthreadpool*)((uintptr_t)thread -
                             thread_id * sizeof(struct thread_info) -
                             offsetof(struct pthreadpool, threads));
+  const size_t max_num_threads = threadpool->max_num_threads;
   uint32_t last_job_id = 0;
 
   // Get the current threadpool state.
@@ -388,7 +396,7 @@ static void* thread_main(void* arg) {
     } else {
       // If the threadpool is currently running a job, try to join in on the
       // current job, unless there are too many threads already on it.
-      const int32_t max_active_threads = pthreadpool_load_relaxed_size_t(
+      uint32_t max_active_threads = pthreadpool_load_acquire_size_t(
           (pthreadpool_atomic_size_t*)&threadpool->threads_count.value);
 
       // Try to join in on the work.
@@ -405,6 +413,9 @@ static void* thread_main(void* arg) {
         got_work = pthreadpool_compare_exchange_acquire_release_int32_t(
             &threadpool->num_active_threads, &curr_active_threads,
             new_num_active_threads);
+
+        max_active_threads = pthreadpool_load_acquire_size_t(
+            (pthreadpool_atomic_size_t*)&threadpool->threads_count.value);
       }
 
       // Did we get a foot in?
@@ -419,13 +430,19 @@ static void* thread_main(void* arg) {
         }
 
         // Do the needful.
-        run_thread_function(threadpool,
-                            (max_active_threads < threadpool->max_num_threads)
-                                ? curr_active_threads
-                                : thread_id);
+        const uint32_t curr_thread_id = (max_active_threads < max_num_threads)
+                             ? curr_active_threads
+                             : thread_id;
+        if (curr_thread_id < max_active_threads) {
+          run_thread_function(threadpool, curr_thread_id);
+        }
 
         // Ring the bell on the way out.
         curr_active_threads = thread_wrap_up(threadpool, thread_id);
+      } else {
+        // Otherwise, update the current state.
+        curr_active_threads =
+            pthreadpool_load_acquire_int32_t(&threadpool->num_active_threads);
       }
     }
   }
@@ -568,7 +585,8 @@ PTHREADPOOL_INTERNAL void pthreadpool_parallelize(
   }
 
   // How many threads should we parallelize over?
-  const uint32_t num_threads = threadpool->threads_count.value;
+  const uint32_t num_threads = pthreadpool_load_acquire_size_t(
+          (pthreadpool_atomic_size_t*)&threadpool->threads_count.value);
 
   pthreadpool_log_debug("main thread starting job %u with %u threads.",
                         (uint32_t)threadpool->job_id, num_threads);
@@ -634,7 +652,8 @@ void pthreadpool_release_all_threads(struct pthreadpool* threadpool) {
     wait_on_num_recruited_threads(threadpool, /*expected_num_threads=*/0);
 
     // Set the state back to "idle".
-    pthreadpool_store_release_int32_t(&threadpool->num_active_threads, 0);
+    pthreadpool_store_sequentially_consistent_int32_t(
+        &threadpool->num_active_threads, 0);
   }
 }
 

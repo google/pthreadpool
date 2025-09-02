@@ -14334,6 +14334,9 @@ TEST(SetNumThreads, MultiThreadPoolAllItemsProcessed) {
   ASSERT_EQ(pthreadpool_get_threads_count(threadpool.get()), num_threads);
 
   for (size_t iter = 0; iter < kSetNumThreadsIterations; iter++) {
+    for (auto& i : indicators) {
+      i.store(false);
+    }
     pthreadpool_parallelize_1d(
         threadpool.get(), reinterpret_cast<pthreadpool_task_1d_t>(SetTrue1D),
         static_cast<void*>(indicators.data()), kParallelize1DRange,
@@ -14367,7 +14370,9 @@ TEST(SetNumThreads, MultiThreadPoolEachItemProcessedOnce) {
               num_threads);
     ASSERT_EQ(pthreadpool_get_threads_count(threadpool.get()), num_threads);
 
-    std::fill(counters.begin(), counters.end(), 0);
+    for (auto& c : counters) {
+      c.store(0);
+    }
 
     pthreadpool_parallelize_1d(
         threadpool.get(), reinterpret_cast<pthreadpool_task_1d_t>(Increment1D),

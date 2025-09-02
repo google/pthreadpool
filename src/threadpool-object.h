@@ -1279,15 +1279,14 @@ struct PTHREADPOOL_CACHELINE_ALIGNED pthreadpool {
 
   /**
    * The maximum number of threads, i.e. the thread_info structs that were
-   * originally allocated.
+   * originally allocated. This value never changes after @a pthreadpool_create.
    */
   size_t max_num_threads;
 
   /**
-   * FXdiv divisor for the number of threads in the thread pool.
-   * This struct never change after pthreadpool_create.
+   * FXdiv divisor for the current number of active threads in the thread pool.
    */
-  struct fxdiv_divisor_size_t threads_count;
+  volatile struct fxdiv_divisor_size_t threads_count;
 
   /**
    * Thread information structures that immediately follow this structure.
