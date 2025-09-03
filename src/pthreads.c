@@ -345,7 +345,7 @@ static uint32_t thread_wrap_up(struct pthreadpool* threadpool,
   bool first_past_the_post = false;
   while (curr_active_threads > 0 &&
          !(first_past_the_post =
-               pthreadpool_compare_exchange_acquire_release_int32_t(
+               pthreadpool_compare_exchange_sequentially_consistent_int32_t(
                    &threadpool->num_active_threads, &curr_active_threads,
                    -(curr_active_threads - 1)))) {
   }
@@ -396,24 +396,13 @@ static void* thread_main(void* arg) {
 
     } else {
       // If the threadpool is currently running a job, try to join in on the
-      // current job, unless there are too many threads already on it.
-      const int32_t max_active_threads = pthreadpool_load_relaxed_size_t(
-          (pthreadpool_atomic_size_t*)&threadpool->threads_count.value);
-
-      // Try to join in on the work.
+      // work.
       bool got_work = false;
       while (!got_work && curr_active_threads > 0 &&
-             curr_active_threads < max_active_threads) {
-        // If we were the last thread to join this job, then we need to
-        // change the state from "running" to "wrapping up".
-        const int32_t new_num_active_threads =
-            (curr_active_threads + 1 == max_active_threads)
-                ? -(curr_active_threads + 1)
-                : curr_active_threads + 1;
-
-        got_work = pthreadpool_compare_exchange_acquire_release_int32_t(
+             curr_active_threads != PTHREADPOOL_NUM_ACTIVE_THREADS_DONE) {
+        got_work = pthreadpool_compare_exchange_sequentially_consistent_int32_t(
             &threadpool->num_active_threads, &curr_active_threads,
-            new_num_active_threads);
+            curr_active_threads + 1);
       }
 
       // Did we get a foot in?
@@ -421,17 +410,16 @@ static void* thread_main(void* arg) {
         assert(last_job_id < threadpool->job_id);
         last_job_id = threadpool->job_id;
 
-        if (curr_active_threads + 1 == max_active_threads) {
-          pthreadpool_log_debug(
-              "thread %u flipped num_active_threads from %i to %i.", thread_id,
-              curr_active_threads, -(curr_active_threads + 1));
+        // Do we already have too many threads working on this?
+        const uint32_t max_active_threads = pthreadpool_load_acquire_size_t(
+            (pthreadpool_atomic_size_t*)&threadpool->threads_count.value);
+        if (curr_active_threads < max_active_threads) {
+          // Do the needful.
+          run_thread_function(threadpool,
+                              max_active_threads < threadpool->max_num_threads
+                                  ? curr_active_threads
+                                  : thread_id);
         }
-
-        // Do the needful.
-        run_thread_function(threadpool,
-                            (max_active_threads < threadpool->max_num_threads)
-                                ? curr_active_threads
-                                : thread_id);
 
         // Ring the bell on the way out.
         curr_active_threads = thread_wrap_up(threadpool, thread_id);
@@ -602,7 +590,8 @@ PTHREADPOOL_INTERNAL void pthreadpool_parallelize(
   /* Make changes by this thread visible to other threads. */
   pthreadpool_fence_release();
 
-  /* Set the number of active threads for this thread. */
+  /* Set the number of active threads for this job (currently just this thread).
+   */
   pthreadpool_store_sequentially_consistent_int32_t(
       &threadpool->num_active_threads, 1);
 
