@@ -96,8 +96,12 @@ static int futex_wait(pthreadpool_atomic_uint32_t* address, uint32_t value) {
                  NULL);
 }
 
+static int futex_wake_n(pthreadpool_atomic_uint32_t* address, uint32_t n) {
+  return syscall(SYS_futex, address, FUTEX_WAKE | FUTEX_PRIVATE_FLAG, n);
+}
+
 static int futex_wake_all(pthreadpool_atomic_uint32_t* address) {
-  return syscall(SYS_futex, address, FUTEX_WAKE | FUTEX_PRIVATE_FLAG, INT_MAX);
+  return futex_wake_n(address, /*n=*/INT_MAX);
 }
 #elif defined(__EMSCRIPTEN__)
 static int futex_wait(pthreadpool_atomic_uint32_t* address, uint32_t value) {
@@ -280,10 +284,11 @@ static void signal_num_recruited_threads(pthreadpool_t threadpool) {
 static void signal_num_active_threads(pthreadpool_t threadpool,
                                       uint32_t max_num_waiting) {
 #if PTHREADPOOL_USE_FUTEX
-  if (pthreadpool_load_consume_uint32_t(&threadpool->num_waiting_threads) >
-      max_num_waiting) {
-    futex_wake_all(
-        (pthreadpool_atomic_uint32_t*)&threadpool->num_active_threads);
+  const uint32_t num_waiting_threads =
+      pthreadpool_load_consume_uint32_t(&threadpool->num_waiting_threads);
+  if (num_waiting_threads > max_num_waiting) {
+    futex_wake_n((pthreadpool_atomic_uint32_t*)&threadpool->num_active_threads,
+                 num_waiting_threads - max_num_waiting);
   }
 #else
   pthread_mutex_lock(&threadpool->num_active_threads_mutex);
