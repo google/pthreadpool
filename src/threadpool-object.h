@@ -1274,6 +1274,18 @@ struct PTHREADPOOL_CACHELINE_ALIGNED pthreadpool {
   pthreadpool_atomic_uint32_t work_is_done;
 
   /**
+   * Pointer to a `pthreadpool_executor` that will handle the creation of
+   * parallel threas for this threadpool.
+   */
+  struct pthreadpool_executor* executor;
+
+  /**
+   * Pointer to a `pthreadpool_executor` context that will passed on to the @a
+   * executor functions.
+   */
+  void* executor_context;
+
+  /**
    * The number of threads that are currently running.
    */
   pthreadpool_atomic_uint32_t num_recruited_threads;

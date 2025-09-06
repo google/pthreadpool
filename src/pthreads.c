@@ -493,21 +493,34 @@ static size_t get_num_cpus() {
 #endif
 }
 
-struct pthreadpool* pthreadpool_create(size_t num_threads) {
+struct pthreadpool* pthreadpool_create(size_t threads_count) {
+  return pthreadpool_create_v2(/*executor=*/NULL, /*executor_context=*/NULL,
+                               threads_count);
+}
+
+struct pthreadpool* pthreadpool_create_v2(struct pthreadpool_executor* executor,
+                                          void* executor_context,
+                                          size_t max_num_threads) {
 #if PTHREADPOOL_USE_CPUINFO
   if (!cpuinfo_initialize()) {
     return NULL;
   }
 #endif
 
-  if (num_threads == 0) {
-    num_threads = get_num_cpus();
+  if (max_num_threads == 0) {
+    max_num_threads = get_num_cpus();
   }
 
+  const uint32_t num_threads =
+      executor
+          ? min(max_num_threads, executor->num_threads(executor_context) + 1)
+          : max_num_threads;
   struct pthreadpool* threadpool = pthreadpool_allocate(num_threads);
   if (threadpool == NULL) {
     return NULL;
   }
+  threadpool->executor = executor;
+  threadpool->executor_context = executor_context;
   threadpool->max_num_threads = num_threads;
   threadpool->threads_count = fxdiv_init_size_t(num_threads);
   for (size_t tid = 0; tid < num_threads; tid++) {
@@ -516,29 +529,59 @@ struct pthreadpool* pthreadpool_create(size_t num_threads) {
   }
   threadpool->num_active_threads = 0;
 
+  /* Initialize the execution mutex. */
+  pthread_mutex_init(&threadpool->execution_mutex, NULL);
+
   if (num_threads > 1) {
-    /* Initialize the condition variables and mutexes. */
-    pthread_mutex_init(&threadpool->execution_mutex, NULL);
 #if !PTHREADPOOL_USE_FUTEX
+    /* Initialize the condition variables and mutexes. */
     pthread_mutex_init(&threadpool->completion_mutex, NULL);
     pthread_cond_init(&threadpool->completion_condvar, NULL);
     pthread_mutex_init(&threadpool->num_active_threads_mutex, NULL);
     pthread_cond_init(&threadpool->num_active_threads_condvar, NULL);
 #endif
 
-    /* Caller thread serves as worker #0. Thus, we create system threads
-     * starting with worker #1. */
-    threadpool->num_recruited_threads = 0;
-    for (size_t tid = 1; tid < num_threads; tid++) {
-      pthread_create(&threadpool->threads[tid].thread_object, NULL,
-                     &local_thread_main, &threadpool->threads[tid]);
-    }
+    /* If we weren't given an executor, start our own threads. */
+    if (!executor) {
+      /* Caller thread serves as worker #0. Thus, we create system threads
+       * starting with worker #1. */
+      threadpool->num_recruited_threads = 0;
+      for (size_t tid = 1; tid < num_threads; tid++) {
+        pthread_create(&threadpool->threads[tid].thread_object, NULL,
+                       &local_thread_main, &threadpool->threads[tid]);
+      }
 
-    // Wait for the created threads to sign in.
-    wait_on_num_recruited_threads(threadpool, num_threads - 1);
+      // Wait for the created threads to sign in.
+      wait_on_num_recruited_threads(threadpool, num_threads - 1);
+    }
   }
 
   return threadpool;
+}
+
+static void ensure_num_threads(struct pthreadpool* threadpool,
+                               uint32_t num_threads) {
+  assert(num_threads < threadpool->max_num_threads);
+  struct pthreadpool_executor* executor = threadpool->executor;
+
+  /* If we're not using an executor, do nothing. */
+  if (!executor) {
+    return;
+  }
+
+  /* Create the threads for this threadpool. */
+  for (uint32_t tid = threadpool->num_recruited_threads; tid < num_threads;
+       tid++) {
+    pthreadpool_fetch_add_acquire_release_uint32_t(
+        &threadpool->num_recruited_threads, 1);
+    pthreadpool_log_debug("starting thread %u (arg=%p).", tid + 1,
+                          &threadpool->threads[tid + 1]);
+
+    /* Fly, my pretties! Fly, fly, fly! */
+    executor->schedule(threadpool->executor_context,
+                       &threadpool->threads[tid + 1],
+                       (void (*)(void*))thread_main);
+  }
 }
 
 PTHREADPOOL_INTERNAL void pthreadpool_parallelize(
@@ -575,6 +618,9 @@ PTHREADPOOL_INTERNAL void pthreadpool_parallelize(
   const uint32_t prev_num_threads = threadpool->threads_count.value;
   const uint32_t num_threads = min(linear_range, prev_num_threads);
   threadpool->threads_count = fxdiv_init_size_t(num_threads);
+
+  /* Make sure we have enough threads (minus the calling thread) running. */
+  ensure_num_threads(threadpool, num_threads - 1);
 
   pthreadpool_log_debug("main thread starting job %u with %u threads.",
                         (uint32_t)threadpool->job_id, num_threads);
@@ -627,7 +673,7 @@ PTHREADPOOL_INTERNAL void pthreadpool_parallelize(
   pthread_mutex_unlock(&threadpool->execution_mutex);
 }
 
-void pthreadpool_release_all_threads(struct pthreadpool* threadpool) {
+static void pthreadpool_release_all_threads(struct pthreadpool* threadpool) {
   if (threadpool != NULL) {
     // Set the state to "done".
     assert(threadpool->num_active_threads == 0);
@@ -649,23 +695,31 @@ void pthreadpool_release_all_threads(struct pthreadpool* threadpool) {
   }
 }
 
+void pthreadpool_release_executor_threads(struct pthreadpool* threadpool) {
+  if (threadpool && threadpool->executor) {
+    pthreadpool_release_all_threads(threadpool);
+  }
+}
+
 void pthreadpool_destroy(struct pthreadpool* threadpool) {
   if (threadpool != NULL) {
     /* Tell all threads to stop. */
     pthreadpool_release_all_threads(threadpool);
 
-    /* Wait until all threads return */
-    for (size_t thread = 1; thread < threadpool->max_num_threads; thread++) {
-      pthread_join(threadpool->threads[thread].thread_object, NULL);
+    if (!threadpool->executor) {
+      /* Wait until all threads return */
+      for (size_t thread = 1; thread < threadpool->max_num_threads; thread++) {
+        pthread_join(threadpool->threads[thread].thread_object, NULL);
+      }
     }
 
     /* Release resources */
-    // pthread_mutex_destroy(&threadpool->execution_mutex);
+    pthread_mutex_destroy(&threadpool->execution_mutex);
 #if !PTHREADPOOL_USE_FUTEX
     pthread_mutex_destroy(&threadpool->num_active_threads_mutex);
     pthread_cond_destroy(&threadpool->num_active_threads_condvar);
-    pthread_mutex_destroy(&threadpool->num_active_threads_mutex);
-    pthread_cond_destroy(&threadpool->num_active_threads_condvar);
+    pthread_mutex_destroy(&threadpool->completion_mutex);
+    pthread_cond_destroy(&threadpool->completion_condvar);
 #endif
 
 #if PTHREADPOOL_USE_CPUINFO
