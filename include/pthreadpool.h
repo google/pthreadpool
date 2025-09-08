@@ -1182,6 +1182,57 @@ void pthreadpool_parallelize_3d_tile_1d_with_uarch_with_thread(
 
 /**
  * Process items on a 3D grid with specified prefered tile size along the last
+ * grid dimension.
+ *
+ * The function repeatedly calls
+ *
+ *   function(context, i, j, k, count_k)
+ *
+ * in parallel where:
+ *  - `i` is in the range `[0, range_i)`,
+ *  - `j` is in the range `[0, range_j)`,
+ *  - `k` is in the range `[0, range_k)` and a multiple of the provided @a
+ *    tile_k,
+ *  - `count_k` is an integer multiple of @a tile_k, unless `k + count_k ==
+ *    range_k`.
+ *
+ * The `count`s are chosen such as to minimize the number of calls to @a
+ * function while keeping the computation load balanced across all threads.
+ *
+ * When the call returns, all items have been processed and the thread pool is
+ * ready for a new task.
+ *
+ * @note If multiple threads call this function with the same thread pool,
+ *    the calls are serialized.
+ *
+ * @param threadpool           the thread pool to use for parallelisation. If
+ *                             threadpool is NULL, all items are processed
+ *                             serially on the calling thread.
+ * @param function             the function to call for each interval of the
+ *                             given range.
+ * @param context              the first argument passed to the specified
+ *                             function.
+ * @param range_i              the number of items on the first dimension of the
+ *                             3D grid to process.
+ * @param range_j              the number of items on the second dimension of
+ *                             the 3D grid to process.
+ * @param range_k              the number of items on the third dimension of the
+ *                             3D grid to process.
+ * @param tile_k               the preferred multiple number of items on the
+ *                             third dimension of the 3D grid to process in each
+ *                             function call.
+ * @param flags                a bitwise combination of zero or more optional
+ *                             flags (PTHREADPOOL_FLAG_DISABLE_DENORMALS or
+ *                             PTHREADPOOL_FLAG_YIELD_WORKERS)
+ */
+void pthreadpool_parallelize_3d_tile_1d_dynamic(
+    pthreadpool_t threadpool,
+    pthreadpool_task_3d_tile_1d_dynamic_t function, void* context,
+    size_t range_i, size_t range_j, size_t range_k, size_t tile_k,
+    uint32_t flags);
+
+/**
+ * Process items on a 3D grid with specified prefered tile size along the last
  * grid dimension, passing along the thread ID.
  *
  * The function repeatedly calls
