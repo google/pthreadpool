@@ -87,6 +87,11 @@ static inline uint32_t pthreadpool_load_consume_uint32_t(
   return atomic_load_explicit(address, memory_order_consume);
 }
 
+static inline uint32_t pthreadpool_load_sequentially_consistent_uint32_t(
+    pthreadpool_atomic_uint32_t* address) {
+  return atomic_load_explicit(address, memory_order_seq_cst);
+}
+
 static inline int32_t pthreadpool_load_acquire_int32_t(
     pthreadpool_atomic_int32_t* address) {
   return atomic_load_explicit(address, memory_order_acquire);
@@ -95,6 +100,11 @@ static inline int32_t pthreadpool_load_acquire_int32_t(
 static inline int32_t pthreadpool_load_consume_int32_t(
     pthreadpool_atomic_int32_t* address) {
   return atomic_load_explicit(address, memory_order_consume);
+}
+
+static inline uint32_t pthreadpool_load_sequentially_consistent_int32_t(
+    pthreadpool_atomic_int32_t* address) {
+  return atomic_load_explicit(address, memory_order_seq_cst);
 }
 
 static inline size_t pthreadpool_load_acquire_size_t(
@@ -120,6 +130,11 @@ static inline void pthreadpool_store_relaxed_void_p(
 static inline void pthreadpool_store_release_uint32_t(
     pthreadpool_atomic_uint32_t* address, uint32_t value) {
   atomic_store_explicit(address, value, memory_order_release);
+}
+
+static inline void pthreadpool_store_sequentially_consistent_uint32_t(
+    pthreadpool_atomic_uint32_t* address, uint32_t value) {
+  atomic_store_explicit(address, value, memory_order_seq_cst);
 }
 
 static inline void pthreadpool_store_release_int32_t(
@@ -208,6 +223,11 @@ static inline int32_t pthreadpool_exchange_release_int32_t(
 static inline uint32_t pthreadpool_exchange_acquire_release_uint32_t(
     pthreadpool_atomic_uint32_t* address, uint32_t value) {
   return atomic_exchange_explicit(address, value, memory_order_acq_rel);
+}
+
+static inline uint32_t pthreadpool_exchange_sequentially_consistent_uint32_t(
+    pthreadpool_atomic_uint32_t* address, uint32_t value) {
+  return atomic_exchange_explicit(address, value, memory_order_seq_cst);
 }
 
 static inline bool pthreadpool_compare_exchange_acquire_release_int32_t(

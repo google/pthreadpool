@@ -74,7 +74,7 @@ struct PTHREADPOOL_CACHELINE_ALIGNED thread_info {
    */
   pthreadpool_atomic_size_t range_length;
   /**
-   * Thread number in the 0..threads_count-1 range.
+   * Thread number in the 0..max_num_threads-1 range.
    */
   size_t thread_number;
   /**
@@ -86,6 +86,10 @@ struct PTHREADPOOL_CACHELINE_ALIGNED thread_info {
    * The pthread object corresponding to the thread.
    */
   pthread_t thread_object;
+  /**
+   * Whether this thread is active or not.
+   */
+  pthreadpool_atomic_uint32_t is_active;
 #endif
 #if PTHREADPOOL_USE_EVENT
   /**
@@ -1274,10 +1278,24 @@ struct PTHREADPOOL_CACHELINE_ALIGNED pthreadpool {
   pthreadpool_atomic_uint32_t work_is_done;
 
   /**
-   * The number of threads that are currently running.
+   * Pointer to a `pthreadpool_executor` that will handle the creation of
+   * parallel threas for this threadpool.
+   */
+  struct pthreadpool_executor* executor;
+
+  /**
+   * Pointer to a `pthreadpool_executor` context that will passed on to the @a
+   * executor functions.
+   */
+  void* executor_context;
+
+  /**
+   * The number of threads that are currently running. Threads using
+   * this datastructure should atomically decrement this variable as the last
+   * thing they do before releasing it.
    */
   pthreadpool_atomic_uint32_t num_recruited_threads;
-#endif  // PTHREADPOOL_USE_CONDVAR || PTHREADPOOL_USE_FUTEX
+#endif  //` PTHREADPOOL_USE_CONDVAR || PTHREADPOOL_USE_FUTEX
 
   /**
    * The maximum number of threads, i.e. the thread_info structs that were
