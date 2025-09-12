@@ -1306,7 +1306,7 @@ struct PTHREADPOOL_CACHELINE_ALIGNED pthreadpool {
   /**
    * FXdiv divisor for the current number of active threads in the thread pool.
    */
-  volatile struct fxdiv_divisor_size_t threads_count;
+  struct fxdiv_divisor_size_t threads_count;
 
   /**
    * Thread information structures that immediately follow this structure.
