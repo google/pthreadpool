@@ -127,7 +127,7 @@ class SimpleThreadPoolExecutor : public PthreadpoolExecutor {
   }
   ~SimpleThreadPoolExecutor() {
     {
-      std::unique_lock lock(task_mutex_);
+      std::unique_lock<std::mutex> lock(task_mutex_);  // NOLINT(build/c++11)
       done_ = true;
       task_cond_var_.notify_all();
     }
@@ -139,7 +139,7 @@ class SimpleThreadPoolExecutor : public PthreadpoolExecutor {
   int NumThreads() override { return threads_.size(); }
 
   void Schedule(void* context, TaskFunction task) override {
-    std::lock_guard lock(task_mutex_);
+    std::lock_guard<std::mutex> lock(task_mutex_);  // NOLINT(build/c++11)
     tasks_.push_back({task, context});
     task_cond_var_.notify_one();
   }
@@ -149,7 +149,8 @@ class SimpleThreadPoolExecutor : public PthreadpoolExecutor {
     Task task;
     while (true) {
       {
-        std::unique_lock lock(executor->task_mutex_);
+        std::unique_lock<std::mutex> lock(  // NOLINT(build/c++11)
+            executor->task_mutex_);
         while (executor->tasks_.empty()) {
           if (executor->done_) {
             return;

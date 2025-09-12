@@ -1281,7 +1281,7 @@ struct PTHREADPOOL_CACHELINE_ALIGNED pthreadpool {
    * Pointer to a `pthreadpool_executor` that will handle the creation of
    * parallel threas for this threadpool.
    */
-  struct pthreadpool_executor* executor;
+  struct pthreadpool_executor executor;
 
   /**
    * Pointer to a `pthreadpool_executor` context that will passed on to the @a

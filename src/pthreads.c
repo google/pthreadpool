@@ -197,7 +197,7 @@ static void wait_on_num_recruited_threads(pthreadpool_t threadpool,
 static int32_t wait_on_num_active_threads(pthreadpool_t threadpool,
                                           uint32_t thread_id) {
   int32_t curr_active_threads =
-      pthreadpool_load_acquire_int32_t(&threadpool->num_active_threads);
+      pthreadpool_load_consume_int32_t(&threadpool->num_active_threads);
 
   if (curr_active_threads <= 0) {
 #if !PTHREADPOOL_USE_FUTEX
@@ -209,7 +209,7 @@ static int32_t wait_on_num_active_threads(pthreadpool_t threadpool,
       if (iter < PTHREADPOOL_SPIN_WAIT_ITERATIONS) {
         pthreadpool_yield(iter);
 
-      } else if (threadpool->executor) {
+      } else if (threadpool->executor.num_threads) {
         // If we've borrowed this thread from an executor, then we should
         // return it to the executor instead of blocking it indefinitely, but
         // first we spin a bit longer.
@@ -252,7 +252,7 @@ static int32_t wait_on_num_active_threads(pthreadpool_t threadpool,
       }
 
       curr_active_threads =
-          pthreadpool_load_acquire_int32_t(&threadpool->num_active_threads);
+          pthreadpool_load_consume_int32_t(&threadpool->num_active_threads);
     }
 
 #if !PTHREADPOOL_USE_FUTEX
@@ -381,7 +381,7 @@ static uint32_t thread_wrap_up(struct pthreadpool* threadpool,
                                uint32_t thread_id) {
   // Get the current state.
   int32_t curr_active_threads =
-      pthreadpool_load_acquire_int32_t(&threadpool->num_active_threads);
+      pthreadpool_load_consume_int32_t(&threadpool->num_active_threads);
   assert(curr_active_threads != 0);
   assert(curr_active_threads != PTHREADPOOL_NUM_ACTIVE_THREADS_DONE);
 
@@ -430,7 +430,7 @@ static void* thread_main(void* arg) {
 
   // Get the current threadpool state.
   int32_t curr_active_threads =
-      pthreadpool_load_acquire_int32_t(&threadpool->num_active_threads);
+      pthreadpool_load_consume_int32_t(&threadpool->num_active_threads);
 
   // Main loop.
   while (true) {
@@ -549,8 +549,10 @@ struct pthreadpool* pthreadpool_create_v2(struct pthreadpool_executor* executor,
   if (threadpool == NULL) {
     return NULL;
   }
-  threadpool->executor = executor;
-  threadpool->executor_context = executor_context;
+  if (executor) {
+    threadpool->executor = *executor;
+    threadpool->executor_context = executor_context;
+  }
   threadpool->max_num_threads = num_threads;
   threadpool->threads_count = fxdiv_init_size_t(num_threads);
   for (size_t tid = 0; tid < num_threads; tid++) {
@@ -590,15 +592,18 @@ static void ensure_num_threads(struct pthreadpool* threadpool,
                                uint32_t num_threads) {
   assert(num_threads >= 1);
   assert(num_threads <= threadpool->max_num_threads);
-  struct pthreadpool_executor* executor = threadpool->executor;
+  struct pthreadpool_executor* executor = &threadpool->executor;
 
   /* If we're not using an executor, do nothing. */
-  if (!executor) {
+  if (!executor->num_threads) {
     return;
   }
 
   /* Create any missing threads for this threadpool. */
-  for (uint32_t tid = 1; tid < num_threads; tid++) {
+  for (uint32_t tid = 1;
+       tid < num_threads &&
+       pthreadpool_load_consume_int32_t(&threadpool->num_active_threads) > 0;
+       tid++) {
     struct thread_info* thread = &threadpool->threads[tid];
 
     // Check whether this thread was active, and if not, start it up.
@@ -630,7 +635,7 @@ PTHREADPOOL_INTERNAL void pthreadpool_parallelize(
   pthreadpool_fence_acquire();
 
   /* Make sure the threadpool is idle. */
-  assert(pthreadpool_load_relaxed_int32_t(&threadpool->num_active_threads) ==
+  assert(pthreadpool_load_consume_int32_t(&threadpool->num_active_threads) ==
          0);
 
   /* Setup global arguments */
@@ -677,12 +682,12 @@ PTHREADPOOL_INTERNAL void pthreadpool_parallelize(
   pthreadpool_store_sequentially_consistent_int32_t(
       &threadpool->num_active_threads, 1);
 
-  /* Make sure we have enough threads running. */
-  ensure_num_threads(threadpool, num_threads);
-
   /* Wake up any thread waiting on a change of state. */
   signal_num_active_threads(threadpool,
                             threadpool->max_num_threads - num_threads);
+
+  /* Make sure we have enough threads running. */
+  ensure_num_threads(threadpool, num_threads);
 
   /* Do a bit of work ourselves, as thread zero. */
   run_thread_function(threadpool, /*thread_id=*/0);
@@ -727,7 +732,7 @@ static void pthreadpool_release_all_threads(struct pthreadpool* threadpool) {
 }
 
 void pthreadpool_release_executor_threads(struct pthreadpool* threadpool) {
-  if (threadpool && threadpool->executor) {
+  if (threadpool && threadpool->executor.num_threads) {
     pthreadpool_release_all_threads(threadpool);
   }
 }
@@ -737,7 +742,7 @@ void pthreadpool_destroy(struct pthreadpool* threadpool) {
     /* Tell all threads to stop. */
     pthreadpool_release_all_threads(threadpool);
 
-    if (!threadpool->executor) {
+    if (!threadpool->executor.num_threads) {
       /* Wait until all threads return */
       for (size_t thread = 1; thread < threadpool->max_num_threads; thread++) {
         pthread_join(threadpool->threads[thread].thread_object, NULL);

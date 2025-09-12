@@ -186,7 +186,7 @@ static inline bool pthreadpool_try_decrement_relaxed_size_t(
     pthreadpool_atomic_size_t* value) {
   size_t actual_value = atomic_load_explicit(value, memory_order_acquire);
   while (actual_value != 0) {
-    if (atomic_compare_exchange_weak_explicit(
+    if (atomic_compare_exchange_strong_explicit(
             value, &actual_value, actual_value - 1, memory_order_relaxed,
             memory_order_relaxed)) {
       return true;
@@ -208,6 +208,11 @@ static inline uint32_t pthreadpool_fetch_add_acquire_release_uint32_t(
 static inline int32_t pthreadpool_fetch_add_acquire_release_int32_t(
     pthreadpool_atomic_int32_t* address, uint32_t value) {
   return atomic_fetch_add_explicit(address, value, memory_order_acq_rel);
+}
+
+static inline int32_t pthreadpool_fetch_add_sequentially_consistent_int32_t(
+    pthreadpool_atomic_int32_t* address, uint32_t value) {
+  return atomic_fetch_add_explicit(address, value, memory_order_seq_cst);
 }
 
 static inline uint32_t pthreadpool_exchange_acquire_uint32_t(
@@ -233,7 +238,7 @@ static inline uint32_t pthreadpool_exchange_sequentially_consistent_uint32_t(
 static inline bool pthreadpool_compare_exchange_acquire_release_int32_t(
     pthreadpool_atomic_int32_t* address, int_least32_t* expected_value,
     int32_t new_value) {
-  return atomic_compare_exchange_weak_explicit(address, expected_value,
+  return atomic_compare_exchange_strong_explicit(address, expected_value,
                                                new_value, memory_order_acq_rel,
                                                memory_order_acquire);
 }
@@ -241,7 +246,7 @@ static inline bool pthreadpool_compare_exchange_acquire_release_int32_t(
 static inline bool pthreadpool_compare_exchange_sequentially_consistent_int32_t(
     pthreadpool_atomic_int32_t* address, int_least32_t* expected_value,
     int32_t new_value) {
-  return atomic_compare_exchange_weak_explicit(address, expected_value,
+  return atomic_compare_exchange_strong_explicit(address, expected_value,
                                                new_value, memory_order_seq_cst,
                                                memory_order_seq_cst);
 }
