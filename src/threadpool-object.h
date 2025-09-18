@@ -25,11 +25,6 @@
 #include <pthread.h>
 #endif
 
-/* Mach headers */
-#if PTHREADPOOL_USE_GCD
-#include <dispatch/dispatch.h>
-#endif
-
 /* Windows headers */
 #if PTHREADPOOL_USE_EVENT
 #ifndef WIN32_LEAN_AND_MEAN
@@ -1140,13 +1135,12 @@ union pthreadpool_params {
 #define PTHREADPOOL_NUM_ACTIVE_THREADS_DONE INT_MAX
 
 struct PTHREADPOOL_CACHELINE_ALIGNED pthreadpool {
-#if !PTHREADPOOL_USE_GCD
   /**
    * The number of threads that are processing an operation.
    */
   pthreadpool_atomic_size_t active_threads;
-#endif
-#if PTHREADPOOL_USE_FUTEX
+
+  #if PTHREADPOOL_USE_FUTEX
   /**
    * Indicates if there are active threads.
    * Only two values are possible:
@@ -1188,14 +1182,6 @@ struct PTHREADPOOL_CACHELINE_ALIGNED pthreadpool {
    * threads.
    */
   pthread_mutex_t execution_mutex;
-#endif
-
-#if PTHREADPOOL_USE_GCD
-  /**
-   * Serializes concurrent calls to @a pthreadpool_parallelize_* from different
-   * threads.
-   */
-  dispatch_semaphore_t execution_semaphore;
 #endif
 
 #if PTHREADPOOL_USE_EVENT
