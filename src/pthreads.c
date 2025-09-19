@@ -26,8 +26,12 @@
 #include "threadpool-common.h"
 
 /* POSIX headers */
+#if PTHREADPOOL_USE_PTHREADS
 #include <pthread.h>
 #include <unistd.h>
+#else
+#include <threads.h>
+#endif  // PTHREADPOOL_USE_PTHREADS
 
 /* Futex-specific headers */
 #if PTHREADPOOL_USE_FUTEX
@@ -57,6 +61,10 @@
 
 /* Windows-specific headers */
 #ifdef _WIN32
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
 #include <sysinfoapi.h>
 #endif
 
@@ -135,7 +143,7 @@ size_t pthreadpool_set_threads_count(struct pthreadpool* threadpool,
     return 1;
   }
   /* We shouldn't change this while a parallel computation is running. */
-  pthread_mutex_lock(&threadpool->execution_mutex);
+  pthreadpool_mutex_lock(&threadpool->execution_mutex);
 
   // Adjust `num_threads` to the feasible limits.
   if (num_threads == 0) {
@@ -155,7 +163,7 @@ size_t pthreadpool_set_threads_count(struct pthreadpool* threadpool,
   }
   pthreadpool_log_debug("setting max_num_threads to %zu.", num_threads);
 
-  pthread_mutex_unlock(&threadpool->execution_mutex);
+  pthreadpool_mutex_unlock(&threadpool->execution_mutex);
 
   return num_threads;
 }
@@ -167,7 +175,7 @@ static void wait_on_num_recruited_threads(pthreadpool_t threadpool,
 
 #if !PTHREADPOOL_USE_FUTEX
   if (num_recruited_threads != expected) {
-    pthread_mutex_lock(&threadpool->completion_mutex);
+    pthreadpool_mutex_lock(&threadpool->completion_mutex);
 #endif  // !PTHREADPOOL_USE_FUTEX
 
     for (size_t iter = 0; num_recruited_threads != expected; iter++) {
@@ -180,8 +188,8 @@ static void wait_on_num_recruited_threads(pthreadpool_t threadpool,
 #if PTHREADPOOL_USE_FUTEX
         futex_wait(&threadpool->num_recruited_threads, num_recruited_threads);
 #else
-      pthread_cond_wait(&threadpool->completion_condvar,
-                        &threadpool->completion_mutex);
+        pthreadpool_cond_wait(&threadpool->completion_condvar,
+                              &threadpool->completion_mutex);
 #endif  // PTHREADPOOL_USE_FUTEX
       }
       num_recruited_threads =
@@ -189,7 +197,7 @@ static void wait_on_num_recruited_threads(pthreadpool_t threadpool,
     }
 
 #if !PTHREADPOOL_USE_FUTEX
-    pthread_mutex_unlock(&threadpool->completion_mutex);
+    pthreadpool_mutex_unlock(&threadpool->completion_mutex);
   }
 #endif  // !PTHREADPOOL_USE_FUTEX
 }
@@ -201,7 +209,7 @@ static int32_t wait_on_num_active_threads(pthreadpool_t threadpool,
 
   if (curr_active_threads <= 0) {
 #if !PTHREADPOOL_USE_FUTEX
-    pthread_mutex_lock(&threadpool->num_active_threads_mutex);
+    pthreadpool_mutex_lock(&threadpool->num_active_threads_mutex);
 #endif  // !PTHREADPOOL_USE_FUTEX
 
     for (size_t iter = 0; curr_active_threads <= 0; iter++) {
@@ -246,8 +254,8 @@ static int32_t wait_on_num_active_threads(pthreadpool_t threadpool,
         pthreadpool_log_debug(
             "thread %u waiting on change in num active threads (curr=%i)...",
             thread_id, curr_active_threads);
-        pthread_cond_wait(&threadpool->num_active_threads_condvar,
-                          &threadpool->num_active_threads_mutex);
+        pthreadpool_cond_wait(&threadpool->num_active_threads_condvar,
+                              &threadpool->num_active_threads_mutex);
 #endif  // PTHREADPOOL_USE_FUTEX
       }
 
@@ -256,7 +264,7 @@ static int32_t wait_on_num_active_threads(pthreadpool_t threadpool,
     }
 
 #if !PTHREADPOOL_USE_FUTEX
-    pthread_mutex_unlock(&threadpool->num_active_threads_mutex);
+    pthreadpool_mutex_unlock(&threadpool->num_active_threads_mutex);
 #endif  // !PTHREADPOOL_USE_FUTEX
   }
 
@@ -269,7 +277,7 @@ static void wait_on_work_is_done(pthreadpool_t threadpool) {
 
 #if !PTHREADPOOL_USE_FUTEX
   if (!work_is_done) {
-    pthread_mutex_lock(&threadpool->completion_mutex);
+    pthreadpool_mutex_lock(&threadpool->completion_mutex);
 #endif  // !PTHREADPOOL_USE_FUTEX
 
     for (size_t iter = 0; !work_is_done; iter++) {
@@ -283,8 +291,8 @@ static void wait_on_work_is_done(pthreadpool_t threadpool) {
         futex_wait((pthreadpool_atomic_uint32_t*)&threadpool->work_is_done,
                    work_is_done);
 #else
-      pthread_cond_wait(&threadpool->completion_condvar,
-                        &threadpool->completion_mutex);
+        pthreadpool_cond_wait(&threadpool->completion_condvar,
+                              &threadpool->completion_mutex);
 #endif  // PTHREADPOOL_USE_FUTEX
       }
 
@@ -293,7 +301,7 @@ static void wait_on_work_is_done(pthreadpool_t threadpool) {
     }
 
 #if !PTHREADPOOL_USE_FUTEX
-    pthread_mutex_unlock(&threadpool->completion_mutex);
+    pthreadpool_mutex_unlock(&threadpool->completion_mutex);
   }
 #endif  // !PTHREADPOOL_USE_FUTEX
 }
@@ -302,9 +310,9 @@ static void signal_num_recruited_threads(pthreadpool_t threadpool) {
 #if PTHREADPOOL_USE_FUTEX
   futex_wake_all(&threadpool->num_recruited_threads);
 #else
-  pthread_mutex_lock(&threadpool->completion_mutex);
-  pthread_cond_signal(&threadpool->completion_condvar);
-  pthread_mutex_unlock(&threadpool->completion_mutex);
+  pthreadpool_mutex_lock(&threadpool->completion_mutex);
+  pthreadpool_cond_signal(&threadpool->completion_condvar);
+  pthreadpool_mutex_unlock(&threadpool->completion_mutex);
 #endif  // PTHREADPOOL_USE_FUTEX
 }
 
@@ -318,9 +326,9 @@ static void signal_num_active_threads(pthreadpool_t threadpool,
                  num_waiting_threads - max_num_waiting);
   }
 #else
-  pthread_mutex_lock(&threadpool->num_active_threads_mutex);
-  pthread_cond_broadcast(&threadpool->num_active_threads_condvar);
-  pthread_mutex_unlock(&threadpool->num_active_threads_mutex);
+  pthreadpool_mutex_lock(&threadpool->num_active_threads_mutex);
+  pthreadpool_cond_broadcast(&threadpool->num_active_threads_condvar);
+  pthreadpool_mutex_unlock(&threadpool->num_active_threads_mutex);
 #endif  // PTHREADPOOL_USE_FUTEX
 }
 
@@ -331,9 +339,9 @@ static void signal_work_is_done(pthreadpool_t threadpool) {
 #if PTHREADPOOL_USE_FUTEX
   futex_wake_all(&threadpool->work_is_done);
 #else
-  pthread_mutex_lock(&threadpool->completion_mutex);
-  pthread_cond_signal(&threadpool->completion_condvar);
-  pthread_mutex_unlock(&threadpool->completion_mutex);
+  pthreadpool_mutex_lock(&threadpool->completion_mutex);
+  pthreadpool_cond_signal(&threadpool->completion_condvar);
+  pthreadpool_mutex_unlock(&threadpool->completion_mutex);
 #endif  // PTHREADPOOL_USE_FUTEX
 }
 
@@ -516,7 +524,7 @@ static size_t get_num_cpus() {
   SYSTEM_INFO system_info;
   ZeroMemory(&system_info, sizeof(system_info));
   GetSystemInfo(&system_info);
-  return = (size_t)system_info.dwNumberOfProcessors;
+  return (size_t)system_info.dwNumberOfProcessors;
 #else
 #error \
     "Platform-specific implementation of sysconf(_SC_NPROCESSORS_ONLN) required"
@@ -562,15 +570,15 @@ struct pthreadpool* pthreadpool_create_v2(struct pthreadpool_executor* executor,
   threadpool->num_active_threads = 0;
 
   /* Initialize the execution mutex. */
-  pthread_mutex_init(&threadpool->execution_mutex, NULL);
+  pthreadpool_mutex_init(&threadpool->execution_mutex);
 
   if (num_threads > 1) {
 #if !PTHREADPOOL_USE_FUTEX
     /* Initialize the condition variables and mutexes. */
-    pthread_mutex_init(&threadpool->completion_mutex, NULL);
-    pthread_cond_init(&threadpool->completion_condvar, NULL);
-    pthread_mutex_init(&threadpool->num_active_threads_mutex, NULL);
-    pthread_cond_init(&threadpool->num_active_threads_condvar, NULL);
+    pthreadpool_mutex_init(&threadpool->completion_mutex);
+    pthreadpool_cond_init(&threadpool->completion_condvar);
+    pthreadpool_mutex_init(&threadpool->num_active_threads_mutex);
+    pthreadpool_cond_init(&threadpool->num_active_threads_condvar);
 #endif
 
     /* If we weren't given an executor, start our own threads. */
@@ -579,8 +587,8 @@ struct pthreadpool* pthreadpool_create_v2(struct pthreadpool_executor* executor,
        * starting with worker #1. */
       pthreadpool_register_threads(threadpool, num_threads - 1);
       for (size_t tid = 1; tid < num_threads; tid++) {
-        pthread_create(&threadpool->threads[tid].thread_object, NULL,
-                       &thread_main, &threadpool->threads[tid]);
+        pthreadpool_thread_create(&threadpool->threads[tid].thread_object,
+                                  &thread_main, &threadpool->threads[tid]);
       }
     }
   }
@@ -629,7 +637,7 @@ PTHREADPOOL_INTERNAL void pthreadpool_parallelize(
   assert(linear_range > 1);
 
   /* Protect the global threadpool structures */
-  pthread_mutex_lock(&threadpool->execution_mutex);
+  pthreadpool_mutex_lock(&threadpool->execution_mutex);
 
   /* Make changes by other threads visible to this thread. */
   pthreadpool_fence_acquire();
@@ -705,7 +713,7 @@ PTHREADPOOL_INTERNAL void pthreadpool_parallelize(
   threadpool->threads_count = fxdiv_init_size_t(prev_num_threads);
 
   /* Unprotect the global threadpool structures now that we're done. */
-  pthread_mutex_unlock(&threadpool->execution_mutex);
+  pthreadpool_mutex_unlock(&threadpool->execution_mutex);
 }
 
 static void pthreadpool_release_all_threads(struct pthreadpool* threadpool) {
@@ -745,17 +753,18 @@ void pthreadpool_destroy(struct pthreadpool* threadpool) {
     if (!threadpool->executor.num_threads) {
       /* Wait until all threads return */
       for (size_t thread = 1; thread < threadpool->max_num_threads; thread++) {
-        pthread_join(threadpool->threads[thread].thread_object, NULL);
+        pthreadpool_thread_join(threadpool->threads[thread].thread_object,
+                                NULL);
       }
     }
 
     /* Release resources */
-    pthread_mutex_destroy(&threadpool->execution_mutex);
+    pthreadpool_mutex_destroy(&threadpool->execution_mutex);
 #if !PTHREADPOOL_USE_FUTEX
-    pthread_mutex_destroy(&threadpool->num_active_threads_mutex);
-    pthread_cond_destroy(&threadpool->num_active_threads_condvar);
-    pthread_mutex_destroy(&threadpool->completion_mutex);
-    pthread_cond_destroy(&threadpool->completion_condvar);
+    pthreadpool_mutex_destroy(&threadpool->num_active_threads_mutex);
+    pthreadpool_cond_destroy(&threadpool->num_active_threads_condvar);
+    pthreadpool_mutex_destroy(&threadpool->completion_mutex);
+    pthreadpool_cond_destroy(&threadpool->completion_condvar);
 #endif
 
 #if PTHREADPOOL_USE_CPUINFO
