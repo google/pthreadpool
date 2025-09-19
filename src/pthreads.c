@@ -432,7 +432,7 @@ static uint32_t thread_wrap_up(struct pthreadpool* threadpool,
   return curr_active_threads;
 }
 
-static void* thread_main(void* arg);
+static pthreadpool_thread_return_t thread_main(void* arg);
 
 static void ensure_num_threads(struct pthreadpool* threadpool,
                                uint32_t thread_id) {
@@ -476,7 +476,7 @@ static void ensure_num_threads(struct pthreadpool* threadpool,
   }
 }
 
-static void* thread_main(void* arg) {
+static pthreadpool_thread_return_t thread_main(void* arg) {
   // Unpack the argument, i.e. extract the pointer to the `pthreadpool` from the
   // provided pointer to this thread's `thread_info`.
   struct thread_info* thread = (struct thread_info*)arg;
@@ -558,7 +558,7 @@ static void* thread_main(void* arg) {
   // Release our hold on the threadpool.
   pthreadpool_release(threadpool);
 
-  return NULL;
+  return 0;
 }
 
 static size_t get_num_cpus() {
