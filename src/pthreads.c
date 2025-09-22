@@ -91,15 +91,16 @@
 #include <stdio.h>
 
 #if defined(__ARM_ARCH)
-static uint64_t __rdtsc(void) {
+static uint64_t __rdtsc() {
   uint64_t val;
   asm volatile("mrs %0, cntvct_el0" : "=r"(val));
   return val;
 }
 #endif  // defined(__ARM_ARCH)
+static size_t pthreadpool_get_ticks(size_t since) { return __rdtsc() - since; }
 
-#define pthreadpool_log_debug(format, ...)                               \
-  fprintf(stderr, "[%lu] %s (%s:%i): " format "\n", (uint64_t)__rdtsc(), \
+#define pthreadpool_log_debug(format, ...)                                    \
+  fprintf(stderr, "[%zu] %s (%s:%i): " format "\n", pthreadpool_get_ticks(0), \
           __FUNCTION__, __FILE__, __LINE__ - 1, ##__VA_ARGS__);
 #else
 #define pthreadpool_log_debug(format, ...)
@@ -214,24 +215,20 @@ static int32_t wait_on_num_active_threads(pthreadpool_t threadpool,
 
     for (size_t iter = 0; curr_active_threads <= 0; iter++) {
       // Just spin for the first few iterations.
-      if (iter < PTHREADPOOL_SPIN_WAIT_ITERATIONS) {
+      if (!(threadpool->flags & PTHREADPOOL_FLAG_DONT_SPIN_WORKERS) &&
+          iter < PTHREADPOOL_SPIN_WAIT_ITERATIONS) {
         pthreadpool_yield(iter);
+      }
 
-      } else if (threadpool->executor.num_threads) {
-        // If we've borrowed this thread from an executor, then we should
-        // return it to the executor instead of blocking it indefinitely, but
-        // first we spin a bit longer.
-        if (iter < 2 * PTHREADPOOL_SPIN_WAIT_ITERATIONS) {
-          pthreadpool_yield(0);
-        } else {
-          // Return this thread to the executor instead of blocking it
-          // indefinitely.
-          return PTHREADPOOL_NUM_ACTIVE_THREADS_DONE;
-        }
+      // If we've borrowed this thread from an executor, then we should return
+      // it to the executor instead of blocking it indefinitely.
+      else if (threadpool->executor.num_threads) {
+        return PTHREADPOOL_NUM_ACTIVE_THREADS_DONE;
+      }
 
-      } else {
-        // Otherwise, put this thread to sleep until `num_waiting_threads` is
-        // larger than zero.
+      // Otherwise, put this thread to sleep until `num_waiting_threads` is
+      // larger than zero.
+      else {
 #if PTHREADPOOL_USE_FUTEX
         // First increase the `num_waiting_threads` counter and re-check
         // `num_active_threads` thereafter to avoid slipping past calls to

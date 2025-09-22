@@ -32,14 +32,6 @@
 /* Library header */
 #include <pthreadpool.h>
 
-#define THREADPOOL_COMMAND_MASK UINT32_C(0x7FFFFFFF)
-
-enum threadpool_command {
-  threadpool_command_init,
-  threadpool_command_parallelize,
-  threadpool_command_shutdown,
-};
-
 struct PTHREADPOOL_CACHELINE_ALIGNED thread_info {
   /**
    * Index of the first element in the work range.
@@ -69,7 +61,6 @@ struct PTHREADPOOL_CACHELINE_ALIGNED thread_info {
    * Thread pool which owns the thread.
    */
   struct pthreadpool* threadpool;
-#if PTHREADPOOL_USE_CONDVAR || PTHREADPOOL_USE_FUTEX
   /**
    * The pthread object corresponding to the thread.
    */
@@ -78,7 +69,6 @@ struct PTHREADPOOL_CACHELINE_ALIGNED thread_info {
    * Whether this thread is active or not.
    */
   pthreadpool_atomic_uint32_t is_active;
-#endif
 };
 
 PTHREADPOOL_STATIC_ASSERT(sizeof(struct thread_info) %
