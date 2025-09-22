@@ -10,6 +10,7 @@
 #ifndef __PTHREADPOOL_INCLUDE_PTHREADPOOL_H_
 #define __PTHREADPOOL_INCLUDE_PTHREADPOOL_H_
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -247,6 +248,26 @@ size_t pthreadpool_set_threads_count(pthreadpool_t threadpool,
  *                      threads.
  */
 void pthreadpool_release_executor_threads(struct pthreadpool* threadpool);
+
+/**
+ * Updates a thread pool with a given @a pthreadpool_executor.
+ *
+ * @param threadpool        The thread pool in which to replace the executor.
+ * @param executor          A pointer to a @a pthreadpool_executor object that
+ *                          will be used to determine the number of extra
+ *                          threads (plus the calling thread), and provide the
+ *                          threads itself, for each call to a
+ *                          `pthreadpool_parallelize_*` function.
+ * @param executor_context  A pointer to the context that will be passed to the
+ *                          functions in the @a executor object.
+ *
+ * @return  @c true if the @a executor was successfully swapped, and @c false if
+ * it was not, e.g. because the current and nex @a executor and @a
+ * executor_context are identical.
+ */
+bool pthreadpool_update_executor(pthreadpool_t threadpool,
+                                 struct pthreadpool_executor* executor,
+                                 void* executor_context);
 
 /**
  * Process items on a 1D grid.
