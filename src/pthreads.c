@@ -678,9 +678,11 @@ PTHREADPOOL_INTERNAL void pthreadpool_parallelize(
   /* Make changes by other threads visible to this thread. */
   pthreadpool_fence_acquire();
 
-  /* Make sure the threadpool is idle. */
-  assert(pthreadpool_load_consume_int32_t(&threadpool->num_active_threads) ==
-         0);
+  /* Make sure the threadpool is idle or done. */
+  const int32_t num_active_threads =
+      pthreadpool_load_consume_int32_t(&threadpool->num_active_threads);
+  assert(num_active_threads == 0 ||
+         num_active_threads == PTHREADPOOL_NUM_ACTIVE_THREADS_DONE);
 
   /* Setup global arguments */
   pthreadpool_store_relaxed_void_p(&threadpool->thread_function,
@@ -754,7 +756,9 @@ PTHREADPOOL_INTERNAL void pthreadpool_parallelize(
 
 static void pthreadpool_release_all_threads(struct pthreadpool* threadpool) {
   if (threadpool != NULL) {
-    assert(threadpool->num_active_threads == 0);
+    assert(threadpool->num_active_threads == 0 ||
+           threadpool->num_active_threads ==
+               PTHREADPOOL_NUM_ACTIVE_THREADS_DONE);
 
     // Set the state to "done".
     pthreadpool_store_sequentially_consistent_int32_t(
@@ -765,13 +769,6 @@ static void pthreadpool_release_all_threads(struct pthreadpool* threadpool) {
 
     /* Wake up any thread waiting on a change of state. */
     signal_num_active_threads(threadpool, 0);
-
-    // Wait for any pending jobs to complete.
-    wait_on_num_recruited_threads(threadpool, 0);
-
-    // Set the state back to "idle".
-    pthreadpool_store_sequentially_consistent_int32_t(
-        &threadpool->num_active_threads, 0);
   }
 }
 
@@ -785,6 +782,9 @@ void pthreadpool_destroy(struct pthreadpool* threadpool) {
   if (threadpool != NULL) {
     /* Tell all threads to stop. */
     pthreadpool_release_all_threads(threadpool);
+
+    // Wait for any recruited threads to leave.
+    wait_on_num_recruited_threads(threadpool, 0);
 
     if (!threadpool->executor.num_threads) {
       /* Wait until all threads return */
