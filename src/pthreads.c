@@ -778,6 +778,27 @@ void pthreadpool_release_executor_threads(struct pthreadpool* threadpool) {
   }
 }
 
+bool pthreadpool_update_executor(pthreadpool_t threadpool,
+                                 struct pthreadpool_executor* executor,
+                                 void* executor_context) {
+  /* Protect the global threadpool structures */
+  pthreadpool_mutex_lock(&threadpool->execution_mutex);
+
+  const bool res = threadpool->executor.num_threads != executor->num_threads ||
+                   threadpool->executor.schedule != executor->schedule ||
+                   threadpool->executor_context != executor_context;
+  if (res) {
+    pthreadpool_release_executor_threads(threadpool);
+    threadpool->executor = *executor;
+    threadpool->executor_context = executor_context;
+  }
+
+  /* Unprotect the global threadpool structures now that we're done. */
+  pthreadpool_mutex_unlock(&threadpool->execution_mutex);
+
+  return res;
+}
+
 void pthreadpool_destroy(struct pthreadpool* threadpool) {
   if (threadpool != NULL) {
     /* Tell all threads to stop. */
