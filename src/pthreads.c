@@ -77,7 +77,11 @@
 #if defined(_MSC_VER)
 #include <malloc.h>
 #define alloca _alloca
-#endif  // defined(_MSC_VER)
+#elif !defined(alloca) && defined(__GNUC__)
+#define alloca(s) __builtin_alloca(s)
+#else
+#include <alloca.h>
+#endif
 
 /* Public library header */
 #include <pthreadpool.h>
