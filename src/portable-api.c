@@ -89,9 +89,10 @@ static void thread_parallelize_1d(struct pthreadpool* threadpool,
   /* There still may be other threads with work */
   const size_t thread_number = thread->thread_number;
   const size_t threads_count = threadpool->threads_count;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (
         pthreadpool_try_decrement_relaxed_size_t(&other_thread->range_length)) {
       const size_t index =
@@ -123,9 +124,10 @@ static void thread_parallelize_1d_with_thread(struct pthreadpool* threadpool,
 
   /* There still may be other threads with work */
   const size_t threads_count = threadpool->threads_count;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (
         pthreadpool_try_decrement_relaxed_size_t(&other_thread->range_length)) {
       const size_t index =
@@ -169,9 +171,10 @@ static void thread_parallelize_1d_with_uarch(struct pthreadpool* threadpool,
   /* There still may be other threads with work */
   const size_t thread_number = thread->thread_number;
   const size_t threads_count = threadpool->threads_count;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (
         pthreadpool_try_decrement_relaxed_size_t(&other_thread->range_length)) {
       const size_t index =
@@ -209,9 +212,10 @@ static void thread_parallelize_1d_tile_1d(struct pthreadpool* threadpool,
   /* There still may be other threads with work */
   const size_t thread_number = thread->thread_number;
   const size_t threads_count = threadpool->threads_count;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (
         pthreadpool_try_decrement_relaxed_size_t(&other_thread->range_length)) {
       const size_t tile_index =
@@ -433,9 +437,10 @@ static void thread_parallelize_2d(struct pthreadpool* threadpool,
   /* There still may be other threads with work */
   const size_t thread_number = thread->thread_number;
   const size_t threads_count = threadpool->threads_count;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (
         pthreadpool_try_decrement_relaxed_size_t(&other_thread->range_length)) {
       const size_t linear_index =
@@ -481,9 +486,10 @@ static void thread_parallelize_2d_with_thread(struct pthreadpool* threadpool,
 
   /* There still may be other threads with work */
   const size_t threads_count = threadpool->threads_count;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (
         pthreadpool_try_decrement_relaxed_size_t(&other_thread->range_length)) {
       const size_t linear_index =
@@ -532,9 +538,10 @@ static void thread_parallelize_2d_tile_1d(struct pthreadpool* threadpool,
   /* There still may be other threads with work */
   const size_t thread_number = thread->thread_number;
   const size_t threads_count = threadpool->threads_count;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (
         pthreadpool_try_decrement_relaxed_size_t(&other_thread->range_length)) {
       const size_t linear_index =
@@ -599,9 +606,10 @@ static void thread_parallelize_2d_tile_1d_with_uarch(
   /* There still may be other threads with work */
   const size_t thread_number = thread->thread_number;
   const size_t threads_count = threadpool->threads_count;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (
         pthreadpool_try_decrement_relaxed_size_t(&other_thread->range_length)) {
       const size_t linear_index =
@@ -667,9 +675,10 @@ static void thread_parallelize_2d_tile_1d_with_uarch_with_thread(
 
   /* There still may be other threads with work */
   const size_t threads_count = threadpool->threads_count;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (
         pthreadpool_try_decrement_relaxed_size_t(&other_thread->range_length)) {
       const size_t linear_index =
@@ -943,9 +952,10 @@ static void thread_parallelize_2d_tile_2d(struct pthreadpool* threadpool,
   /* There still may be other threads with work */
   const size_t thread_number = thread->thread_number;
   const size_t threads_count = threadpool->threads_count;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (
         pthreadpool_try_decrement_relaxed_size_t(&other_thread->range_length)) {
       const size_t linear_index =
@@ -1016,9 +1026,10 @@ static void thread_parallelize_2d_tile_2d_with_uarch(
   /* There still may be other threads with work */
   const size_t thread_number = thread->thread_number;
   const size_t threads_count = threadpool->threads_count;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (
         pthreadpool_try_decrement_relaxed_size_t(&other_thread->range_length)) {
       const size_t linear_index =
@@ -1352,9 +1363,10 @@ static void thread_parallelize_3d(struct pthreadpool* threadpool,
   /* There still may be other threads with work */
   const size_t thread_number = thread->thread_number;
   const size_t threads_count = threadpool->threads_count;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (
         pthreadpool_try_decrement_relaxed_size_t(&other_thread->range_length)) {
       const size_t linear_index =
@@ -1414,9 +1426,10 @@ static void thread_parallelize_3d_tile_1d(struct pthreadpool* threadpool,
   /* There still may be other threads with work */
   const size_t thread_number = thread->thread_number;
   const size_t threads_count = threadpool->threads_count;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (
         pthreadpool_try_decrement_relaxed_size_t(&other_thread->range_length)) {
       const size_t linear_index =
@@ -1478,9 +1491,10 @@ static void thread_parallelize_3d_tile_1d_with_thread(
 
   /* There still may be other threads with work */
   const size_t threads_count = threadpool->threads_count;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (
         pthreadpool_try_decrement_relaxed_size_t(&other_thread->range_length)) {
       const size_t linear_index =
@@ -1555,9 +1569,10 @@ static void thread_parallelize_3d_tile_1d_with_uarch(
   /* There still may be other threads with work */
   const size_t thread_number = thread->thread_number;
   const size_t threads_count = threadpool->threads_count;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (
         pthreadpool_try_decrement_relaxed_size_t(&other_thread->range_length)) {
       const size_t linear_index =
@@ -1633,9 +1648,10 @@ static void thread_parallelize_3d_tile_1d_with_uarch_with_thread(
 
   /* There still may be other threads with work */
   const size_t threads_count = threadpool->threads_count;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (
         pthreadpool_try_decrement_relaxed_size_t(&other_thread->range_length)) {
       const size_t linear_index =
@@ -1939,9 +1955,10 @@ static void thread_parallelize_3d_tile_2d(struct pthreadpool* threadpool,
   /* There still may be other threads with work */
   const size_t thread_number = thread->thread_number;
   const size_t threads_count = threadpool->threads_count;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (
         pthreadpool_try_decrement_relaxed_size_t(&other_thread->range_length)) {
       const size_t linear_index =
@@ -2023,9 +2040,10 @@ static void thread_parallelize_3d_tile_2d_with_uarch(
   /* There still may be other threads with work */
   const size_t thread_number = thread->thread_number;
   const size_t threads_count = threadpool->threads_count;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (
         pthreadpool_try_decrement_relaxed_size_t(&other_thread->range_length)) {
       const size_t linear_index =
@@ -2413,9 +2431,10 @@ static void thread_parallelize_4d(struct pthreadpool* threadpool,
   /* There still may be other threads with work */
   const size_t thread_number = thread->thread_number;
   const size_t threads_count = threadpool->threads_count;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (
         pthreadpool_try_decrement_relaxed_size_t(&other_thread->range_length)) {
       const size_t linear_index =
@@ -2486,9 +2505,10 @@ static void thread_parallelize_4d_tile_1d(struct pthreadpool* threadpool,
   /* There still may be other threads with work */
   const size_t thread_number = thread->thread_number;
   const size_t threads_count = threadpool->threads_count;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (
         pthreadpool_try_decrement_relaxed_size_t(&other_thread->range_length)) {
       const size_t linear_index =
@@ -2563,9 +2583,10 @@ static void thread_parallelize_4d_tile_2d(struct pthreadpool* threadpool,
   /* There still may be other threads with work */
   const size_t thread_number = thread->thread_number;
   const size_t threads_count = threadpool->threads_count;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (
         pthreadpool_try_decrement_relaxed_size_t(&other_thread->range_length)) {
       const size_t linear_index =
@@ -2657,9 +2678,10 @@ static void thread_parallelize_4d_tile_2d_with_uarch(
   /* There still may be other threads with work */
   const size_t thread_number = thread->thread_number;
   const size_t threads_count = threadpool->threads_count;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (
         pthreadpool_try_decrement_relaxed_size_t(&other_thread->range_length)) {
       const size_t linear_index =
@@ -2976,9 +2998,10 @@ static void thread_parallelize_5d(struct pthreadpool* threadpool,
   /* There still may be other threads with work */
   const size_t thread_number = thread->thread_number;
   const size_t threads_count = threadpool->threads_count;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (
         pthreadpool_try_decrement_relaxed_size_t(&other_thread->range_length)) {
       const size_t linear_index =
@@ -3059,9 +3082,10 @@ static void thread_parallelize_5d_tile_1d(struct pthreadpool* threadpool,
   /* There still may be other threads with work */
   const size_t thread_number = thread->thread_number;
   const size_t threads_count = threadpool->threads_count;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (
         pthreadpool_try_decrement_relaxed_size_t(&other_thread->range_length)) {
       const size_t linear_index =
@@ -3147,9 +3171,10 @@ static void thread_parallelize_5d_tile_2d(struct pthreadpool* threadpool,
   /* There still may be other threads with work */
   const size_t thread_number = thread->thread_number;
   const size_t threads_count = threadpool->threads_count;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (
         pthreadpool_try_decrement_relaxed_size_t(&other_thread->range_length)) {
       const size_t linear_index =
@@ -3237,9 +3262,10 @@ static void thread_parallelize_6d(struct pthreadpool* threadpool,
   /* There still may be other threads with work */
   const size_t thread_number = thread->thread_number;
   const size_t threads_count = threadpool->threads_count;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (
         pthreadpool_try_decrement_relaxed_size_t(&other_thread->range_length)) {
       const size_t linear_index =
@@ -3331,9 +3357,10 @@ static void thread_parallelize_6d_tile_1d(struct pthreadpool* threadpool,
   /* There still may be other threads with work */
   const size_t thread_number = thread->thread_number;
   const size_t threads_count = threadpool->threads_count;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (
         pthreadpool_try_decrement_relaxed_size_t(&other_thread->range_length)) {
       const size_t linear_index =
@@ -3430,9 +3457,10 @@ static void thread_parallelize_6d_tile_2d(struct pthreadpool* threadpool,
   /* There still may be other threads with work */
   const size_t thread_number = thread->thread_number;
   const size_t threads_count = threadpool->threads_count;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (
         pthreadpool_try_decrement_relaxed_size_t(&other_thread->range_length)) {
       const size_t linear_index =

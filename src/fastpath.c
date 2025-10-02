@@ -9,6 +9,7 @@
 
 /* Standard C headers */
 #include <assert.h>
+#include <limits.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -40,7 +41,7 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_1d_fastpath(
   void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
 
   const size_t threads_count = threadpool->threads_count;
-  const size_t range_threshold = -threads_count;
+  const size_t range_threshold = -threadpool->max_num_threads;
 
   /* Process thread's own range of items */
   size_t range_start = pthreadpool_load_relaxed_size_t(&thread->range_start);
@@ -51,9 +52,10 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_1d_fastpath(
 
   /* There still may be other threads with work */
   const size_t thread_number = thread->thread_number;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (pthreadpool_decrement_fetch_relaxed_size_t(
                &other_thread->range_length) < range_threshold) {
       const size_t index =
@@ -78,7 +80,7 @@ pthreadpool_thread_parallelize_1d_with_thread_fastpath(
   void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
 
   const size_t threads_count = threadpool->threads_count;
-  const size_t range_threshold = -threads_count;
+  const size_t range_threshold = -threadpool->max_num_threads;
 
   /* Process thread's own range of items */
   const size_t thread_number = thread->thread_number;
@@ -89,9 +91,10 @@ pthreadpool_thread_parallelize_1d_with_thread_fastpath(
   }
 
   /* There still may be other threads with work */
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (pthreadpool_decrement_fetch_relaxed_size_t(
                &other_thread->range_length) < range_threshold) {
       const size_t index =
@@ -127,7 +130,7 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_1d_with_uarch_fastpath(
 #endif
 
   const size_t threads_count = threadpool->threads_count;
-  const size_t range_threshold = -threads_count;
+  const size_t range_threshold = -threadpool->max_num_threads;
 
   /* Process thread's own range of items */
   size_t range_start = pthreadpool_load_relaxed_size_t(&thread->range_start);
@@ -138,9 +141,10 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_1d_with_uarch_fastpath(
 
   /* There still may be other threads with work */
   const size_t thread_number = thread->thread_number;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (pthreadpool_decrement_fetch_relaxed_size_t(
                &other_thread->range_length) < range_threshold) {
       const size_t index =
@@ -164,7 +168,7 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_1d_tile_1d_fastpath(
   void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
 
   const size_t threads_count = threadpool->threads_count;
-  const size_t range_threshold = -threads_count;
+  const size_t range_threshold = -threadpool->max_num_threads;
 
   /* Process thread's own range of items */
   const size_t range_start =
@@ -181,9 +185,10 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_1d_tile_1d_fastpath(
 
   /* There still may be other threads with work */
   const size_t thread_number = thread->thread_number;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (pthreadpool_decrement_fetch_relaxed_size_t(
                &other_thread->range_length) < range_threshold) {
       const size_t tile_index =
@@ -207,7 +212,7 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_2d_fastpath(
   void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
 
   const size_t threads_count = threadpool->threads_count;
-  const size_t range_threshold = -threads_count;
+  const size_t range_threshold = -threadpool->max_num_threads;
 
   /* Process thread's own range of items */
   const size_t range_start =
@@ -230,9 +235,10 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_2d_fastpath(
 
   /* There still may be other threads with work */
   const size_t thread_number = thread->thread_number;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (pthreadpool_decrement_fetch_relaxed_size_t(
                &other_thread->range_length) < range_threshold) {
       const size_t linear_index =
@@ -259,7 +265,7 @@ pthreadpool_thread_parallelize_2d_with_thread_fastpath(
   void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
 
   const size_t threads_count = threadpool->threads_count;
-  const size_t range_threshold = -threads_count;
+  const size_t range_threshold = -threadpool->max_num_threads;
 
   /* Process thread's own range of items */
   const size_t range_start =
@@ -282,9 +288,10 @@ pthreadpool_thread_parallelize_2d_with_thread_fastpath(
   }
 
   /* There still may be other threads with work */
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (pthreadpool_decrement_fetch_relaxed_size_t(
                &other_thread->range_length) < range_threshold) {
       const size_t linear_index =
@@ -310,7 +317,7 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_2d_tile_1d_fastpath(
   void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
 
   const size_t threads_count = threadpool->threads_count;
-  const size_t range_threshold = -threads_count;
+  const size_t range_threshold = -threadpool->max_num_threads;
 
   /* Process thread's own range of items */
   const size_t range_start =
@@ -336,9 +343,10 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_2d_tile_1d_fastpath(
 
   /* There still may be other threads with work */
   const size_t thread_number = thread->thread_number;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (pthreadpool_decrement_fetch_relaxed_size_t(
                &other_thread->range_length) < range_threshold) {
       const size_t linear_index =
@@ -379,7 +387,7 @@ pthreadpool_thread_parallelize_2d_tile_1d_with_uarch_fastpath(
 #endif
 
   const size_t threads_count = threadpool->threads_count;
-  const size_t range_threshold = -threads_count;
+  const size_t range_threshold = -threadpool->max_num_threads;
 
   /* Process thread's own range of items */
   const size_t range_start =
@@ -407,9 +415,10 @@ pthreadpool_thread_parallelize_2d_tile_1d_with_uarch_fastpath(
 
   /* There still may be other threads with work */
   const size_t thread_number = thread->thread_number;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (pthreadpool_decrement_fetch_relaxed_size_t(
                &other_thread->range_length) < range_threshold) {
       const size_t linear_index =
@@ -450,7 +459,7 @@ pthreadpool_thread_parallelize_2d_tile_1d_with_uarch_with_thread_fastpath(
 #endif
 
   const size_t threads_count = threadpool->threads_count;
-  const size_t range_threshold = -threads_count;
+  const size_t range_threshold = -threadpool->max_num_threads;
 
   /* Process thread's own range of items */
   const size_t range_start =
@@ -479,9 +488,10 @@ pthreadpool_thread_parallelize_2d_tile_1d_with_uarch_with_thread_fastpath(
   }
 
   /* There still may be other threads with work */
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (pthreadpool_decrement_fetch_relaxed_size_t(
                &other_thread->range_length) < range_threshold) {
       const size_t linear_index =
@@ -509,7 +519,7 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_2d_tile_2d_fastpath(
   void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
 
   const size_t threads_count = threadpool->threads_count;
-  const size_t range_threshold = -threads_count;
+  const size_t range_threshold = -threadpool->max_num_threads;
 
   /* Process thread's own range of items */
   const size_t range_start =
@@ -538,9 +548,10 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_2d_tile_2d_fastpath(
 
   /* There still may be other threads with work */
   const size_t thread_number = thread->thread_number;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (pthreadpool_decrement_fetch_relaxed_size_t(
                &other_thread->range_length) < range_threshold) {
       const size_t linear_index =
@@ -582,7 +593,7 @@ pthreadpool_thread_parallelize_2d_tile_2d_with_uarch_fastpath(
 #endif
 
   const size_t threads_count = threadpool->threads_count;
-  const size_t range_threshold = -threads_count;
+  const size_t range_threshold = -threadpool->max_num_threads;
 
   /* Process thread's own range of items */
   const struct fxdiv_divisor_size_t tile_range_j =
@@ -615,9 +626,10 @@ pthreadpool_thread_parallelize_2d_tile_2d_with_uarch_fastpath(
 
   /* There still may be other threads with work */
   const size_t thread_number = thread->thread_number;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (pthreadpool_decrement_fetch_relaxed_size_t(
                &other_thread->range_length) < range_threshold) {
       const size_t linear_index =
@@ -645,7 +657,7 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_3d_fastpath(
   void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
 
   const size_t threads_count = threadpool->threads_count;
-  const size_t range_threshold = -threads_count;
+  const size_t range_threshold = -threadpool->max_num_threads;
 
   /* Process thread's own range of items */
   const size_t range_start =
@@ -676,9 +688,10 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_3d_fastpath(
 
   /* There still may be other threads with work */
   const size_t thread_number = thread->thread_number;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (pthreadpool_decrement_fetch_relaxed_size_t(
                &other_thread->range_length) < range_threshold) {
       const size_t linear_index =
@@ -707,7 +720,7 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_3d_tile_1d_fastpath(
   void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
 
   const size_t threads_count = threadpool->threads_count;
-  const size_t range_threshold = -threads_count;
+  const size_t range_threshold = -threadpool->max_num_threads;
 
   /* Process thread's own range of items */
   const size_t range_start =
@@ -741,9 +754,10 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_3d_tile_1d_fastpath(
 
   /* There still may be other threads with work */
   const size_t thread_number = thread->thread_number;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (pthreadpool_decrement_fetch_relaxed_size_t(
                &other_thread->range_length) < range_threshold) {
       const size_t linear_index =
@@ -774,7 +788,7 @@ pthreadpool_thread_parallelize_3d_tile_1d_with_thread_fastpath(
   void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
 
   const size_t threads_count = threadpool->threads_count;
-  const size_t range_threshold = -threads_count;
+  const size_t range_threshold = -threadpool->max_num_threads;
 
   /* Process thread's own range of items */
   const size_t range_start =
@@ -809,9 +823,10 @@ pthreadpool_thread_parallelize_3d_tile_1d_with_thread_fastpath(
   }
 
   /* There still may be other threads with work */
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (pthreadpool_decrement_fetch_relaxed_size_t(
                &other_thread->range_length) < range_threshold) {
       const size_t linear_index =
@@ -854,7 +869,7 @@ pthreadpool_thread_parallelize_3d_tile_1d_with_uarch_fastpath(
 #endif
 
   const size_t threads_count = threadpool->threads_count;
-  const size_t range_threshold = -threads_count;
+  const size_t range_threshold = -threadpool->max_num_threads;
 
   /* Process thread's own range of items */
   const size_t range_start =
@@ -890,9 +905,10 @@ pthreadpool_thread_parallelize_3d_tile_1d_with_uarch_fastpath(
 
   /* There still may be other threads with work */
   const size_t thread_number = thread->thread_number;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (pthreadpool_decrement_fetch_relaxed_size_t(
                &other_thread->range_length) < range_threshold) {
       const size_t linear_index =
@@ -935,7 +951,7 @@ pthreadpool_thread_parallelize_3d_tile_1d_with_uarch_with_thread_fastpath(
 #endif
 
   const size_t threads_count = threadpool->threads_count;
-  const size_t range_threshold = -threads_count;
+  const size_t range_threshold = -threadpool->max_num_threads;
 
   /* Process thread's own range of items */
   const size_t range_start =
@@ -972,9 +988,10 @@ pthreadpool_thread_parallelize_3d_tile_1d_with_uarch_with_thread_fastpath(
   }
 
   /* There still may be other threads with work */
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (pthreadpool_decrement_fetch_relaxed_size_t(
                &other_thread->range_length) < range_threshold) {
       const size_t linear_index =
@@ -1004,7 +1021,7 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_3d_tile_2d_fastpath(
   void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
 
   const size_t threads_count = threadpool->threads_count;
-  const size_t range_threshold = -threads_count;
+  const size_t range_threshold = -threadpool->max_num_threads;
 
   /* Process thread's own range of items */
   const size_t range_start =
@@ -1042,9 +1059,10 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_3d_tile_2d_fastpath(
 
   /* There still may be other threads with work */
   const size_t thread_number = thread->thread_number;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (pthreadpool_decrement_fetch_relaxed_size_t(
                &other_thread->range_length) < range_threshold) {
       const size_t linear_index =
@@ -1088,7 +1106,7 @@ pthreadpool_thread_parallelize_3d_tile_2d_with_uarch_fastpath(
 #endif
 
   const size_t threads_count = threadpool->threads_count;
-  const size_t range_threshold = -threads_count;
+  const size_t range_threshold = -threadpool->max_num_threads;
 
   /* Process thread's own range of items */
   const size_t range_start =
@@ -1130,9 +1148,10 @@ pthreadpool_thread_parallelize_3d_tile_2d_with_uarch_fastpath(
 
   /* There still may be other threads with work */
   const size_t thread_number = thread->thread_number;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (pthreadpool_decrement_fetch_relaxed_size_t(
                &other_thread->range_length) < range_threshold) {
       const size_t linear_index =
@@ -1162,7 +1181,7 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_4d_fastpath(
   void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
 
   const size_t threads_count = threadpool->threads_count;
-  const size_t range_threshold = -threads_count;
+  const size_t range_threshold = -threadpool->max_num_threads;
 
   /* Process thread's own range of items */
   const size_t range_start =
@@ -1202,9 +1221,10 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_4d_fastpath(
 
   /* There still may be other threads with work */
   const size_t thread_number = thread->thread_number;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (pthreadpool_decrement_fetch_relaxed_size_t(
                &other_thread->range_length) < range_threshold) {
       const size_t linear_index =
@@ -1235,7 +1255,7 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_4d_tile_1d_fastpath(
   void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
 
   const size_t threads_count = threadpool->threads_count;
-  const size_t range_threshold = -threads_count;
+  const size_t range_threshold = -threadpool->max_num_threads;
 
   /* Process thread's own range of items */
   const size_t range_start =
@@ -1278,9 +1298,10 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_4d_tile_1d_fastpath(
 
   /* There still may be other threads with work */
   const size_t thread_number = thread->thread_number;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (pthreadpool_decrement_fetch_relaxed_size_t(
                &other_thread->range_length) < range_threshold) {
       const size_t linear_index =
@@ -1312,7 +1333,7 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_4d_tile_2d_fastpath(
   void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
 
   const size_t threads_count = threadpool->threads_count;
-  const size_t range_threshold = -threads_count;
+  const size_t range_threshold = -threadpool->max_num_threads;
 
   /* Process thread's own range of items */
   const size_t range_start =
@@ -1358,9 +1379,10 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_4d_tile_2d_fastpath(
 
   /* There still may be other threads with work */
   const size_t thread_number = thread->thread_number;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (pthreadpool_decrement_fetch_relaxed_size_t(
                &other_thread->range_length) < range_threshold) {
       const size_t linear_index =
@@ -1406,7 +1428,7 @@ pthreadpool_thread_parallelize_4d_tile_2d_with_uarch_fastpath(
 #endif
 
   const size_t threads_count = threadpool->threads_count;
-  const size_t range_threshold = -threads_count;
+  const size_t range_threshold = -threadpool->max_num_threads;
 
   /* Process thread's own range of items */
   const size_t range_start =
@@ -1456,9 +1478,10 @@ pthreadpool_thread_parallelize_4d_tile_2d_with_uarch_fastpath(
 
   /* There still may be other threads with work */
   const size_t thread_number = thread->thread_number;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (pthreadpool_decrement_fetch_relaxed_size_t(
                &other_thread->range_length) < range_threshold) {
       const size_t linear_index =
@@ -1491,7 +1514,7 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_5d_fastpath(
   void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
 
   const size_t threads_count = threadpool->threads_count;
-  const size_t range_threshold = -threads_count;
+  const size_t range_threshold = -threadpool->max_num_threads;
 
   /* Process thread's own range of items */
   const size_t range_start =
@@ -1539,9 +1562,10 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_5d_fastpath(
 
   /* There still may be other threads with work */
   const size_t thread_number = thread->thread_number;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (pthreadpool_decrement_fetch_relaxed_size_t(
                &other_thread->range_length) < range_threshold) {
       const size_t linear_index =
@@ -1574,7 +1598,7 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_5d_tile_1d_fastpath(
   void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
 
   const size_t threads_count = threadpool->threads_count;
-  const size_t range_threshold = -threads_count;
+  const size_t range_threshold = -threadpool->max_num_threads;
 
   /* Process thread's own range of items */
   const size_t range_start =
@@ -1625,9 +1649,10 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_5d_tile_1d_fastpath(
 
   /* There still may be other threads with work */
   const size_t thread_number = thread->thread_number;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (pthreadpool_decrement_fetch_relaxed_size_t(
                &other_thread->range_length) < range_threshold) {
       const size_t linear_index =
@@ -1662,7 +1687,7 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_5d_tile_2d_fastpath(
   void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
 
   const size_t threads_count = threadpool->threads_count;
-  const size_t range_threshold = -threads_count;
+  const size_t range_threshold = -threadpool->max_num_threads;
 
   /* Process thread's own range of items */
   const size_t range_start =
@@ -1716,9 +1741,10 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_5d_tile_2d_fastpath(
 
   /* There still may be other threads with work */
   const size_t thread_number = thread->thread_number;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (pthreadpool_decrement_fetch_relaxed_size_t(
                &other_thread->range_length) < range_threshold) {
       const size_t linear_index =
@@ -1753,7 +1779,7 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_6d_fastpath(
   void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
 
   const size_t threads_count = threadpool->threads_count;
-  const size_t range_threshold = -threads_count;
+  const size_t range_threshold = -threadpool->max_num_threads;
 
   /* Process thread's own range of items */
   const size_t range_start =
@@ -1809,9 +1835,10 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_6d_fastpath(
 
   /* There still may be other threads with work */
   const size_t thread_number = thread->thread_number;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (pthreadpool_decrement_fetch_relaxed_size_t(
                &other_thread->range_length) < range_threshold) {
       const size_t linear_index =
@@ -1847,7 +1874,7 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_6d_tile_1d_fastpath(
   void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
 
   const size_t threads_count = threadpool->threads_count;
-  const size_t range_threshold = -threads_count;
+  const size_t range_threshold = -threadpool->max_num_threads;
 
   /* Process thread's own range of items */
   const size_t range_start =
@@ -1906,9 +1933,10 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_6d_tile_1d_fastpath(
 
   /* There still may be other threads with work */
   const size_t thread_number = thread->thread_number;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (pthreadpool_decrement_fetch_relaxed_size_t(
                &other_thread->range_length) < range_threshold) {
       const size_t linear_index =
@@ -1945,7 +1973,7 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_6d_tile_2d_fastpath(
   void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
 
   const size_t threads_count = threadpool->threads_count;
-  const size_t range_threshold = -threads_count;
+  const size_t range_threshold = -threadpool->max_num_threads;
 
   /* Process thread's own range of items */
   const size_t range_start =
@@ -2008,9 +2036,10 @@ PTHREADPOOL_INTERNAL void pthreadpool_thread_parallelize_6d_tile_2d_fastpath(
 
   /* There still may be other threads with work */
   const size_t thread_number = thread->thread_number;
-  for (size_t tid = modulo_decrement(thread_number, threads_count);
-       tid != thread_number; tid = modulo_decrement(tid, threads_count)) {
-    struct thread_info* other_thread = &threadpool->threads[tid];
+  for (size_t tid = (thread_number < threads_count) ? 1 : 0;
+       tid < threads_count; tid++) {
+    struct thread_info* other_thread =
+        &threadpool->threads[(thread_number + tid) % threads_count];
     while (pthreadpool_decrement_fetch_relaxed_size_t(
                &other_thread->range_length) < range_threshold) {
       const size_t linear_index =
