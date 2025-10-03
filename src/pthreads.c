@@ -432,6 +432,50 @@ static uint32_t thread_wrap_up(struct pthreadpool* threadpool,
   return curr_active_threads;
 }
 
+static void* thread_main(void* arg);
+
+static void ensure_num_threads(struct pthreadpool* threadpool,
+                               uint32_t thread_id) {
+  struct pthreadpool_executor* executor = &threadpool->executor;
+
+  /* If we're not using an executor, do nothing. */
+  if (!executor->num_threads) {
+    return;
+  }
+
+  // Get the number of required threads.
+  const uint32_t max_num_threads = pthreadpool_load_acquire_size_t(
+      (pthreadpool_atomic_size_t*)&threadpool->threads_count.value);
+
+  // Start up to two other threads so that we fan out exponentially.
+  uint32_t num_threads_to_start = 2;  // thread_id > 0 ? 2 : 1;
+
+  /* Schedule any missing threads for this threadpool. */
+  for (uint32_t tid = thread_id + 1;
+       num_threads_to_start && tid < max_num_threads; tid++) {
+    // Check whether this thread was active, and if not, schedule it.
+    struct thread_info* thread = &threadpool->threads[tid];
+    if (!pthreadpool_load_relaxed_uint32_t(&thread->is_active) &&
+        !pthreadpool_exchange_sequentially_consistent_uint32_t(
+            &thread->is_active, 1)) {
+      // Make sure there is still ongoing work.
+      if (thread_id) {
+        const int32_t curr_active_threads =
+            pthreadpool_load_consume_int32_t(&threadpool->num_active_threads);
+        if (curr_active_threads < 0 ||
+            curr_active_threads == PTHREADPOOL_NUM_ACTIVE_THREADS_DONE) {
+          return;
+        }
+      }
+
+      pthreadpool_register_threads(threadpool, 1);
+      executor->schedule(threadpool->executor_context, thread,
+                         (void (*)(void*))thread_main);
+      num_threads_to_start--;
+    }
+  }
+}
+
 static void* thread_main(void* arg) {
   // Unpack the argument, i.e. extract the pointer to the `pthreadpool` from the
   // provided pointer to this thread's `thread_info`.
@@ -442,6 +486,9 @@ static void* thread_main(void* arg) {
                             thread_id * sizeof(struct thread_info) -
                             offsetof(struct pthreadpool, threads));
   uint32_t last_job_id = 0;
+
+  // Check whether we have to wake up any other threads.
+  ensure_num_threads(threadpool, thread_id);
 
   // Get the current threadpool state.
   int32_t curr_active_threads =
@@ -603,70 +650,6 @@ struct pthreadpool* pthreadpool_create_v2(struct pthreadpool_executor* executor,
   return threadpool;
 }
 
-static void wake_up_threads(void** contexts) {
-  struct pthreadpool* threadpool = (struct pthreadpool*)contexts[0];
-  struct pthreadpool_executor* executor = &threadpool->executor;
-  for (uint32_t k = 1; contexts[k] != NULL; k++) {
-    if (contexts[k + 1] != NULL) {
-      /* Fly, my pretties! Fly, fly, fly! */
-      executor->schedule(threadpool->executor_context, contexts[k],
-                         (void (*)(void*))thread_main);
-    } else {
-      void* context = contexts[k];
-      free(contexts);
-      thread_main(context);
-      return;
-    }
-  }
-}
-
-static void ensure_num_threads(struct pthreadpool* threadpool,
-                               uint32_t num_threads) {
-  assert(num_threads >= 1);
-  assert(num_threads <= threadpool->max_num_threads);
-  struct pthreadpool_executor* executor = &threadpool->executor;
-
-  /* If we're not using an executor, do nothing. */
-  if (!executor->num_threads) {
-    return;
-  }
-
-  void** thread_contexts = alloca(sizeof(void*) * num_threads);
-  int32_t num_threads_to_wake = 0;
-
-  /* Create any missing threads for this threadpool. */
-  for (uint32_t tid = 1;
-       tid < num_threads &&
-       pthreadpool_load_consume_int32_t(&threadpool->num_active_threads) > 0;
-       tid++) {
-    struct thread_info* thread = &threadpool->threads[tid];
-
-    // Check whether this thread was active, and if not, add it to the list of
-    // threads that need starting.
-    if (!pthreadpool_exchange_sequentially_consistent_uint32_t(
-            &thread->is_active, 1)) {
-      pthreadpool_register_threads(threadpool, 1);
-      thread_contexts[num_threads_to_wake++] = thread;
-    }
-  }
-
-  if (num_threads_to_wake > 1) {
-    void** contexts = malloc(sizeof(void*) * (num_threads_to_wake + 2));
-    contexts[0] = threadpool;
-    memcpy(contexts + 1, thread_contexts, sizeof(void*) * num_threads_to_wake);
-    contexts[num_threads_to_wake + 1] = NULL;
-    /* Fly, my pretties! Fly, fly, fly! */
-    executor->schedule(threadpool->executor_context, contexts,
-                       (void (*)(void*))wake_up_threads);
-  } else if (num_threads_to_wake == 1) {
-    for (int k = 0; k < num_threads_to_wake; k++) {
-      /* Fly, my pretties! Fly, fly, fly! */
-      executor->schedule(threadpool->executor_context, thread_contexts[k],
-                         (void (*)(void*))thread_main);
-    }
-  }
-}
-
 PTHREADPOOL_INTERNAL void pthreadpool_parallelize(
     struct pthreadpool* threadpool, thread_function_t thread_function,
     const void* params, size_t params_size, void* task, void* context,
@@ -737,7 +720,7 @@ PTHREADPOOL_INTERNAL void pthreadpool_parallelize(
                             threadpool->max_num_threads - num_threads);
 
   /* Make sure we have enough threads running. */
-  ensure_num_threads(threadpool, num_threads);
+  ensure_num_threads(threadpool, /*thread_id=*/0);
 
   /* Do a bit of work ourselves, as thread zero. */
   run_thread_function(threadpool, /*thread_id=*/0);
