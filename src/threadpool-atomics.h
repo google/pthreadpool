@@ -125,7 +125,7 @@ static inline void pthreadpool_cond_broadcast(pthreadpool_cond_t* cond) {
   cnd_broadcast(cond);
 }
 static inline void pthreadpool_thread_create(pthreadpool_thread_t* thread,
-                                             int(fun)(void*), void* arg) {
+                                             void*(fun)(void*), void* arg) {
   thrd_create(thread, fun, arg);
 }
 static inline void pthreadpool_thread_join(pthreadpool_thread_t thread,
