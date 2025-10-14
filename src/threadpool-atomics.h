@@ -130,7 +130,7 @@ static inline void pthreadpool_cond_broadcast(pthreadpool_cond_t* cond) {
 static inline void pthreadpool_thread_create(
     pthreadpool_thread_t* thread, pthreadpool_thread_return_t(fun)(void*),
     void* arg) {
-  thrd_create(thread, fun, arg);
+  thrd_create(thread, (thrd_start_t)fun, arg);
 }
 static inline void pthreadpool_thread_join(
     pthreadpool_thread_t thread, pthreadpool_thread_return_t* return_value) {
