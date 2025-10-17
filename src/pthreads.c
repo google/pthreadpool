@@ -74,7 +74,7 @@
 #endif
 
 /* Alloca */
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) || defined(__MINGW32__)
 #include <malloc.h>
 #define alloca _alloca
 #elif !defined(alloca) && defined(__GNUC__)
