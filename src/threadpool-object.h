@@ -1234,9 +1234,9 @@ struct PTHREADPOOL_CACHELINE_ALIGNED pthreadpool {
   size_t max_num_threads;
 
   /**
-   * FXdiv divisor for the current number of active threads in the thread pool.
+   * The current number of active threads in the thread pool.
    */
-  struct fxdiv_divisor_size_t threads_count;
+  pthreadpool_atomic_size_t threads_count;
 
   /**
    * Thread information structures that immediately follow this structure.
