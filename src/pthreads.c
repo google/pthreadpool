@@ -495,8 +495,8 @@ static pthreadpool_thread_return_t thread_main(void* arg) {
       pthreadpool_load_consume_int32_t(&threadpool->num_active_threads);
 
   // Check whether we have to wake up any other threads.
-  if (curr_active_threads < 0 ||
-      curr_active_threads == PTHREADPOOL_NUM_ACTIVE_THREADS_DONE) {
+  if (curr_active_threads > 0 &&
+      curr_active_threads != PTHREADPOOL_NUM_ACTIVE_THREADS_DONE) {
     ensure_num_threads(threadpool, thread_id);
     curr_active_threads =
         pthreadpool_load_consume_int32_t(&threadpool->num_active_threads);
