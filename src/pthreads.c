@@ -111,7 +111,7 @@ static size_t pthreadpool_get_ticks(size_t since) { return __rdtsc() - since; }
 
 #define pthreadpool_log_debug(format, ...)                                    \
   fprintf(stderr, "[%zu] %s (%s:%i): " format "\n", pthreadpool_get_ticks(0), \
-          __FUNCTION__, __FILE__, __LINE__ - 1, ##__VA_ARGS__);
+          __FUNCTION__, __FILE__, __LINE__, ##__VA_ARGS__);
 #else
 #define pthreadpool_log_debug(format, ...)
 #endif  // PTHREADPOOL_DEBUG_LOGGING
@@ -502,6 +502,8 @@ static pthreadpool_thread_return_t thread_main(void* arg) {
         pthreadpool_load_consume_int32_t(&threadpool->num_active_threads);
   }
 
+  pthreadpool_log_debug("thread %u entering main loop.", thread_id);
+
   // Main loop.
   while (true) {
     if (curr_active_threads == PTHREADPOOL_NUM_ACTIVE_THREADS_DONE) {
@@ -545,16 +547,10 @@ static pthreadpool_thread_return_t thread_main(void* arg) {
         const uint32_t max_active_threads =
             pthreadpool_load_acquire_size_t(&threadpool->threads_count);
         if (curr_active_threads < max_active_threads) {
-          const uint32_t assumed_thread_id =
-              (max_active_threads < threadpool->max_num_threads)
-                  ? curr_active_threads
-                  : thread_id;
-
           // Do the needful.
-          pthreadpool_log_debug("thread %u working on job %u as thread %u.",
-                                thread_id, threadpool->job_id,
-                                assumed_thread_id);
-          run_thread_function(threadpool, assumed_thread_id);
+          pthreadpool_log_debug("thread %u working on job %u.", thread_id,
+                                threadpool->job_id);
+          run_thread_function(threadpool, thread_id);
         }
 
         // Ring the bell on the way out.
@@ -713,6 +709,14 @@ PTHREADPOOL_INTERNAL void pthreadpool_parallelize(
 
     /* The next subrange starts where the previous ended */
     range_start = range_end;
+  }
+
+  // Populate sentinels.
+  for (size_t tid = num_threads; tid < threadpool->max_num_threads; tid++) {
+    struct thread_info* thread = &threadpool->threads[tid];
+    pthreadpool_store_relaxed_size_t(&thread->range_start, range_start);
+    pthreadpool_store_relaxed_size_t(&thread->range_end, range_start);
+    pthreadpool_store_relaxed_size_t(&thread->range_length, 0);
   }
 
   /* Make changes by this thread visible to other threads. */

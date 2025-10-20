@@ -17,6 +17,7 @@
 #include <memory>
 #include <mutex>  // NOLINT
 #include <random>
+#include <set>
 #include <thread>  // NOLINT
 #include <utility>
 #include <vector>
@@ -180,14 +181,12 @@ static void WorkImbalance(std::atomic_int* num_processed_items,
   static std::mutex mutex;  // NOLINT(build/c++11)
   static std::condition_variable cond_var;
   std::unique_lock<std::mutex> lock(mutex);  // NOLINT(build/c++11)
-  if (num_processed_items->fetch_add(increment, std::memory_order_acquire) +
-          increment ==
-      total) {
+  if (num_processed_items->fetch_add(increment) + increment == total) {
     cond_var.notify_all();
   }
   if (wait) {
     /* Wait until all items are computed */
-    while (num_processed_items->load(std::memory_order_relaxed) != total) {
+    while (num_processed_items->load() != total) {
       cond_var.wait(lock);
     }
   }
@@ -10828,8 +10827,17 @@ TEST(Parallelize6DTile2D, MultiThreadPoolWorkStealing) {
                 kParallelize6DTile2DRangeM * kParallelize6DTile2DRangeN);
 }
 
-static void CheckThreadID(size_t num_threads, size_t thread_id, size_t) {
-  EXPECT_LT(thread_id, num_threads);
+struct CheckThreadIDData {
+  CheckThreadIDData(size_t num_threads) : num_threads(num_threads) {}
+  size_t num_threads;
+  std::set<size_t> thread_ids;
+};
+
+static void CheckThreadID(CheckThreadIDData* data, size_t thread_id, size_t) {
+  static std::mutex mutex;                  // NOLINT(build/c++11)
+  std::lock_guard<std::mutex> lock(mutex);  // NOLINT(build/c++11)
+  data->thread_ids.insert(thread_id);
+  ASSERT_LE(data->thread_ids.size(), data->num_threads);
 }
 
 TEST(SetNumThreads, ValidRange) {
@@ -10857,10 +10865,12 @@ TEST(SetNumThreads, ValidRange) {
               num_threads);
     ASSERT_EQ(pthreadpool_get_threads_count(threadpool.get()), num_threads);
 
+    CheckThreadIDData data(num_threads);
+
     pthreadpool_parallelize_1d_with_thread(
         threadpool.get(),
         reinterpret_cast<pthreadpool_task_1d_with_thread_t>(CheckThreadID),
-        (void*)num_threads, kParallelize1DRange, /*flags=*/0);
+        (void*)&data, kParallelize1DRange, /*flags=*/0);
   }
 }
 
@@ -10891,20 +10901,24 @@ TEST(SetNumThreads, Maximum) {
               num_threads);
     ASSERT_EQ(pthreadpool_get_threads_count(threadpool.get()), num_threads);
 
+    CheckThreadIDData data1(num_threads);
+
     pthreadpool_parallelize_1d_with_thread(
         threadpool.get(),
         reinterpret_cast<pthreadpool_task_1d_with_thread_t>(CheckThreadID),
-        (void*)num_threads, kParallelize1DRange, /*flags=*/0);
+        (void*)&data1, kParallelize1DRange, /*flags=*/0);
 
     // Set the maximum of threads ((kNumThreadpoolThreads + 1)).
     ASSERT_EQ(pthreadpool_set_threads_count(threadpool.get(), 0),
               max_num_threads);
     ASSERT_EQ(pthreadpool_get_threads_count(threadpool.get()), max_num_threads);
 
+    CheckThreadIDData data2(max_num_threads);
+
     pthreadpool_parallelize_1d_with_thread(
         threadpool.get(),
         reinterpret_cast<pthreadpool_task_1d_with_thread_t>(CheckThreadID),
-        (void*)max_num_threads, kParallelize1DRange, /*flags=*/0);
+        (void*)&data2, kParallelize1DRange, /*flags=*/0);
   }
 }
 
@@ -10930,10 +10944,12 @@ TEST(SetNumThreads, TooHigh) {
               max_num_threads);
     ASSERT_EQ(pthreadpool_get_threads_count(threadpool.get()), max_num_threads);
 
+    CheckThreadIDData data(max_num_threads);
+
     pthreadpool_parallelize_1d_with_thread(
         threadpool.get(),
         reinterpret_cast<pthreadpool_task_1d_with_thread_t>(CheckThreadID),
-        (void*)num_threads, kParallelize1DRange, /*flags=*/0);
+        (void*)&data, kParallelize1DRange, /*flags=*/0);
   }
 }
 
