@@ -166,11 +166,8 @@ size_t pthreadpool_set_threads_count(struct pthreadpool* threadpool,
   }
 
   // Check whether this is really a change.
-  if (num_threads != threadpool->threads_count.value) {
-    threadpool->threads_count = fxdiv_init_size_t(num_threads);
-    pthreadpool_store_release_size_t(
-        (pthreadpool_atomic_size_t*)&threadpool->threads_count.value,
-        num_threads);
+  if (num_threads != threadpool->threads_count) {
+    pthreadpool_store_release_size_t(&threadpool->threads_count, num_threads);
   }
   pthreadpool_log_debug("setting max_num_threads to %zu.", num_threads);
 
@@ -444,34 +441,40 @@ static void ensure_num_threads(struct pthreadpool* threadpool,
   }
 
   // Get the number of required threads.
-  const uint32_t max_num_threads = pthreadpool_load_acquire_size_t(
-      (pthreadpool_atomic_size_t*)&threadpool->threads_count.value);
+  const uint32_t max_num_threads =
+      pthreadpool_load_acquire_size_t(&threadpool->threads_count);
 
   // Start up to two other threads so that we fan out exponentially.
-  uint32_t num_threads_to_start = 2;  // thread_id > 0 ? 2 : 1;
+  uint32_t num_threads_to_start = 2;
 
   /* Schedule any missing threads for this threadpool. */
   for (uint32_t tid = thread_id + 1;
        num_threads_to_start && tid < max_num_threads; tid++) {
     // Check whether this thread was active, and if not, schedule it.
     struct thread_info* thread = &threadpool->threads[tid];
-    if (!pthreadpool_load_relaxed_uint32_t(&thread->is_active) &&
-        !pthreadpool_exchange_sequentially_consistent_uint32_t(
-            &thread->is_active, 1)) {
-      // Make sure there is still ongoing work.
-      if (thread_id) {
-        const int32_t curr_active_threads =
-            pthreadpool_load_consume_int32_t(&threadpool->num_active_threads);
-        if (curr_active_threads < 0 ||
-            curr_active_threads == PTHREADPOOL_NUM_ACTIVE_THREADS_DONE) {
-          return;
-        }
+    if (!pthreadpool_load_relaxed_uint32_t(&thread->is_active)) {
+      // Make sure there is still ongoing work (unless we're the main thread).
+      const int32_t curr_active_threads =
+          thread_id ? pthreadpool_load_consume_int32_t(
+                          &threadpool->num_active_threads)
+                    : 1;
+      if (curr_active_threads < 0 ||
+          curr_active_threads == PTHREADPOOL_NUM_ACTIVE_THREADS_DONE) {
+        return;
       }
 
-      pthreadpool_register_threads(threadpool, 1);
-      executor->schedule(threadpool->executor_context, thread,
-                         (void (*)(void*))thread_main);
-      num_threads_to_start--;
+      // Schedule this worker thread.
+      if (!pthreadpool_exchange_sequentially_consistent_uint32_t(
+              &thread->is_active, 1)) {
+        // Note that `threadpool->num_recruited_threads` is always non-zero
+        // because this function is only ever called by the main thread or
+        // another active thread, so we don't have to worry about activating a
+        // thread on an already stopped threadpool.
+        pthreadpool_register_threads(threadpool, 1);
+        executor->schedule(threadpool->executor_context, thread,
+                           (void (*)(void*))thread_main);
+        num_threads_to_start--;
+      }
     }
   }
 }
@@ -487,12 +490,17 @@ static pthreadpool_thread_return_t thread_main(void* arg) {
                             offsetof(struct pthreadpool, threads));
   uint32_t last_job_id = 0;
 
-  // Check whether we have to wake up any other threads.
-  ensure_num_threads(threadpool, thread_id);
-
   // Get the current threadpool state.
   int32_t curr_active_threads =
       pthreadpool_load_consume_int32_t(&threadpool->num_active_threads);
+
+  // Check whether we have to wake up any other threads.
+  if (curr_active_threads < 0 ||
+      curr_active_threads == PTHREADPOOL_NUM_ACTIVE_THREADS_DONE) {
+    ensure_num_threads(threadpool, thread_id);
+    curr_active_threads =
+        pthreadpool_load_consume_int32_t(&threadpool->num_active_threads);
+  }
 
   // Main loop.
   while (true) {
@@ -534,8 +542,8 @@ static pthreadpool_thread_return_t thread_main(void* arg) {
         last_job_id = threadpool->job_id;
 
         // Do we already have too many threads working on this?
-        const uint32_t max_active_threads = pthreadpool_load_acquire_size_t(
-            (pthreadpool_atomic_size_t*)&threadpool->threads_count.value);
+        const uint32_t max_active_threads =
+            pthreadpool_load_acquire_size_t(&threadpool->threads_count);
         if (curr_active_threads < max_active_threads) {
           const uint32_t assumed_thread_id =
               (max_active_threads < threadpool->max_num_threads)
@@ -616,7 +624,7 @@ struct pthreadpool* pthreadpool_create_v2(struct pthreadpool_executor* executor,
     threadpool->executor_context = executor_context;
   }
   threadpool->max_num_threads = num_threads;
-  threadpool->threads_count = fxdiv_init_size_t(num_threads);
+  threadpool->threads_count = num_threads;
   for (size_t tid = 0; tid < num_threads; tid++) {
     threadpool->threads[tid].thread_number = tid;
     threadpool->threads[tid].threadpool = threadpool;
@@ -683,16 +691,16 @@ PTHREADPOOL_INTERNAL void pthreadpool_parallelize(
   }
 
   // How many threads should we parallelize over?
-  const uint32_t prev_num_threads = threadpool->threads_count.value;
+  const uint32_t prev_num_threads = threadpool->threads_count;
   const uint32_t num_threads = min(linear_range, prev_num_threads);
-  threadpool->threads_count = fxdiv_init_size_t(num_threads);
+  pthreadpool_store_relaxed_size_t(&threadpool->threads_count, num_threads);
 
   pthreadpool_log_debug("main thread starting job %u with %u threads.",
                         (uint32_t)threadpool->job_id, num_threads);
 
   /* Populate a `thread_info` struct for each thread */
   const struct fxdiv_result_size_t range_params =
-      fxdiv_divide_size_t(linear_range, threadpool->threads_count);
+      fxdiv_divide_size_t(linear_range, fxdiv_init_size_t(num_threads));
   size_t range_start = 0;
   for (size_t tid = 0; tid < num_threads; tid++) {
     struct thread_info* thread = &threadpool->threads[tid];
@@ -735,7 +743,10 @@ PTHREADPOOL_INTERNAL void pthreadpool_parallelize(
   pthreadpool_fence_acquire();
 
   /* Re-set the number of threads in case it was reduced for this task. */
-  threadpool->threads_count = fxdiv_init_size_t(prev_num_threads);
+  if (prev_num_threads != num_threads) {
+    pthreadpool_store_relaxed_size_t(&threadpool->threads_count,
+                                     prev_num_threads);
+  }
 
   /* Unprotect the global threadpool structures now that we're done. */
   pthreadpool_mutex_unlock(&threadpool->execution_mutex);
