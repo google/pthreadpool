@@ -340,6 +340,7 @@ static void signal_work_is_done(pthreadpool_t threadpool) {
   uint32_t prev_value = pthreadpool_exchange_acquire_release_uint32_t(
       &threadpool->work_is_done, 1);
   assert(prev_value == 0);
+  (void)prev_value;  // Silence unused variable warning.
 #if PTHREADPOOL_USE_FUTEX
   futex_wake_all(&threadpool->work_is_done);
 #else
@@ -674,6 +675,7 @@ PTHREADPOOL_INTERNAL void pthreadpool_parallelize(
       pthreadpool_load_consume_int32_t(&threadpool->num_active_threads);
   assert(num_active_threads == 0 ||
          num_active_threads == PTHREADPOOL_NUM_ACTIVE_THREADS_DONE);
+  void(num_active_threads);  // Silence unused variable warning.
 
   /* Setup global arguments */
   pthreadpool_store_relaxed_void_p(&threadpool->thread_function,
