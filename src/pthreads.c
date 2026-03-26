@@ -323,7 +323,7 @@ static void signal_num_recruited_threads(pthreadpool_t threadpool) {
 static void signal_num_active_threads(pthreadpool_t threadpool,
                                       uint32_t max_num_waiting) {
 #if PTHREADPOOL_USE_FUTEX
-  const uint32_t num_waiting_threads =
+  [[maybe_unused]] const uint32_t num_waiting_threads =
       pthreadpool_load_consume_uint32_t(&threadpool->num_waiting_threads);
   if (num_waiting_threads > max_num_waiting) {
     futex_wake_n((pthreadpool_atomic_uint32_t*)&threadpool->num_active_threads,
@@ -337,7 +337,7 @@ static void signal_num_active_threads(pthreadpool_t threadpool,
 }
 
 static void signal_work_is_done(pthreadpool_t threadpool) {
-  uint32_t prev_value = pthreadpool_exchange_acquire_release_uint32_t(
+  [[maybe_unused]] uint32_t prev_value = pthreadpool_exchange_acquire_release_uint32_t(
       &threadpool->work_is_done, 1);
   assert(prev_value == 0);
 #if PTHREADPOOL_USE_FUTEX
@@ -670,7 +670,7 @@ PTHREADPOOL_INTERNAL void pthreadpool_parallelize(
   pthreadpool_fence_acquire();
 
   /* Make sure the threadpool is idle or done. */
-  const int32_t num_active_threads =
+  [[maybe_unused]] const int32_t num_active_threads =
       pthreadpool_load_consume_int32_t(&threadpool->num_active_threads);
   assert(num_active_threads == 0 ||
          num_active_threads == PTHREADPOOL_NUM_ACTIVE_THREADS_DONE);
