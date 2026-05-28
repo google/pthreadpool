@@ -146,4 +146,17 @@ static inline size_t divide_round_up(size_t dividend, size_t divisor) {
 static inline size_t min(size_t a, size_t b) { return a < b ? a : b; }
 static inline size_t max(size_t a, size_t b) { return a > b ? a : b; }
 
+struct pthreadpool_div_result {
+  size_t quotient;
+  size_t remainder;
+};
+
+static inline struct pthreadpool_div_result pthreadpool_div_size_t(size_t n,
+                                                                   size_t d) {
+  struct pthreadpool_div_result result;
+  result.quotient = n / d;
+  result.remainder = n % d;
+  return result;
+}
+
 #endif  // __PTHREADPOOL_SRC_THREADPOOL_UTILS_H_

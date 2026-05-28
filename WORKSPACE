@@ -22,13 +22,7 @@ http_archive(
 )
 # LINT.ThenChange(cmake/DownloadGoogleBenchmark.cmake,MODULE.bazel:benchmark)
 
-# FXdiv library, used for repeated integer division by the same factor
-http_archive(
-    name = "FXdiv",
-    strip_prefix = "FXdiv-63058eff77e11aa15bf531df5dd34395ec3017c8",
-    sha256 = "3d7b0e9c4c658a84376a1086126be02f9b7f753caa95e009d9ac38d11da444db",
-    urls = ["https://github.com/Maratyszcza/FXdiv/archive/63058eff77e11aa15bf531df5dd34395ec3017c8.zip"],
-)
+
 
 # Android NDK location and version is auto-detected from $ANDROID_NDK_HOME environment variable
 android_ndk_repository(name = "androidndk")

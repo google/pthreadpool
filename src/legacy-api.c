@@ -11,8 +11,6 @@
 #include <stddef.h>
 
 /* Dependencies */
-#include <fxdiv.h>
-
 /* Public library header */
 #include <pthreadpool.h>
 
@@ -55,8 +53,8 @@ void pthreadpool_compute_2d_tiled(pthreadpool_t threadpool,
 struct compute_3d_tiled_context {
   pthreadpool_function_3d_tiled_t function;
   void* argument;
-  struct fxdiv_divisor_size_t tile_range_j;
-  struct fxdiv_divisor_size_t tile_range_k;
+  size_t tile_range_j;
+  size_t tile_range_k;
   size_t range_i;
   size_t range_j;
   size_t range_k;
@@ -67,12 +65,12 @@ struct compute_3d_tiled_context {
 
 static void compute_3d_tiled(const struct compute_3d_tiled_context* context,
                              size_t linear_index) {
-  const struct fxdiv_divisor_size_t tile_range_k = context->tile_range_k;
-  const struct fxdiv_result_size_t tile_index_ij_k =
-      fxdiv_divide_size_t(linear_index, tile_range_k);
-  const struct fxdiv_divisor_size_t tile_range_j = context->tile_range_j;
-  const struct fxdiv_result_size_t tile_index_i_j =
-      fxdiv_divide_size_t(tile_index_ij_k.quotient, tile_range_j);
+  const size_t tile_range_k = context->tile_range_k;
+  const struct pthreadpool_div_result tile_index_ij_k =
+      pthreadpool_div_size_t(linear_index, tile_range_k);
+  const size_t tile_range_j = context->tile_range_j;
+  const struct pthreadpool_div_result tile_index_i_j =
+      pthreadpool_div_size_t(tile_index_ij_k.quotient, tile_range_j);
   const size_t max_tile_i = context->tile_i;
   const size_t max_tile_j = context->tile_j;
   const size_t max_tile_k = context->tile_k;
@@ -110,8 +108,8 @@ void pthreadpool_compute_3d_tiled(pthreadpool_t threadpool,
     struct compute_3d_tiled_context context = {
         .function = function,
         .argument = argument,
-        .tile_range_j = fxdiv_init_size_t(tile_range_j),
-        .tile_range_k = fxdiv_init_size_t(tile_range_k),
+        .tile_range_j = tile_range_j,
+        .tile_range_k = tile_range_k,
         .range_i = range_i,
         .range_j = range_j,
         .range_k = range_k,
@@ -127,9 +125,9 @@ void pthreadpool_compute_3d_tiled(pthreadpool_t threadpool,
 struct compute_4d_tiled_context {
   pthreadpool_function_4d_tiled_t function;
   void* argument;
-  struct fxdiv_divisor_size_t tile_range_kl;
-  struct fxdiv_divisor_size_t tile_range_j;
-  struct fxdiv_divisor_size_t tile_range_l;
+  size_t tile_range_kl;
+  size_t tile_range_j;
+  size_t tile_range_l;
   size_t range_i;
   size_t range_j;
   size_t range_k;
@@ -142,15 +140,15 @@ struct compute_4d_tiled_context {
 
 static void compute_4d_tiled(const struct compute_4d_tiled_context* context,
                              size_t linear_index) {
-  const struct fxdiv_divisor_size_t tile_range_kl = context->tile_range_kl;
-  const struct fxdiv_result_size_t tile_index_ij_kl =
-      fxdiv_divide_size_t(linear_index, tile_range_kl);
-  const struct fxdiv_divisor_size_t tile_range_j = context->tile_range_j;
-  const struct fxdiv_result_size_t tile_index_i_j =
-      fxdiv_divide_size_t(tile_index_ij_kl.quotient, tile_range_j);
-  const struct fxdiv_divisor_size_t tile_range_l = context->tile_range_l;
-  const struct fxdiv_result_size_t tile_index_k_l =
-      fxdiv_divide_size_t(tile_index_ij_kl.remainder, tile_range_l);
+  const size_t tile_range_kl = context->tile_range_kl;
+  const struct pthreadpool_div_result tile_index_ij_kl =
+      pthreadpool_div_size_t(linear_index, tile_range_kl);
+  const size_t tile_range_j = context->tile_range_j;
+  const struct pthreadpool_div_result tile_index_i_j =
+      pthreadpool_div_size_t(tile_index_ij_kl.quotient, tile_range_j);
+  const size_t tile_range_l = context->tile_range_l;
+  const struct pthreadpool_div_result tile_index_k_l =
+      pthreadpool_div_size_t(tile_index_ij_kl.remainder, tile_range_l);
   const size_t max_tile_i = context->tile_i;
   const size_t max_tile_j = context->tile_j;
   const size_t max_tile_k = context->tile_k;
@@ -196,9 +194,9 @@ void pthreadpool_compute_4d_tiled(pthreadpool_t threadpool,
     struct compute_4d_tiled_context context = {
         .function = function,
         .argument = argument,
-        .tile_range_kl = fxdiv_init_size_t(tile_range_k * tile_range_l),
-        .tile_range_j = fxdiv_init_size_t(tile_range_j),
-        .tile_range_l = fxdiv_init_size_t(tile_range_l),
+        .tile_range_kl = tile_range_k * tile_range_l,
+        .tile_range_j = tile_range_j,
+        .tile_range_l = tile_range_l,
         .range_i = range_i,
         .range_j = range_j,
         .range_k = range_k,
