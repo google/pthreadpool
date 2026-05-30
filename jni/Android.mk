@@ -9,9 +9,9 @@ include $(CLEAR_VARS)
 LOCAL_MODULE := pthreadpool
 LOCAL_SRC_FILES := src/threadpool-pthreads.c
 LOCAL_CFLAGS := -std=c99 -Wall
-LOCAL_STATIC_LIBRARIES := pthreadpool_interface fxdiv
+LOCAL_STATIC_LIBRARIES := pthreadpool_interface
 include $(BUILD_STATIC_LIBRARY)
 
 $(call import-add-path,$(LOCAL_PATH)/deps)
 
-$(call import-module,fxdiv/jni)
+
