@@ -116,9 +116,7 @@ cc_library(
     # These are NOT public headers and should not be included from other targets.
     textual_hdrs = INTERNAL_HDRS,
     visibility = ["//visibility:public"],
-    deps = [
-        "@FXdiv",
-    ] + select({
+    deps = [] + select({
         ":linux_arm": ["@cpuinfo"],
         ":linux_armeabi": ["@cpuinfo"],
         ":linux_armhf": ["@cpuinfo"],

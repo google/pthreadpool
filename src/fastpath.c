@@ -20,7 +20,7 @@
 #endif
 
 /* Dependencies */
-#include <fxdiv.h>
+#include "threadpool-utils.h"
 
 /* Public library header */
 #include <pthreadpool.h>
@@ -216,10 +216,10 @@ PTHREADPOOL_INTERNAL PTHREADPOOL_NO_SANITIZE_FUNCTION void pthreadpool_thread_pa
   /* Process thread's own range of items */
   const size_t range_start =
       pthreadpool_load_relaxed_size_t(&thread->range_start);
-  const struct fxdiv_divisor_size_t range_j =
+  const struct pthreadpool_divisor_size_t range_j =
       threadpool->params.parallelize_2d.range_j;
-  const struct fxdiv_result_size_t index_i_j =
-      fxdiv_divide_size_t(range_start, range_j);
+  const struct pthreadpool_div_result index_i_j =
+      pthreadpool_divide_with_divisor(range_start, range_j);
   size_t i = index_i_j.quotient;
   size_t j = index_i_j.remainder;
 
@@ -242,8 +242,8 @@ PTHREADPOOL_INTERNAL PTHREADPOOL_NO_SANITIZE_FUNCTION void pthreadpool_thread_pa
                &other_thread->range_length) < range_threshold) {
       const size_t linear_index =
           pthreadpool_decrement_fetch_relaxed_size_t(&other_thread->range_end);
-      const struct fxdiv_result_size_t index_i_j =
-          fxdiv_divide_size_t(linear_index, range_j);
+      const struct pthreadpool_div_result index_i_j =
+          pthreadpool_divide_with_divisor(linear_index, range_j);
       task(argument, index_i_j.quotient, index_i_j.remainder);
     }
   }
@@ -268,10 +268,10 @@ PTHREADPOOL_INTERNAL PTHREADPOOL_NO_SANITIZE_FUNCTION void pthreadpool_thread_pa
   /* Process thread's own range of items */
   const size_t range_start =
       pthreadpool_load_relaxed_size_t(&thread->range_start);
-  const struct fxdiv_divisor_size_t range_j =
+  const struct pthreadpool_divisor_size_t range_j =
       threadpool->params.parallelize_2d.range_j;
-  const struct fxdiv_result_size_t index_i_j =
-      fxdiv_divide_size_t(range_start, range_j);
+  const struct pthreadpool_div_result index_i_j =
+      pthreadpool_divide_with_divisor(range_start, range_j);
   size_t i = index_i_j.quotient;
   size_t j = index_i_j.remainder;
 
@@ -294,8 +294,8 @@ PTHREADPOOL_INTERNAL PTHREADPOOL_NO_SANITIZE_FUNCTION void pthreadpool_thread_pa
                &other_thread->range_length) < range_threshold) {
       const size_t linear_index =
           pthreadpool_decrement_fetch_relaxed_size_t(&other_thread->range_end);
-      const struct fxdiv_result_size_t index_i_j =
-          fxdiv_divide_size_t(linear_index, range_j);
+      const struct pthreadpool_div_result index_i_j =
+          pthreadpool_divide_with_divisor(linear_index, range_j);
       task(argument, thread_number, index_i_j.quotient, index_i_j.remainder);
     }
   }
@@ -320,10 +320,10 @@ PTHREADPOOL_INTERNAL PTHREADPOOL_NO_SANITIZE_FUNCTION void pthreadpool_thread_pa
   /* Process thread's own range of items */
   const size_t range_start =
       pthreadpool_load_relaxed_size_t(&thread->range_start);
-  const struct fxdiv_divisor_size_t tile_range_j =
+  const struct pthreadpool_divisor_size_t tile_range_j =
       threadpool->params.parallelize_2d_tile_1d.tile_range_j;
-  const struct fxdiv_result_size_t tile_index_i_j =
-      fxdiv_divide_size_t(range_start, tile_range_j);
+  const struct pthreadpool_div_result tile_index_i_j =
+      pthreadpool_divide_with_divisor(range_start, tile_range_j);
   const size_t tile_j = threadpool->params.parallelize_2d_tile_1d.tile_j;
   size_t i = tile_index_i_j.quotient;
   size_t start_j = tile_index_i_j.remainder * tile_j;
@@ -349,8 +349,8 @@ PTHREADPOOL_INTERNAL PTHREADPOOL_NO_SANITIZE_FUNCTION void pthreadpool_thread_pa
                &other_thread->range_length) < range_threshold) {
       const size_t linear_index =
           pthreadpool_decrement_fetch_relaxed_size_t(&other_thread->range_end);
-      const struct fxdiv_result_size_t tile_index_i_j =
-          fxdiv_divide_size_t(linear_index, tile_range_j);
+      const struct pthreadpool_div_result tile_index_i_j =
+          pthreadpool_divide_with_divisor(linear_index, tile_range_j);
       const size_t start_j = tile_index_i_j.remainder * tile_j;
       task(argument, tile_index_i_j.quotient, start_j,
            min(range_j - start_j, tile_j));
@@ -389,10 +389,10 @@ PTHREADPOOL_INTERNAL PTHREADPOOL_NO_SANITIZE_FUNCTION void pthreadpool_thread_pa
   /* Process thread's own range of items */
   const size_t range_start =
       pthreadpool_load_relaxed_size_t(&thread->range_start);
-  const struct fxdiv_divisor_size_t tile_range_j =
+  const struct pthreadpool_divisor_size_t tile_range_j =
       threadpool->params.parallelize_2d_tile_1d_with_uarch.tile_range_j;
-  const struct fxdiv_result_size_t tile_index_i_j =
-      fxdiv_divide_size_t(range_start, tile_range_j);
+  const struct pthreadpool_div_result tile_index_i_j =
+      pthreadpool_divide_with_divisor(range_start, tile_range_j);
   const size_t tile_j =
       threadpool->params.parallelize_2d_tile_1d_with_uarch.tile_j;
   size_t i = tile_index_i_j.quotient;
@@ -420,8 +420,8 @@ PTHREADPOOL_INTERNAL PTHREADPOOL_NO_SANITIZE_FUNCTION void pthreadpool_thread_pa
                &other_thread->range_length) < range_threshold) {
       const size_t linear_index =
           pthreadpool_decrement_fetch_relaxed_size_t(&other_thread->range_end);
-      const struct fxdiv_result_size_t tile_index_i_j =
-          fxdiv_divide_size_t(linear_index, tile_range_j);
+      const struct pthreadpool_div_result tile_index_i_j =
+          pthreadpool_divide_with_divisor(linear_index, tile_range_j);
       const size_t start_j = tile_index_i_j.remainder * tile_j;
       task(argument, uarch_index, tile_index_i_j.quotient, start_j,
            min(range_j - start_j, tile_j));
@@ -460,10 +460,10 @@ PTHREADPOOL_INTERNAL PTHREADPOOL_NO_SANITIZE_FUNCTION void pthreadpool_thread_pa
   /* Process thread's own range of items */
   const size_t range_start =
       pthreadpool_load_relaxed_size_t(&thread->range_start);
-  const struct fxdiv_divisor_size_t tile_range_j =
+  const struct pthreadpool_divisor_size_t tile_range_j =
       threadpool->params.parallelize_2d_tile_1d_with_uarch.tile_range_j;
-  const struct fxdiv_result_size_t tile_index_i_j =
-      fxdiv_divide_size_t(range_start, tile_range_j);
+  const struct pthreadpool_div_result tile_index_i_j =
+      pthreadpool_divide_with_divisor(range_start, tile_range_j);
   const size_t tile_j =
       threadpool->params.parallelize_2d_tile_1d_with_uarch.tile_j;
   size_t i = tile_index_i_j.quotient;
@@ -492,8 +492,8 @@ PTHREADPOOL_INTERNAL PTHREADPOOL_NO_SANITIZE_FUNCTION void pthreadpool_thread_pa
                &other_thread->range_length) < range_threshold) {
       const size_t linear_index =
           pthreadpool_decrement_fetch_relaxed_size_t(&other_thread->range_end);
-      const struct fxdiv_result_size_t tile_index_i_j =
-          fxdiv_divide_size_t(linear_index, tile_range_j);
+      const struct pthreadpool_div_result tile_index_i_j =
+          pthreadpool_divide_with_divisor(linear_index, tile_range_j);
       const size_t start_j = tile_index_i_j.remainder * tile_j;
       task(argument, uarch_index, thread_number, tile_index_i_j.quotient,
            start_j, min(range_j - start_j, tile_j));
@@ -520,10 +520,10 @@ PTHREADPOOL_INTERNAL PTHREADPOOL_NO_SANITIZE_FUNCTION void pthreadpool_thread_pa
   /* Process thread's own range of items */
   const size_t range_start =
       pthreadpool_load_relaxed_size_t(&thread->range_start);
-  const struct fxdiv_divisor_size_t tile_range_j =
+  const struct pthreadpool_divisor_size_t tile_range_j =
       threadpool->params.parallelize_2d_tile_2d.tile_range_j;
-  const struct fxdiv_result_size_t tile_index_i_j =
-      fxdiv_divide_size_t(range_start, tile_range_j);
+  const struct pthreadpool_div_result tile_index_i_j =
+      pthreadpool_divide_with_divisor(range_start, tile_range_j);
   const size_t tile_i = threadpool->params.parallelize_2d_tile_2d.tile_i;
   const size_t tile_j = threadpool->params.parallelize_2d_tile_2d.tile_j;
   size_t start_i = tile_index_i_j.quotient * tile_i;
@@ -552,8 +552,8 @@ PTHREADPOOL_INTERNAL PTHREADPOOL_NO_SANITIZE_FUNCTION void pthreadpool_thread_pa
                &other_thread->range_length) < range_threshold) {
       const size_t linear_index =
           pthreadpool_decrement_fetch_relaxed_size_t(&other_thread->range_end);
-      const struct fxdiv_result_size_t tile_index_i_j =
-          fxdiv_divide_size_t(linear_index, tile_range_j);
+      const struct pthreadpool_div_result tile_index_i_j =
+          pthreadpool_divide_with_divisor(linear_index, tile_range_j);
       const size_t start_i = tile_index_i_j.quotient * tile_i;
       const size_t start_j = tile_index_i_j.remainder * tile_j;
       task(argument, start_i, start_j, min(range_i - start_i, tile_i),
@@ -591,12 +591,12 @@ PTHREADPOOL_INTERNAL PTHREADPOOL_NO_SANITIZE_FUNCTION void pthreadpool_thread_pa
   const size_t range_threshold = -threadpool->max_num_threads;
 
   /* Process thread's own range of items */
-  const struct fxdiv_divisor_size_t tile_range_j =
+  const struct pthreadpool_divisor_size_t tile_range_j =
       threadpool->params.parallelize_2d_tile_2d_with_uarch.tile_range_j;
   const size_t range_start =
       pthreadpool_load_relaxed_size_t(&thread->range_start);
-  const struct fxdiv_result_size_t index =
-      fxdiv_divide_size_t(range_start, tile_range_j);
+  const struct pthreadpool_div_result index =
+      pthreadpool_divide_with_divisor(range_start, tile_range_j);
   const size_t range_i =
       threadpool->params.parallelize_2d_tile_2d_with_uarch.range_i;
   const size_t tile_i =
@@ -629,8 +629,8 @@ PTHREADPOOL_INTERNAL PTHREADPOOL_NO_SANITIZE_FUNCTION void pthreadpool_thread_pa
                &other_thread->range_length) < range_threshold) {
       const size_t linear_index =
           pthreadpool_decrement_fetch_relaxed_size_t(&other_thread->range_end);
-      const struct fxdiv_result_size_t tile_index_i_j =
-          fxdiv_divide_size_t(linear_index, tile_range_j);
+      const struct pthreadpool_div_result tile_index_i_j =
+          pthreadpool_divide_with_divisor(linear_index, tile_range_j);
       const size_t start_i = tile_index_i_j.quotient * tile_i;
       const size_t start_j = tile_index_i_j.remainder * tile_j;
       task(argument, uarch_index, start_i, start_j,
@@ -657,14 +657,14 @@ PTHREADPOOL_INTERNAL PTHREADPOOL_NO_SANITIZE_FUNCTION void pthreadpool_thread_pa
   /* Process thread's own range of items */
   const size_t range_start =
       pthreadpool_load_relaxed_size_t(&thread->range_start);
-  const struct fxdiv_divisor_size_t range_k =
+  const struct pthreadpool_divisor_size_t range_k =
       threadpool->params.parallelize_3d.range_k;
-  const struct fxdiv_result_size_t index_ij_k =
-      fxdiv_divide_size_t(range_start, range_k);
-  const struct fxdiv_divisor_size_t range_j =
+  const struct pthreadpool_div_result index_ij_k =
+      pthreadpool_divide_with_divisor(range_start, range_k);
+  const struct pthreadpool_divisor_size_t range_j =
       threadpool->params.parallelize_3d.range_j;
-  const struct fxdiv_result_size_t index_i_j =
-      fxdiv_divide_size_t(index_ij_k.quotient, range_j);
+  const struct pthreadpool_div_result index_i_j =
+      pthreadpool_divide_with_divisor(index_ij_k.quotient, range_j);
   size_t i = index_i_j.quotient;
   size_t j = index_i_j.remainder;
   size_t k = index_ij_k.remainder;
@@ -691,10 +691,10 @@ PTHREADPOOL_INTERNAL PTHREADPOOL_NO_SANITIZE_FUNCTION void pthreadpool_thread_pa
                &other_thread->range_length) < range_threshold) {
       const size_t linear_index =
           pthreadpool_decrement_fetch_relaxed_size_t(&other_thread->range_end);
-      const struct fxdiv_result_size_t index_ij_k =
-          fxdiv_divide_size_t(linear_index, range_k);
-      const struct fxdiv_result_size_t index_i_j =
-          fxdiv_divide_size_t(index_ij_k.quotient, range_j);
+      const struct pthreadpool_div_result index_ij_k =
+          pthreadpool_divide_with_divisor(linear_index, range_k);
+      const struct pthreadpool_div_result index_i_j =
+          pthreadpool_divide_with_divisor(index_ij_k.quotient, range_j);
       task(argument, index_i_j.quotient, index_i_j.remainder,
            index_ij_k.remainder);
     }
@@ -720,14 +720,14 @@ PTHREADPOOL_INTERNAL PTHREADPOOL_NO_SANITIZE_FUNCTION void pthreadpool_thread_pa
   /* Process thread's own range of items */
   const size_t range_start =
       pthreadpool_load_relaxed_size_t(&thread->range_start);
-  const struct fxdiv_divisor_size_t tile_range_k =
+  const struct pthreadpool_divisor_size_t tile_range_k =
       threadpool->params.parallelize_3d_tile_1d.tile_range_k;
-  const struct fxdiv_result_size_t tile_index_ij_k =
-      fxdiv_divide_size_t(range_start, tile_range_k);
-  const struct fxdiv_divisor_size_t range_j =
+  const struct pthreadpool_div_result tile_index_ij_k =
+      pthreadpool_divide_with_divisor(range_start, tile_range_k);
+  const struct pthreadpool_divisor_size_t range_j =
       threadpool->params.parallelize_3d_tile_1d.range_j;
-  const struct fxdiv_result_size_t index_i_j =
-      fxdiv_divide_size_t(tile_index_ij_k.quotient, range_j);
+  const struct pthreadpool_div_result index_i_j =
+      pthreadpool_divide_with_divisor(tile_index_ij_k.quotient, range_j);
   const size_t tile_k = threadpool->params.parallelize_3d_tile_1d.tile_k;
   size_t i = index_i_j.quotient;
   size_t j = index_i_j.remainder;
@@ -757,10 +757,10 @@ PTHREADPOOL_INTERNAL PTHREADPOOL_NO_SANITIZE_FUNCTION void pthreadpool_thread_pa
                &other_thread->range_length) < range_threshold) {
       const size_t linear_index =
           pthreadpool_decrement_fetch_relaxed_size_t(&other_thread->range_end);
-      const struct fxdiv_result_size_t tile_index_ij_k =
-          fxdiv_divide_size_t(linear_index, tile_range_k);
-      const struct fxdiv_result_size_t index_i_j =
-          fxdiv_divide_size_t(tile_index_ij_k.quotient, range_j);
+      const struct pthreadpool_div_result tile_index_ij_k =
+          pthreadpool_divide_with_divisor(linear_index, tile_range_k);
+      const struct pthreadpool_div_result index_i_j =
+          pthreadpool_divide_with_divisor(tile_index_ij_k.quotient, range_j);
       const size_t start_k = tile_index_ij_k.remainder * tile_k;
       task(argument, index_i_j.quotient, index_i_j.remainder, start_k,
            min(range_k - start_k, tile_k));
@@ -787,14 +787,14 @@ PTHREADPOOL_INTERNAL PTHREADPOOL_NO_SANITIZE_FUNCTION void pthreadpool_thread_pa
   /* Process thread's own range of items */
   const size_t range_start =
       pthreadpool_load_relaxed_size_t(&thread->range_start);
-  const struct fxdiv_divisor_size_t tile_range_k =
+  const struct pthreadpool_divisor_size_t tile_range_k =
       threadpool->params.parallelize_3d_tile_1d.tile_range_k;
-  const struct fxdiv_result_size_t tile_index_ij_k =
-      fxdiv_divide_size_t(range_start, tile_range_k);
-  const struct fxdiv_divisor_size_t range_j =
+  const struct pthreadpool_div_result tile_index_ij_k =
+      pthreadpool_divide_with_divisor(range_start, tile_range_k);
+  const struct pthreadpool_divisor_size_t range_j =
       threadpool->params.parallelize_3d_tile_1d.range_j;
-  const struct fxdiv_result_size_t index_i_j =
-      fxdiv_divide_size_t(tile_index_ij_k.quotient, range_j);
+  const struct pthreadpool_div_result index_i_j =
+      pthreadpool_divide_with_divisor(tile_index_ij_k.quotient, range_j);
   const size_t tile_k = threadpool->params.parallelize_3d_tile_1d.tile_k;
   size_t i = index_i_j.quotient;
   size_t j = index_i_j.remainder;
@@ -825,10 +825,10 @@ PTHREADPOOL_INTERNAL PTHREADPOOL_NO_SANITIZE_FUNCTION void pthreadpool_thread_pa
                &other_thread->range_length) < range_threshold) {
       const size_t linear_index =
           pthreadpool_decrement_fetch_relaxed_size_t(&other_thread->range_end);
-      const struct fxdiv_result_size_t tile_index_ij_k =
-          fxdiv_divide_size_t(linear_index, tile_range_k);
-      const struct fxdiv_result_size_t index_i_j =
-          fxdiv_divide_size_t(tile_index_ij_k.quotient, range_j);
+      const struct pthreadpool_div_result tile_index_ij_k =
+          pthreadpool_divide_with_divisor(linear_index, tile_range_k);
+      const struct pthreadpool_div_result index_i_j =
+          pthreadpool_divide_with_divisor(tile_index_ij_k.quotient, range_j);
       const size_t start_k = tile_index_ij_k.remainder * tile_k;
       task(argument, thread_number, index_i_j.quotient, index_i_j.remainder,
            start_k, min(range_k - start_k, tile_k));
@@ -867,14 +867,14 @@ PTHREADPOOL_INTERNAL PTHREADPOOL_NO_SANITIZE_FUNCTION void pthreadpool_thread_pa
   /* Process thread's own range of items */
   const size_t range_start =
       pthreadpool_load_relaxed_size_t(&thread->range_start);
-  const struct fxdiv_divisor_size_t tile_range_k =
+  const struct pthreadpool_divisor_size_t tile_range_k =
       threadpool->params.parallelize_3d_tile_1d_with_uarch.tile_range_k;
-  const struct fxdiv_result_size_t tile_index_ij_k =
-      fxdiv_divide_size_t(range_start, tile_range_k);
-  const struct fxdiv_divisor_size_t range_j =
+  const struct pthreadpool_div_result tile_index_ij_k =
+      pthreadpool_divide_with_divisor(range_start, tile_range_k);
+  const struct pthreadpool_divisor_size_t range_j =
       threadpool->params.parallelize_3d_tile_1d_with_uarch.range_j;
-  const struct fxdiv_result_size_t index_i_j =
-      fxdiv_divide_size_t(tile_index_ij_k.quotient, range_j);
+  const struct pthreadpool_div_result index_i_j =
+      pthreadpool_divide_with_divisor(tile_index_ij_k.quotient, range_j);
   const size_t tile_k =
       threadpool->params.parallelize_3d_tile_1d_with_uarch.tile_k;
   size_t i = index_i_j.quotient;
@@ -906,10 +906,10 @@ PTHREADPOOL_INTERNAL PTHREADPOOL_NO_SANITIZE_FUNCTION void pthreadpool_thread_pa
                &other_thread->range_length) < range_threshold) {
       const size_t linear_index =
           pthreadpool_decrement_fetch_relaxed_size_t(&other_thread->range_end);
-      const struct fxdiv_result_size_t tile_index_ij_k =
-          fxdiv_divide_size_t(linear_index, tile_range_k);
-      const struct fxdiv_result_size_t index_i_j =
-          fxdiv_divide_size_t(tile_index_ij_k.quotient, range_j);
+      const struct pthreadpool_div_result tile_index_ij_k =
+          pthreadpool_divide_with_divisor(linear_index, tile_range_k);
+      const struct pthreadpool_div_result index_i_j =
+          pthreadpool_divide_with_divisor(tile_index_ij_k.quotient, range_j);
       const size_t start_k = tile_index_ij_k.remainder * tile_k;
       task(argument, uarch_index, index_i_j.quotient, index_i_j.remainder,
            start_k, min(range_k - start_k, tile_k));
@@ -948,14 +948,14 @@ PTHREADPOOL_INTERNAL PTHREADPOOL_NO_SANITIZE_FUNCTION void pthreadpool_thread_pa
   /* Process thread's own range of items */
   const size_t range_start =
       pthreadpool_load_relaxed_size_t(&thread->range_start);
-  const struct fxdiv_divisor_size_t tile_range_k =
+  const struct pthreadpool_divisor_size_t tile_range_k =
       threadpool->params.parallelize_3d_tile_1d_with_uarch.tile_range_k;
-  const struct fxdiv_result_size_t tile_index_ij_k =
-      fxdiv_divide_size_t(range_start, tile_range_k);
-  const struct fxdiv_divisor_size_t range_j =
+  const struct pthreadpool_div_result tile_index_ij_k =
+      pthreadpool_divide_with_divisor(range_start, tile_range_k);
+  const struct pthreadpool_divisor_size_t range_j =
       threadpool->params.parallelize_3d_tile_1d_with_uarch.range_j;
-  const struct fxdiv_result_size_t index_i_j =
-      fxdiv_divide_size_t(tile_index_ij_k.quotient, range_j);
+  const struct pthreadpool_div_result index_i_j =
+      pthreadpool_divide_with_divisor(tile_index_ij_k.quotient, range_j);
   const size_t tile_k =
       threadpool->params.parallelize_3d_tile_1d_with_uarch.tile_k;
   size_t i = index_i_j.quotient;
@@ -988,10 +988,10 @@ PTHREADPOOL_INTERNAL PTHREADPOOL_NO_SANITIZE_FUNCTION void pthreadpool_thread_pa
                &other_thread->range_length) < range_threshold) {
       const size_t linear_index =
           pthreadpool_decrement_fetch_relaxed_size_t(&other_thread->range_end);
-      const struct fxdiv_result_size_t tile_index_ij_k =
-          fxdiv_divide_size_t(linear_index, tile_range_k);
-      const struct fxdiv_result_size_t index_i_j =
-          fxdiv_divide_size_t(tile_index_ij_k.quotient, range_j);
+      const struct pthreadpool_div_result tile_index_ij_k =
+          pthreadpool_divide_with_divisor(linear_index, tile_range_k);
+      const struct pthreadpool_div_result index_i_j =
+          pthreadpool_divide_with_divisor(tile_index_ij_k.quotient, range_j);
       const size_t start_k = tile_index_ij_k.remainder * tile_k;
       task(argument, uarch_index, thread_number, index_i_j.quotient,
            index_i_j.remainder, start_k, min(range_k - start_k, tile_k));
@@ -1018,14 +1018,14 @@ PTHREADPOOL_INTERNAL PTHREADPOOL_NO_SANITIZE_FUNCTION void pthreadpool_thread_pa
   /* Process thread's own range of items */
   const size_t range_start =
       pthreadpool_load_relaxed_size_t(&thread->range_start);
-  const struct fxdiv_divisor_size_t tile_range_k =
+  const struct pthreadpool_divisor_size_t tile_range_k =
       threadpool->params.parallelize_3d_tile_2d.tile_range_k;
-  const struct fxdiv_result_size_t tile_index_ij_k =
-      fxdiv_divide_size_t(range_start, tile_range_k);
-  const struct fxdiv_divisor_size_t tile_range_j =
+  const struct pthreadpool_div_result tile_index_ij_k =
+      pthreadpool_divide_with_divisor(range_start, tile_range_k);
+  const struct pthreadpool_divisor_size_t tile_range_j =
       threadpool->params.parallelize_3d_tile_2d.tile_range_j;
-  const struct fxdiv_result_size_t tile_index_i_j =
-      fxdiv_divide_size_t(tile_index_ij_k.quotient, tile_range_j);
+  const struct pthreadpool_div_result tile_index_i_j =
+      pthreadpool_divide_with_divisor(tile_index_ij_k.quotient, tile_range_j);
   const size_t tile_j = threadpool->params.parallelize_3d_tile_2d.tile_j;
   const size_t tile_k = threadpool->params.parallelize_3d_tile_2d.tile_k;
   size_t i = tile_index_i_j.quotient;
@@ -1059,10 +1059,10 @@ PTHREADPOOL_INTERNAL PTHREADPOOL_NO_SANITIZE_FUNCTION void pthreadpool_thread_pa
                &other_thread->range_length) < range_threshold) {
       const size_t linear_index =
           pthreadpool_decrement_fetch_relaxed_size_t(&other_thread->range_end);
-      const struct fxdiv_result_size_t tile_index_ij_k =
-          fxdiv_divide_size_t(linear_index, tile_range_k);
-      const struct fxdiv_result_size_t tile_index_i_j =
-          fxdiv_divide_size_t(tile_index_ij_k.quotient, tile_range_j);
+      const struct pthreadpool_div_result tile_index_ij_k =
+          pthreadpool_divide_with_divisor(linear_index, tile_range_k);
+      const struct pthreadpool_div_result tile_index_i_j =
+          pthreadpool_divide_with_divisor(tile_index_ij_k.quotient, tile_range_j);
       const size_t start_j = tile_index_i_j.remainder * tile_j;
       const size_t start_k = tile_index_ij_k.remainder * tile_k;
       task(argument, tile_index_i_j.quotient, start_j, start_k,
@@ -1102,14 +1102,14 @@ PTHREADPOOL_INTERNAL PTHREADPOOL_NO_SANITIZE_FUNCTION void pthreadpool_thread_pa
   /* Process thread's own range of items */
   const size_t range_start =
       pthreadpool_load_relaxed_size_t(&thread->range_start);
-  const struct fxdiv_divisor_size_t tile_range_k =
+  const struct pthreadpool_divisor_size_t tile_range_k =
       threadpool->params.parallelize_3d_tile_2d_with_uarch.tile_range_k;
-  const struct fxdiv_result_size_t tile_index_ij_k =
-      fxdiv_divide_size_t(range_start, tile_range_k);
-  const struct fxdiv_divisor_size_t tile_range_j =
+  const struct pthreadpool_div_result tile_index_ij_k =
+      pthreadpool_divide_with_divisor(range_start, tile_range_k);
+  const struct pthreadpool_divisor_size_t tile_range_j =
       threadpool->params.parallelize_3d_tile_2d_with_uarch.tile_range_j;
-  const struct fxdiv_result_size_t tile_index_i_j =
-      fxdiv_divide_size_t(tile_index_ij_k.quotient, tile_range_j);
+  const struct pthreadpool_div_result tile_index_i_j =
+      pthreadpool_divide_with_divisor(tile_index_ij_k.quotient, tile_range_j);
   const size_t tile_j =
       threadpool->params.parallelize_3d_tile_2d_with_uarch.tile_j;
   const size_t tile_k =
@@ -1147,10 +1147,10 @@ PTHREADPOOL_INTERNAL PTHREADPOOL_NO_SANITIZE_FUNCTION void pthreadpool_thread_pa
                &other_thread->range_length) < range_threshold) {
       const size_t linear_index =
           pthreadpool_decrement_fetch_relaxed_size_t(&other_thread->range_end);
-      const struct fxdiv_result_size_t tile_index_ij_k =
-          fxdiv_divide_size_t(linear_index, tile_range_k);
-      const struct fxdiv_result_size_t tile_index_i_j =
-          fxdiv_divide_size_t(tile_index_ij_k.quotient, tile_range_j);
+      const struct pthreadpool_div_result tile_index_ij_k =
+          pthreadpool_divide_with_divisor(linear_index, tile_range_k);
+      const struct pthreadpool_div_result tile_index_i_j =
+          pthreadpool_divide_with_divisor(tile_index_ij_k.quotient, tile_range_j);
       const size_t start_j = tile_index_i_j.remainder * tile_j;
       const size_t start_k = tile_index_ij_k.remainder * tile_k;
       task(argument, uarch_index, tile_index_i_j.quotient, start_j, start_k,
@@ -1177,18 +1177,18 @@ PTHREADPOOL_INTERNAL PTHREADPOOL_NO_SANITIZE_FUNCTION void pthreadpool_thread_pa
   /* Process thread's own range of items */
   const size_t range_start =
       pthreadpool_load_relaxed_size_t(&thread->range_start);
-  const struct fxdiv_divisor_size_t range_kl =
+  const struct pthreadpool_divisor_size_t range_kl =
       threadpool->params.parallelize_4d.range_kl;
-  const struct fxdiv_result_size_t index_ij_kl =
-      fxdiv_divide_size_t(range_start, range_kl);
-  const struct fxdiv_divisor_size_t range_j =
+  const struct pthreadpool_div_result index_ij_kl =
+      pthreadpool_divide_with_divisor(range_start, range_kl);
+  const struct pthreadpool_divisor_size_t range_j =
       threadpool->params.parallelize_4d.range_j;
-  const struct fxdiv_result_size_t index_i_j =
-      fxdiv_divide_size_t(index_ij_kl.quotient, range_j);
-  const struct fxdiv_divisor_size_t range_l =
+  const struct pthreadpool_div_result index_i_j =
+      pthreadpool_divide_with_divisor(index_ij_kl.quotient, range_j);
+  const struct pthreadpool_divisor_size_t range_l =
       threadpool->params.parallelize_4d.range_l;
-  const struct fxdiv_result_size_t index_k_l =
-      fxdiv_divide_size_t(index_ij_kl.remainder, range_l);
+  const struct pthreadpool_div_result index_k_l =
+      pthreadpool_divide_with_divisor(index_ij_kl.remainder, range_l);
   size_t i = index_i_j.quotient;
   size_t j = index_i_j.remainder;
   size_t k = index_k_l.quotient;
@@ -1220,12 +1220,12 @@ PTHREADPOOL_INTERNAL PTHREADPOOL_NO_SANITIZE_FUNCTION void pthreadpool_thread_pa
                &other_thread->range_length) < range_threshold) {
       const size_t linear_index =
           pthreadpool_decrement_fetch_relaxed_size_t(&other_thread->range_end);
-      const struct fxdiv_result_size_t index_ij_kl =
-          fxdiv_divide_size_t(linear_index, range_kl);
-      const struct fxdiv_result_size_t index_i_j =
-          fxdiv_divide_size_t(index_ij_kl.quotient, range_j);
-      const struct fxdiv_result_size_t index_k_l =
-          fxdiv_divide_size_t(index_ij_kl.remainder, range_l);
+      const struct pthreadpool_div_result index_ij_kl =
+          pthreadpool_divide_with_divisor(linear_index, range_kl);
+      const struct pthreadpool_div_result index_i_j =
+          pthreadpool_divide_with_divisor(index_ij_kl.quotient, range_j);
+      const struct pthreadpool_div_result index_k_l =
+          pthreadpool_divide_with_divisor(index_ij_kl.remainder, range_l);
       task(argument, index_i_j.quotient, index_i_j.remainder,
            index_k_l.quotient, index_k_l.remainder);
     }
@@ -1251,18 +1251,18 @@ PTHREADPOOL_INTERNAL PTHREADPOOL_NO_SANITIZE_FUNCTION void pthreadpool_thread_pa
   /* Process thread's own range of items */
   const size_t range_start =
       pthreadpool_load_relaxed_size_t(&thread->range_start);
-  const struct fxdiv_divisor_size_t tile_range_kl =
+  const struct pthreadpool_divisor_size_t tile_range_kl =
       threadpool->params.parallelize_4d_tile_1d.tile_range_kl;
-  const struct fxdiv_result_size_t tile_index_ij_kl =
-      fxdiv_divide_size_t(range_start, tile_range_kl);
-  const struct fxdiv_divisor_size_t range_j =
+  const struct pthreadpool_div_result tile_index_ij_kl =
+      pthreadpool_divide_with_divisor(range_start, tile_range_kl);
+  const struct pthreadpool_divisor_size_t range_j =
       threadpool->params.parallelize_4d_tile_1d.range_j;
-  const struct fxdiv_result_size_t index_i_j =
-      fxdiv_divide_size_t(tile_index_ij_kl.quotient, range_j);
-  const struct fxdiv_divisor_size_t tile_range_l =
+  const struct pthreadpool_div_result index_i_j =
+      pthreadpool_divide_with_divisor(tile_index_ij_kl.quotient, range_j);
+  const struct pthreadpool_divisor_size_t tile_range_l =
       threadpool->params.parallelize_4d_tile_1d.tile_range_l;
-  const struct fxdiv_result_size_t tile_index_k_l =
-      fxdiv_divide_size_t(tile_index_ij_kl.remainder, tile_range_l);
+  const struct pthreadpool_div_result tile_index_k_l =
+      pthreadpool_divide_with_divisor(tile_index_ij_kl.remainder, tile_range_l);
   const size_t tile_l = threadpool->params.parallelize_4d_tile_1d.tile_l;
   size_t i = index_i_j.quotient;
   size_t j = index_i_j.remainder;
@@ -1297,12 +1297,12 @@ PTHREADPOOL_INTERNAL PTHREADPOOL_NO_SANITIZE_FUNCTION void pthreadpool_thread_pa
                &other_thread->range_length) < range_threshold) {
       const size_t linear_index =
           pthreadpool_decrement_fetch_relaxed_size_t(&other_thread->range_end);
-      const struct fxdiv_result_size_t tile_index_ij_kl =
-          fxdiv_divide_size_t(linear_index, tile_range_kl);
-      const struct fxdiv_result_size_t index_i_j =
-          fxdiv_divide_size_t(tile_index_ij_kl.quotient, range_j);
-      const struct fxdiv_result_size_t tile_index_k_l =
-          fxdiv_divide_size_t(tile_index_ij_kl.remainder, tile_range_l);
+      const struct pthreadpool_div_result tile_index_ij_kl =
+          pthreadpool_divide_with_divisor(linear_index, tile_range_kl);
+      const struct pthreadpool_div_result index_i_j =
+          pthreadpool_divide_with_divisor(tile_index_ij_kl.quotient, range_j);
+      const struct pthreadpool_div_result tile_index_k_l =
+          pthreadpool_divide_with_divisor(tile_index_ij_kl.remainder, tile_range_l);
       const size_t start_l = tile_index_k_l.remainder * tile_l;
       task(argument, index_i_j.quotient, index_i_j.remainder,
            tile_index_k_l.quotient, start_l, min(range_l - start_l, tile_l));
@@ -1329,18 +1329,18 @@ PTHREADPOOL_INTERNAL PTHREADPOOL_NO_SANITIZE_FUNCTION void pthreadpool_thread_pa
   /* Process thread's own range of items */
   const size_t range_start =
       pthreadpool_load_relaxed_size_t(&thread->range_start);
-  const struct fxdiv_divisor_size_t tile_range_kl =
+  const struct pthreadpool_divisor_size_t tile_range_kl =
       threadpool->params.parallelize_4d_tile_2d.tile_range_kl;
-  const struct fxdiv_result_size_t tile_index_ij_kl =
-      fxdiv_divide_size_t(range_start, tile_range_kl);
-  const struct fxdiv_divisor_size_t range_j =
+  const struct pthreadpool_div_result tile_index_ij_kl =
+      pthreadpool_divide_with_divisor(range_start, tile_range_kl);
+  const struct pthreadpool_divisor_size_t range_j =
       threadpool->params.parallelize_4d_tile_2d.range_j;
-  const struct fxdiv_result_size_t index_i_j =
-      fxdiv_divide_size_t(tile_index_ij_kl.quotient, range_j);
-  const struct fxdiv_divisor_size_t tile_range_l =
+  const struct pthreadpool_div_result index_i_j =
+      pthreadpool_divide_with_divisor(tile_index_ij_kl.quotient, range_j);
+  const struct pthreadpool_divisor_size_t tile_range_l =
       threadpool->params.parallelize_4d_tile_2d.tile_range_l;
-  const struct fxdiv_result_size_t tile_index_k_l =
-      fxdiv_divide_size_t(tile_index_ij_kl.remainder, tile_range_l);
+  const struct pthreadpool_div_result tile_index_k_l =
+      pthreadpool_divide_with_divisor(tile_index_ij_kl.remainder, tile_range_l);
   const size_t tile_k = threadpool->params.parallelize_4d_tile_2d.tile_k;
   const size_t tile_l = threadpool->params.parallelize_4d_tile_2d.tile_l;
   size_t i = index_i_j.quotient;
@@ -1378,12 +1378,12 @@ PTHREADPOOL_INTERNAL PTHREADPOOL_NO_SANITIZE_FUNCTION void pthreadpool_thread_pa
                &other_thread->range_length) < range_threshold) {
       const size_t linear_index =
           pthreadpool_decrement_fetch_relaxed_size_t(&other_thread->range_end);
-      const struct fxdiv_result_size_t tile_index_ij_kl =
-          fxdiv_divide_size_t(linear_index, tile_range_kl);
-      const struct fxdiv_result_size_t index_i_j =
-          fxdiv_divide_size_t(tile_index_ij_kl.quotient, range_j);
-      const struct fxdiv_result_size_t tile_index_k_l =
-          fxdiv_divide_size_t(tile_index_ij_kl.remainder, tile_range_l);
+      const struct pthreadpool_div_result tile_index_ij_kl =
+          pthreadpool_divide_with_divisor(linear_index, tile_range_kl);
+      const struct pthreadpool_div_result index_i_j =
+          pthreadpool_divide_with_divisor(tile_index_ij_kl.quotient, range_j);
+      const struct pthreadpool_div_result tile_index_k_l =
+          pthreadpool_divide_with_divisor(tile_index_ij_kl.remainder, tile_range_l);
       const size_t start_k = tile_index_k_l.quotient * tile_k;
       const size_t start_l = tile_index_k_l.remainder * tile_l;
       task(argument, index_i_j.quotient, index_i_j.remainder, start_k, start_l,
@@ -1423,18 +1423,18 @@ PTHREADPOOL_INTERNAL PTHREADPOOL_NO_SANITIZE_FUNCTION void pthreadpool_thread_pa
   /* Process thread's own range of items */
   const size_t range_start =
       pthreadpool_load_relaxed_size_t(&thread->range_start);
-  const struct fxdiv_divisor_size_t tile_range_kl =
+  const struct pthreadpool_divisor_size_t tile_range_kl =
       threadpool->params.parallelize_4d_tile_2d_with_uarch.tile_range_kl;
-  const struct fxdiv_result_size_t tile_index_ij_kl =
-      fxdiv_divide_size_t(range_start, tile_range_kl);
-  const struct fxdiv_divisor_size_t range_j =
+  const struct pthreadpool_div_result tile_index_ij_kl =
+      pthreadpool_divide_with_divisor(range_start, tile_range_kl);
+  const struct pthreadpool_divisor_size_t range_j =
       threadpool->params.parallelize_4d_tile_2d_with_uarch.range_j;
-  const struct fxdiv_result_size_t index_i_j =
-      fxdiv_divide_size_t(tile_index_ij_kl.quotient, range_j);
-  const struct fxdiv_divisor_size_t tile_range_l =
+  const struct pthreadpool_div_result index_i_j =
+      pthreadpool_divide_with_divisor(tile_index_ij_kl.quotient, range_j);
+  const struct pthreadpool_divisor_size_t tile_range_l =
       threadpool->params.parallelize_4d_tile_2d_with_uarch.tile_range_l;
-  const struct fxdiv_result_size_t tile_index_k_l =
-      fxdiv_divide_size_t(tile_index_ij_kl.remainder, tile_range_l);
+  const struct pthreadpool_div_result tile_index_k_l =
+      pthreadpool_divide_with_divisor(tile_index_ij_kl.remainder, tile_range_l);
   const size_t tile_k =
       threadpool->params.parallelize_4d_tile_2d_with_uarch.tile_k;
   const size_t tile_l =
@@ -1476,12 +1476,12 @@ PTHREADPOOL_INTERNAL PTHREADPOOL_NO_SANITIZE_FUNCTION void pthreadpool_thread_pa
                &other_thread->range_length) < range_threshold) {
       const size_t linear_index =
           pthreadpool_decrement_fetch_relaxed_size_t(&other_thread->range_end);
-      const struct fxdiv_result_size_t tile_index_ij_kl =
-          fxdiv_divide_size_t(linear_index, tile_range_kl);
-      const struct fxdiv_result_size_t index_i_j =
-          fxdiv_divide_size_t(tile_index_ij_kl.quotient, range_j);
-      const struct fxdiv_result_size_t tile_index_k_l =
-          fxdiv_divide_size_t(tile_index_ij_kl.remainder, tile_range_l);
+      const struct pthreadpool_div_result tile_index_ij_kl =
+          pthreadpool_divide_with_divisor(linear_index, tile_range_kl);
+      const struct pthreadpool_div_result index_i_j =
+          pthreadpool_divide_with_divisor(tile_index_ij_kl.quotient, range_j);
+      const struct pthreadpool_div_result tile_index_k_l =
+          pthreadpool_divide_with_divisor(tile_index_ij_kl.remainder, tile_range_l);
       const size_t start_k = tile_index_k_l.quotient * tile_k;
       const size_t start_l = tile_index_k_l.remainder * tile_l;
       task(argument, uarch_index, index_i_j.quotient, index_i_j.remainder,
@@ -1509,22 +1509,22 @@ PTHREADPOOL_INTERNAL PTHREADPOOL_NO_SANITIZE_FUNCTION void pthreadpool_thread_pa
   /* Process thread's own range of items */
   const size_t range_start =
       pthreadpool_load_relaxed_size_t(&thread->range_start);
-  const struct fxdiv_divisor_size_t range_lm =
+  const struct pthreadpool_divisor_size_t range_lm =
       threadpool->params.parallelize_5d.range_lm;
-  const struct fxdiv_result_size_t index_ijk_lm =
-      fxdiv_divide_size_t(range_start, range_lm);
-  const struct fxdiv_divisor_size_t range_k =
+  const struct pthreadpool_div_result index_ijk_lm =
+      pthreadpool_divide_with_divisor(range_start, range_lm);
+  const struct pthreadpool_divisor_size_t range_k =
       threadpool->params.parallelize_5d.range_k;
-  const struct fxdiv_result_size_t index_ij_k =
-      fxdiv_divide_size_t(index_ijk_lm.quotient, range_k);
-  const struct fxdiv_divisor_size_t range_m =
+  const struct pthreadpool_div_result index_ij_k =
+      pthreadpool_divide_with_divisor(index_ijk_lm.quotient, range_k);
+  const struct pthreadpool_divisor_size_t range_m =
       threadpool->params.parallelize_5d.range_m;
-  const struct fxdiv_result_size_t index_l_m =
-      fxdiv_divide_size_t(index_ijk_lm.remainder, range_m);
-  const struct fxdiv_divisor_size_t range_j =
+  const struct pthreadpool_div_result index_l_m =
+      pthreadpool_divide_with_divisor(index_ijk_lm.remainder, range_m);
+  const struct pthreadpool_divisor_size_t range_j =
       threadpool->params.parallelize_5d.range_j;
-  const struct fxdiv_result_size_t index_i_j =
-      fxdiv_divide_size_t(index_ij_k.quotient, range_j);
+  const struct pthreadpool_div_result index_i_j =
+      pthreadpool_divide_with_divisor(index_ij_k.quotient, range_j);
   size_t i = index_i_j.quotient;
   size_t j = index_i_j.remainder;
   size_t k = index_ij_k.remainder;
@@ -1560,14 +1560,14 @@ PTHREADPOOL_INTERNAL PTHREADPOOL_NO_SANITIZE_FUNCTION void pthreadpool_thread_pa
                &other_thread->range_length) < range_threshold) {
       const size_t linear_index =
           pthreadpool_decrement_fetch_relaxed_size_t(&other_thread->range_end);
-      const struct fxdiv_result_size_t index_ijk_lm =
-          fxdiv_divide_size_t(linear_index, range_lm);
-      const struct fxdiv_result_size_t index_ij_k =
-          fxdiv_divide_size_t(index_ijk_lm.quotient, range_k);
-      const struct fxdiv_result_size_t index_l_m =
-          fxdiv_divide_size_t(index_ijk_lm.remainder, range_m);
-      const struct fxdiv_result_size_t index_i_j =
-          fxdiv_divide_size_t(index_ij_k.quotient, range_j);
+      const struct pthreadpool_div_result index_ijk_lm =
+          pthreadpool_divide_with_divisor(linear_index, range_lm);
+      const struct pthreadpool_div_result index_ij_k =
+          pthreadpool_divide_with_divisor(index_ijk_lm.quotient, range_k);
+      const struct pthreadpool_div_result index_l_m =
+          pthreadpool_divide_with_divisor(index_ijk_lm.remainder, range_m);
+      const struct pthreadpool_div_result index_i_j =
+          pthreadpool_divide_with_divisor(index_ij_k.quotient, range_j);
       task(argument, index_i_j.quotient, index_i_j.remainder,
            index_ij_k.remainder, index_l_m.quotient, index_l_m.remainder);
     }
@@ -1593,22 +1593,22 @@ PTHREADPOOL_INTERNAL PTHREADPOOL_NO_SANITIZE_FUNCTION void pthreadpool_thread_pa
   /* Process thread's own range of items */
   const size_t range_start =
       pthreadpool_load_relaxed_size_t(&thread->range_start);
-  const struct fxdiv_divisor_size_t tile_range_m =
+  const struct pthreadpool_divisor_size_t tile_range_m =
       threadpool->params.parallelize_5d_tile_1d.tile_range_m;
-  const struct fxdiv_result_size_t tile_index_ijkl_m =
-      fxdiv_divide_size_t(range_start, tile_range_m);
-  const struct fxdiv_divisor_size_t range_kl =
+  const struct pthreadpool_div_result tile_index_ijkl_m =
+      pthreadpool_divide_with_divisor(range_start, tile_range_m);
+  const struct pthreadpool_divisor_size_t range_kl =
       threadpool->params.parallelize_5d_tile_1d.range_kl;
-  const struct fxdiv_result_size_t index_ij_kl =
-      fxdiv_divide_size_t(tile_index_ijkl_m.quotient, range_kl);
-  const struct fxdiv_divisor_size_t range_j =
+  const struct pthreadpool_div_result index_ij_kl =
+      pthreadpool_divide_with_divisor(tile_index_ijkl_m.quotient, range_kl);
+  const struct pthreadpool_divisor_size_t range_j =
       threadpool->params.parallelize_5d_tile_1d.range_j;
-  const struct fxdiv_result_size_t index_i_j =
-      fxdiv_divide_size_t(index_ij_kl.quotient, range_j);
-  const struct fxdiv_divisor_size_t range_l =
+  const struct pthreadpool_div_result index_i_j =
+      pthreadpool_divide_with_divisor(index_ij_kl.quotient, range_j);
+  const struct pthreadpool_divisor_size_t range_l =
       threadpool->params.parallelize_5d_tile_1d.range_l;
-  const struct fxdiv_result_size_t index_k_l =
-      fxdiv_divide_size_t(index_ij_kl.remainder, range_l);
+  const struct pthreadpool_div_result index_k_l =
+      pthreadpool_divide_with_divisor(index_ij_kl.remainder, range_l);
   const size_t tile_m = threadpool->params.parallelize_5d_tile_1d.tile_m;
   size_t i = index_i_j.quotient;
   size_t j = index_i_j.remainder;
@@ -1647,14 +1647,14 @@ PTHREADPOOL_INTERNAL PTHREADPOOL_NO_SANITIZE_FUNCTION void pthreadpool_thread_pa
                &other_thread->range_length) < range_threshold) {
       const size_t linear_index =
           pthreadpool_decrement_fetch_relaxed_size_t(&other_thread->range_end);
-      const struct fxdiv_result_size_t tile_index_ijkl_m =
-          fxdiv_divide_size_t(linear_index, tile_range_m);
-      const struct fxdiv_result_size_t index_ij_kl =
-          fxdiv_divide_size_t(tile_index_ijkl_m.quotient, range_kl);
-      const struct fxdiv_result_size_t index_i_j =
-          fxdiv_divide_size_t(index_ij_kl.quotient, range_j);
-      const struct fxdiv_result_size_t index_k_l =
-          fxdiv_divide_size_t(index_ij_kl.remainder, range_l);
+      const struct pthreadpool_div_result tile_index_ijkl_m =
+          pthreadpool_divide_with_divisor(linear_index, tile_range_m);
+      const struct pthreadpool_div_result index_ij_kl =
+          pthreadpool_divide_with_divisor(tile_index_ijkl_m.quotient, range_kl);
+      const struct pthreadpool_div_result index_i_j =
+          pthreadpool_divide_with_divisor(index_ij_kl.quotient, range_j);
+      const struct pthreadpool_div_result index_k_l =
+          pthreadpool_divide_with_divisor(index_ij_kl.remainder, range_l);
       size_t start_m = tile_index_ijkl_m.remainder * tile_m;
       task(argument, index_i_j.quotient, index_i_j.remainder,
            index_k_l.quotient, index_k_l.remainder, start_m,
@@ -1682,22 +1682,22 @@ PTHREADPOOL_INTERNAL PTHREADPOOL_NO_SANITIZE_FUNCTION void pthreadpool_thread_pa
   /* Process thread's own range of items */
   const size_t range_start =
       pthreadpool_load_relaxed_size_t(&thread->range_start);
-  const struct fxdiv_divisor_size_t tile_range_lm =
+  const struct pthreadpool_divisor_size_t tile_range_lm =
       threadpool->params.parallelize_5d_tile_2d.tile_range_lm;
-  const struct fxdiv_result_size_t tile_index_ijk_lm =
-      fxdiv_divide_size_t(range_start, tile_range_lm);
-  const struct fxdiv_divisor_size_t range_k =
+  const struct pthreadpool_div_result tile_index_ijk_lm =
+      pthreadpool_divide_with_divisor(range_start, tile_range_lm);
+  const struct pthreadpool_divisor_size_t range_k =
       threadpool->params.parallelize_5d_tile_2d.range_k;
-  const struct fxdiv_result_size_t index_ij_k =
-      fxdiv_divide_size_t(tile_index_ijk_lm.quotient, range_k);
-  const struct fxdiv_divisor_size_t tile_range_m =
+  const struct pthreadpool_div_result index_ij_k =
+      pthreadpool_divide_with_divisor(tile_index_ijk_lm.quotient, range_k);
+  const struct pthreadpool_divisor_size_t tile_range_m =
       threadpool->params.parallelize_5d_tile_2d.tile_range_m;
-  const struct fxdiv_result_size_t tile_index_l_m =
-      fxdiv_divide_size_t(tile_index_ijk_lm.remainder, tile_range_m);
-  const struct fxdiv_divisor_size_t range_j =
+  const struct pthreadpool_div_result tile_index_l_m =
+      pthreadpool_divide_with_divisor(tile_index_ijk_lm.remainder, tile_range_m);
+  const struct pthreadpool_divisor_size_t range_j =
       threadpool->params.parallelize_5d_tile_2d.range_j;
-  const struct fxdiv_result_size_t index_i_j =
-      fxdiv_divide_size_t(index_ij_k.quotient, range_j);
+  const struct pthreadpool_div_result index_i_j =
+      pthreadpool_divide_with_divisor(index_ij_k.quotient, range_j);
   const size_t tile_l = threadpool->params.parallelize_5d_tile_2d.tile_l;
   const size_t tile_m = threadpool->params.parallelize_5d_tile_2d.tile_m;
   size_t i = index_i_j.quotient;
@@ -1739,14 +1739,14 @@ PTHREADPOOL_INTERNAL PTHREADPOOL_NO_SANITIZE_FUNCTION void pthreadpool_thread_pa
                &other_thread->range_length) < range_threshold) {
       const size_t linear_index =
           pthreadpool_decrement_fetch_relaxed_size_t(&other_thread->range_end);
-      const struct fxdiv_result_size_t tile_index_ijk_lm =
-          fxdiv_divide_size_t(linear_index, tile_range_lm);
-      const struct fxdiv_result_size_t index_ij_k =
-          fxdiv_divide_size_t(tile_index_ijk_lm.quotient, range_k);
-      const struct fxdiv_result_size_t tile_index_l_m =
-          fxdiv_divide_size_t(tile_index_ijk_lm.remainder, tile_range_m);
-      const struct fxdiv_result_size_t index_i_j =
-          fxdiv_divide_size_t(index_ij_k.quotient, range_j);
+      const struct pthreadpool_div_result tile_index_ijk_lm =
+          pthreadpool_divide_with_divisor(linear_index, tile_range_lm);
+      const struct pthreadpool_div_result index_ij_k =
+          pthreadpool_divide_with_divisor(tile_index_ijk_lm.quotient, range_k);
+      const struct pthreadpool_div_result tile_index_l_m =
+          pthreadpool_divide_with_divisor(tile_index_ijk_lm.remainder, tile_range_m);
+      const struct pthreadpool_div_result index_i_j =
+          pthreadpool_divide_with_divisor(index_ij_k.quotient, range_j);
       const size_t start_l = tile_index_l_m.quotient * tile_l;
       const size_t start_m = tile_index_l_m.remainder * tile_m;
       task(argument, index_i_j.quotient, index_i_j.remainder,
@@ -1774,26 +1774,26 @@ PTHREADPOOL_INTERNAL PTHREADPOOL_NO_SANITIZE_FUNCTION void pthreadpool_thread_pa
   /* Process thread's own range of items */
   const size_t range_start =
       pthreadpool_load_relaxed_size_t(&thread->range_start);
-  const struct fxdiv_divisor_size_t range_lmn =
+  const struct pthreadpool_divisor_size_t range_lmn =
       threadpool->params.parallelize_6d.range_lmn;
-  const struct fxdiv_result_size_t index_ijk_lmn =
-      fxdiv_divide_size_t(range_start, range_lmn);
-  const struct fxdiv_divisor_size_t range_k =
+  const struct pthreadpool_div_result index_ijk_lmn =
+      pthreadpool_divide_with_divisor(range_start, range_lmn);
+  const struct pthreadpool_divisor_size_t range_k =
       threadpool->params.parallelize_6d.range_k;
-  const struct fxdiv_result_size_t index_ij_k =
-      fxdiv_divide_size_t(index_ijk_lmn.quotient, range_k);
-  const struct fxdiv_divisor_size_t range_n =
+  const struct pthreadpool_div_result index_ij_k =
+      pthreadpool_divide_with_divisor(index_ijk_lmn.quotient, range_k);
+  const struct pthreadpool_divisor_size_t range_n =
       threadpool->params.parallelize_6d.range_n;
-  const struct fxdiv_result_size_t index_lm_n =
-      fxdiv_divide_size_t(index_ijk_lmn.remainder, range_n);
-  const struct fxdiv_divisor_size_t range_j =
+  const struct pthreadpool_div_result index_lm_n =
+      pthreadpool_divide_with_divisor(index_ijk_lmn.remainder, range_n);
+  const struct pthreadpool_divisor_size_t range_j =
       threadpool->params.parallelize_6d.range_j;
-  const struct fxdiv_result_size_t index_i_j =
-      fxdiv_divide_size_t(index_ij_k.quotient, range_j);
-  const struct fxdiv_divisor_size_t range_m =
+  const struct pthreadpool_div_result index_i_j =
+      pthreadpool_divide_with_divisor(index_ij_k.quotient, range_j);
+  const struct pthreadpool_divisor_size_t range_m =
       threadpool->params.parallelize_6d.range_m;
-  const struct fxdiv_result_size_t index_l_m =
-      fxdiv_divide_size_t(index_lm_n.quotient, range_m);
+  const struct pthreadpool_div_result index_l_m =
+      pthreadpool_divide_with_divisor(index_lm_n.quotient, range_m);
   size_t i = index_i_j.quotient;
   size_t j = index_i_j.remainder;
   size_t k = index_ij_k.remainder;
@@ -1833,16 +1833,16 @@ PTHREADPOOL_INTERNAL PTHREADPOOL_NO_SANITIZE_FUNCTION void pthreadpool_thread_pa
                &other_thread->range_length) < range_threshold) {
       const size_t linear_index =
           pthreadpool_decrement_fetch_relaxed_size_t(&other_thread->range_end);
-      const struct fxdiv_result_size_t index_ijk_lmn =
-          fxdiv_divide_size_t(linear_index, range_lmn);
-      const struct fxdiv_result_size_t index_ij_k =
-          fxdiv_divide_size_t(index_ijk_lmn.quotient, range_k);
-      const struct fxdiv_result_size_t index_lm_n =
-          fxdiv_divide_size_t(index_ijk_lmn.remainder, range_n);
-      const struct fxdiv_result_size_t index_i_j =
-          fxdiv_divide_size_t(index_ij_k.quotient, range_j);
-      const struct fxdiv_result_size_t index_l_m =
-          fxdiv_divide_size_t(index_lm_n.quotient, range_m);
+      const struct pthreadpool_div_result index_ijk_lmn =
+          pthreadpool_divide_with_divisor(linear_index, range_lmn);
+      const struct pthreadpool_div_result index_ij_k =
+          pthreadpool_divide_with_divisor(index_ijk_lmn.quotient, range_k);
+      const struct pthreadpool_div_result index_lm_n =
+          pthreadpool_divide_with_divisor(index_ijk_lmn.remainder, range_n);
+      const struct pthreadpool_div_result index_i_j =
+          pthreadpool_divide_with_divisor(index_ij_k.quotient, range_j);
+      const struct pthreadpool_div_result index_l_m =
+          pthreadpool_divide_with_divisor(index_lm_n.quotient, range_m);
       task(argument, index_i_j.quotient, index_i_j.remainder,
            index_ij_k.remainder, index_l_m.quotient, index_l_m.remainder,
            index_lm_n.remainder);
@@ -1869,26 +1869,26 @@ PTHREADPOOL_INTERNAL PTHREADPOOL_NO_SANITIZE_FUNCTION void pthreadpool_thread_pa
   /* Process thread's own range of items */
   const size_t range_start =
       pthreadpool_load_relaxed_size_t(&thread->range_start);
-  const struct fxdiv_divisor_size_t tile_range_lmn =
+  const struct pthreadpool_divisor_size_t tile_range_lmn =
       threadpool->params.parallelize_6d_tile_1d.tile_range_lmn;
-  const struct fxdiv_result_size_t tile_index_ijk_lmn =
-      fxdiv_divide_size_t(range_start, tile_range_lmn);
-  const struct fxdiv_divisor_size_t range_k =
+  const struct pthreadpool_div_result tile_index_ijk_lmn =
+      pthreadpool_divide_with_divisor(range_start, tile_range_lmn);
+  const struct pthreadpool_divisor_size_t range_k =
       threadpool->params.parallelize_6d_tile_1d.range_k;
-  const struct fxdiv_result_size_t index_ij_k =
-      fxdiv_divide_size_t(tile_index_ijk_lmn.quotient, range_k);
-  const struct fxdiv_divisor_size_t tile_range_n =
+  const struct pthreadpool_div_result index_ij_k =
+      pthreadpool_divide_with_divisor(tile_index_ijk_lmn.quotient, range_k);
+  const struct pthreadpool_divisor_size_t tile_range_n =
       threadpool->params.parallelize_6d_tile_1d.tile_range_n;
-  const struct fxdiv_result_size_t tile_index_lm_n =
-      fxdiv_divide_size_t(tile_index_ijk_lmn.remainder, tile_range_n);
-  const struct fxdiv_divisor_size_t range_j =
+  const struct pthreadpool_div_result tile_index_lm_n =
+      pthreadpool_divide_with_divisor(tile_index_ijk_lmn.remainder, tile_range_n);
+  const struct pthreadpool_divisor_size_t range_j =
       threadpool->params.parallelize_6d_tile_1d.range_j;
-  const struct fxdiv_result_size_t index_i_j =
-      fxdiv_divide_size_t(index_ij_k.quotient, range_j);
-  const struct fxdiv_divisor_size_t range_m =
+  const struct pthreadpool_div_result index_i_j =
+      pthreadpool_divide_with_divisor(index_ij_k.quotient, range_j);
+  const struct pthreadpool_divisor_size_t range_m =
       threadpool->params.parallelize_6d_tile_1d.range_m;
-  const struct fxdiv_result_size_t index_l_m =
-      fxdiv_divide_size_t(tile_index_lm_n.quotient, range_m);
+  const struct pthreadpool_div_result index_l_m =
+      pthreadpool_divide_with_divisor(tile_index_lm_n.quotient, range_m);
   const size_t tile_n = threadpool->params.parallelize_6d_tile_1d.tile_n;
   size_t i = index_i_j.quotient;
   size_t j = index_i_j.remainder;
@@ -1931,16 +1931,16 @@ PTHREADPOOL_INTERNAL PTHREADPOOL_NO_SANITIZE_FUNCTION void pthreadpool_thread_pa
                &other_thread->range_length) < range_threshold) {
       const size_t linear_index =
           pthreadpool_decrement_fetch_relaxed_size_t(&other_thread->range_end);
-      const struct fxdiv_result_size_t tile_index_ijk_lmn =
-          fxdiv_divide_size_t(linear_index, tile_range_lmn);
-      const struct fxdiv_result_size_t index_ij_k =
-          fxdiv_divide_size_t(tile_index_ijk_lmn.quotient, range_k);
-      const struct fxdiv_result_size_t tile_index_lm_n =
-          fxdiv_divide_size_t(tile_index_ijk_lmn.remainder, tile_range_n);
-      const struct fxdiv_result_size_t index_i_j =
-          fxdiv_divide_size_t(index_ij_k.quotient, range_j);
-      const struct fxdiv_result_size_t index_l_m =
-          fxdiv_divide_size_t(tile_index_lm_n.quotient, range_m);
+      const struct pthreadpool_div_result tile_index_ijk_lmn =
+          pthreadpool_divide_with_divisor(linear_index, tile_range_lmn);
+      const struct pthreadpool_div_result index_ij_k =
+          pthreadpool_divide_with_divisor(tile_index_ijk_lmn.quotient, range_k);
+      const struct pthreadpool_div_result tile_index_lm_n =
+          pthreadpool_divide_with_divisor(tile_index_ijk_lmn.remainder, tile_range_n);
+      const struct pthreadpool_div_result index_i_j =
+          pthreadpool_divide_with_divisor(index_ij_k.quotient, range_j);
+      const struct pthreadpool_div_result index_l_m =
+          pthreadpool_divide_with_divisor(tile_index_lm_n.quotient, range_m);
       const size_t start_n = tile_index_lm_n.remainder * tile_n;
       task(argument, index_i_j.quotient, index_i_j.remainder,
            index_ij_k.remainder, index_l_m.quotient, index_l_m.remainder,
@@ -1968,26 +1968,26 @@ PTHREADPOOL_INTERNAL PTHREADPOOL_NO_SANITIZE_FUNCTION void pthreadpool_thread_pa
   /* Process thread's own range of items */
   const size_t range_start =
       pthreadpool_load_relaxed_size_t(&thread->range_start);
-  const struct fxdiv_divisor_size_t tile_range_mn =
+  const struct pthreadpool_divisor_size_t tile_range_mn =
       threadpool->params.parallelize_6d_tile_2d.tile_range_mn;
-  const struct fxdiv_result_size_t tile_index_ijkl_mn =
-      fxdiv_divide_size_t(range_start, tile_range_mn);
-  const struct fxdiv_divisor_size_t range_kl =
+  const struct pthreadpool_div_result tile_index_ijkl_mn =
+      pthreadpool_divide_with_divisor(range_start, tile_range_mn);
+  const struct pthreadpool_divisor_size_t range_kl =
       threadpool->params.parallelize_6d_tile_2d.range_kl;
-  const struct fxdiv_result_size_t index_ij_kl =
-      fxdiv_divide_size_t(tile_index_ijkl_mn.quotient, range_kl);
-  const struct fxdiv_divisor_size_t tile_range_n =
+  const struct pthreadpool_div_result index_ij_kl =
+      pthreadpool_divide_with_divisor(tile_index_ijkl_mn.quotient, range_kl);
+  const struct pthreadpool_divisor_size_t tile_range_n =
       threadpool->params.parallelize_6d_tile_2d.tile_range_n;
-  const struct fxdiv_result_size_t tile_index_m_n =
-      fxdiv_divide_size_t(tile_index_ijkl_mn.remainder, tile_range_n);
-  const struct fxdiv_divisor_size_t range_j =
+  const struct pthreadpool_div_result tile_index_m_n =
+      pthreadpool_divide_with_divisor(tile_index_ijkl_mn.remainder, tile_range_n);
+  const struct pthreadpool_divisor_size_t range_j =
       threadpool->params.parallelize_6d_tile_2d.range_j;
-  const struct fxdiv_result_size_t index_i_j =
-      fxdiv_divide_size_t(index_ij_kl.quotient, range_j);
-  const struct fxdiv_divisor_size_t range_l =
+  const struct pthreadpool_div_result index_i_j =
+      pthreadpool_divide_with_divisor(index_ij_kl.quotient, range_j);
+  const struct pthreadpool_divisor_size_t range_l =
       threadpool->params.parallelize_6d_tile_2d.range_l;
-  const struct fxdiv_result_size_t index_k_l =
-      fxdiv_divide_size_t(index_ij_kl.remainder, range_l);
+  const struct pthreadpool_div_result index_k_l =
+      pthreadpool_divide_with_divisor(index_ij_kl.remainder, range_l);
   const size_t tile_m = threadpool->params.parallelize_6d_tile_2d.tile_m;
   const size_t tile_n = threadpool->params.parallelize_6d_tile_2d.tile_n;
   size_t i = index_i_j.quotient;
@@ -2034,16 +2034,16 @@ PTHREADPOOL_INTERNAL PTHREADPOOL_NO_SANITIZE_FUNCTION void pthreadpool_thread_pa
                &other_thread->range_length) < range_threshold) {
       const size_t linear_index =
           pthreadpool_decrement_fetch_relaxed_size_t(&other_thread->range_end);
-      const struct fxdiv_result_size_t tile_index_ijkl_mn =
-          fxdiv_divide_size_t(linear_index, tile_range_mn);
-      const struct fxdiv_result_size_t index_ij_kl =
-          fxdiv_divide_size_t(tile_index_ijkl_mn.quotient, range_kl);
-      const struct fxdiv_result_size_t tile_index_m_n =
-          fxdiv_divide_size_t(tile_index_ijkl_mn.remainder, tile_range_n);
-      const struct fxdiv_result_size_t index_i_j =
-          fxdiv_divide_size_t(index_ij_kl.quotient, range_j);
-      const struct fxdiv_result_size_t index_k_l =
-          fxdiv_divide_size_t(index_ij_kl.remainder, range_l);
+      const struct pthreadpool_div_result tile_index_ijkl_mn =
+          pthreadpool_divide_with_divisor(linear_index, tile_range_mn);
+      const struct pthreadpool_div_result index_ij_kl =
+          pthreadpool_divide_with_divisor(tile_index_ijkl_mn.quotient, range_kl);
+      const struct pthreadpool_div_result tile_index_m_n =
+          pthreadpool_divide_with_divisor(tile_index_ijkl_mn.remainder, tile_range_n);
+      const struct pthreadpool_div_result index_i_j =
+          pthreadpool_divide_with_divisor(index_ij_kl.quotient, range_j);
+      const struct pthreadpool_div_result index_k_l =
+          pthreadpool_divide_with_divisor(index_ij_kl.remainder, range_l);
       const size_t start_m = tile_index_m_n.quotient * tile_m;
       const size_t start_n = tile_index_m_n.remainder * tile_n;
       task(argument, index_i_j.quotient, index_i_j.remainder,
