@@ -22,7 +22,7 @@
 #include <string.h>
 
 /* Configuration header */
-#include <fxdiv.h>
+#include "threadpool-utils.h"
 #include "threadpool-common.h"
 
 /* POSIX headers */
@@ -695,8 +695,8 @@ PTHREADPOOL_INTERNAL void pthreadpool_parallelize(
                         (uint32_t)threadpool->job_id, num_threads);
 
   /* Populate a `thread_info` struct for each thread */
-  const struct fxdiv_result_size_t range_params =
-      fxdiv_divide_size_t(linear_range, fxdiv_init_size_t(num_threads));
+  const struct pthreadpool_div_result range_params =
+      pthreadpool_divide_with_divisor(linear_range, pthreadpool_init_divisor(num_threads));
   size_t range_start = 0;
   for (size_t tid = 0; tid < num_threads; tid++) {
     struct thread_info* thread = &threadpool->threads[tid];
