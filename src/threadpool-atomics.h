@@ -95,6 +95,59 @@ static inline void pthreadpool_thread_join(
   pthread_join(thread, return_value);
 }
 #else
+#if defined(_WIN32) && (!defined(PTHREADPOOL_USE_PTHREADS) || PTHREADPOOL_USE_PTHREADS == 0)
+#include <windows.h>
+#include <process.h>
+typedef HANDLE pthreadpool_thread_t;
+typedef mtx_t pthreadpool_mutex_t;
+typedef cnd_t pthreadpool_cond_t;
+typedef int pthreadpool_thread_return_t;
+static inline void pthreadpool_mutex_init(pthreadpool_mutex_t* mutex) {
+  mtx_init(mutex, mtx_plain);
+}
+static inline void pthreadpool_mutex_destroy(pthreadpool_mutex_t* mutex) {
+  mtx_destroy(mutex);
+}
+static inline void pthreadpool_mutex_lock(pthreadpool_mutex_t* mutex) {
+  mtx_lock(mutex);
+}
+static inline void pthreadpool_mutex_unlock(pthreadpool_mutex_t* mutex) {
+  mtx_unlock(mutex);
+}
+static inline void pthreadpool_cond_init(pthreadpool_cond_t* cond) {
+  cnd_init(cond);
+}
+static inline void pthreadpool_cond_destroy(pthreadpool_cond_t* cond) {
+  cnd_destroy(cond);
+}
+static inline void pthreadpool_cond_wait(pthreadpool_cond_t* cond,
+                                         pthreadpool_mutex_t* mutex) {
+  cnd_wait(cond, mutex);
+}
+static inline void pthreadpool_cond_signal(pthreadpool_cond_t* cond) {
+  cnd_signal(cond);
+}
+static inline void pthreadpool_cond_broadcast(pthreadpool_cond_t* cond) {
+  cnd_broadcast(cond);
+}
+static inline void pthreadpool_thread_create(
+    pthreadpool_thread_t* thread, pthreadpool_thread_return_t(fun)(void*),
+    void* arg) {
+  unsigned thread_id;
+  /* Request an 8MB stack on Windows to prevent STATUS_STACK_BUFFER_OVERRUN */
+  *thread = (HANDLE)_beginthreadex(NULL, 8 * 1024 * 1024, (unsigned (__stdcall*)(void*))fun, arg, 0x00010000 /* STACK_SIZE_PARAM_IS_A_RESERVATION */, &thread_id);
+}
+static inline void pthreadpool_thread_join(
+    pthreadpool_thread_t thread, pthreadpool_thread_return_t* return_value) {
+  WaitForSingleObject(thread, INFINITE);
+  if (return_value) {
+    DWORD exit_code;
+    GetExitCodeThread(thread, &exit_code);
+    *return_value = (int)exit_code;
+  }
+  CloseHandle(thread);
+}
+#else
 typedef thrd_t pthreadpool_thread_t;
 typedef mtx_t pthreadpool_mutex_t;
 typedef cnd_t pthreadpool_cond_t;
@@ -136,6 +189,7 @@ static inline void pthreadpool_thread_join(
     pthreadpool_thread_t thread, pthreadpool_thread_return_t* return_value) {
   thrd_join(thread, return_value);
 }
+#endif
 #endif  // PTHREADPOOL_USE_PTHREADS
 
 /* Align the atomic values on the size of a cache line to avoid false sharing,
