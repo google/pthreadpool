@@ -10830,15 +10830,31 @@ TEST(Parallelize6DTile2D, MultiThreadPoolWorkStealing) {
 
 struct CheckThreadIDData {
   CheckThreadIDData(size_t num_threads) : num_threads(num_threads) {}
-  size_t num_threads;
+  const size_t num_threads;
   std::set<size_t> thread_ids;
 };
 
 static void CheckThreadID(CheckThreadIDData* data, size_t thread_id, size_t) {
-  static std::mutex mutex;                  // NOLINT(build/c++11)
-  std::lock_guard<std::mutex> lock(mutex);  // NOLINT(build/c++11)
+  static std::mutex mutex;  // NOLINT(build/c++11)
+  static std::condition_variable cond_var;
+  std::unique_lock<std::mutex> lock(mutex);  // NOLINT(build/c++11)
+
+  // Make sure we have a valit `thread_id`.
+  ASSERT_LT(thread_id, data->num_threads);
+
+  // Make sure this thread is here for the first time.
+  ASSERT_FALSE(data->thread_ids.contains(thread_id));
   data->thread_ids.insert(thread_id);
-  ASSERT_LE(data->thread_ids.size(), data->num_threads);
+
+  // Wait until everyone has arrived before returning to avoid work-stealing.
+  if (data->thread_ids.size() == data->num_threads) {
+    cond_var.notify_all();
+  } else {
+    /* Wait until all items are computed */
+    while (data->thread_ids.size() < data->num_threads) {
+      cond_var.wait(lock);
+    }
+  }
 }
 
 TEST(SetNumThreads, ValidRange) {
@@ -10871,7 +10887,7 @@ TEST(SetNumThreads, ValidRange) {
     pthreadpool_parallelize_1d_with_thread(
         threadpool.get(),
         reinterpret_cast<pthreadpool_task_1d_with_thread_t>(CheckThreadID),
-        (void*)&data, kParallelize1DRange, /*flags=*/0);
+        (void*)&data, num_threads, /*flags=*/0);
   }
 }
 
@@ -10907,7 +10923,7 @@ TEST(SetNumThreads, Maximum) {
     pthreadpool_parallelize_1d_with_thread(
         threadpool.get(),
         reinterpret_cast<pthreadpool_task_1d_with_thread_t>(CheckThreadID),
-        (void*)&data1, kParallelize1DRange, /*flags=*/0);
+        (void*)&data1, num_threads, /*flags=*/0);
 
     // Set the maximum of threads ((kNumThreadpoolThreads + 1)).
     ASSERT_EQ(pthreadpool_set_threads_count(threadpool.get(), 0),
@@ -10919,7 +10935,7 @@ TEST(SetNumThreads, Maximum) {
     pthreadpool_parallelize_1d_with_thread(
         threadpool.get(),
         reinterpret_cast<pthreadpool_task_1d_with_thread_t>(CheckThreadID),
-        (void*)&data2, kParallelize1DRange, /*flags=*/0);
+        (void*)&data2, max_num_threads, /*flags=*/0);
   }
 }
 
@@ -10950,7 +10966,7 @@ TEST(SetNumThreads, TooHigh) {
     pthreadpool_parallelize_1d_with_thread(
         threadpool.get(),
         reinterpret_cast<pthreadpool_task_1d_with_thread_t>(CheckThreadID),
-        (void*)&data, kParallelize1DRange, /*flags=*/0);
+        (void*)&data, max_num_threads, /*flags=*/0);
   }
 }
 
